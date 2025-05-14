@@ -1,0 +1,30 @@
+@import '@st/variables';
+@import '@st/functions';
+@import '@st/mixins';
+
+.block__textarea {
+	width: adapt(734px, 1440px);
+	height: adapt(107px, 1440px);
+	padding: adapt(11px, 1440px) adapt(12px, 1440px);
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	border: 1px solid rgba($color: $color_black, $alpha: 0.12);
+	border-radius: adapt(8px, 1440px);
+}
+
+.description {
+	font-size: 0.75rem;
+	color: rgba($color: $color_black, $alpha: 0.6);
+	align-self: flex-end;
+}
+
+.textarea {
+	resize: none;
+	font-family: 'Rubik', serif;
+	width: adapt(709px, 1440px);
+	height: adapt(60px, 1440px);
+	outline: none;
+
+	@include scrollbar();
+}

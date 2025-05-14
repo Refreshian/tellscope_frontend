@@ -1,0 +1,23 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.block__option {
+	display: flex;
+	align-items: center;
+	gap: adapt(8px, 1440px);
+
+	> .check {
+		border-radius: 2px;
+		border: none;
+		width: adapt(14px, 1440px);
+		height: adapt(14px, 1440px);
+		background-color: $color_twelve;
+	}
+
+	> .option,
+	.check {
+		&:hover {
+			cursor: pointer;
+		}
+	}
+}

@@ -1,0 +1,26 @@
+@import '@st/variables';
+@import '@st/functions';
+@import '@st/mixins';
+
+.wrapper_param {
+	position: relative;
+	width: adapt(220px, 1440px);
+
+	> .block__param {
+		@include settings-for-search(adapt(220px, 1440px));
+	}
+
+	> .block__options {
+		width: 100%;
+		box-shadow: 0px 4px 10px rgba($color: $color_full_black, $alpha: 0.1);
+		border: 1px solid rgba($color: $color_black, $alpha: 0.08);
+		border-radius: adapt(8px, 1440px);
+		padding: adapt(16px, 1440px);
+		display: flex;
+		flex-direction: column;
+		gap: adapt(8px, 1440px);
+		position: absolute;
+		top: 115%;
+		background-color: $color_white;
+	}
+}

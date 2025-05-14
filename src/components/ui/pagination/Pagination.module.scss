@@ -1,0 +1,42 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.pagination {
+	width: adapt(220px, 1440px);
+	height: adapt(16px, 1440px);
+	display: flex;
+	align-items: center;
+	gap: adapt(21px, 1440px);
+	font-size: 0.77rem;
+	position: absolute;
+	bottom: 0;
+	left: 35%;
+}
+
+.arrow {
+	background-color: transparent;
+
+	&:hover {
+		cursor: pointer;
+	}
+
+	&:disabled {
+		cursor: default;
+	}
+}
+
+.page {
+	background-color: transparent;
+
+	&:hover {
+		cursor: pointer;
+	}
+
+	&:disabled {
+		cursor: default;
+	}
+}
+
+.active {
+	color: rgba($color: $color_black, $alpha: 0.6);
+}

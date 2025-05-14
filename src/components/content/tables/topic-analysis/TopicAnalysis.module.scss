@@ -1,0 +1,26 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.block__table {
+	height: 88%;
+	width: 100%;
+	display: flex;
+	gap: adapt(10px, 1440px);
+
+	> .block__categories {
+		display: flex;
+		flex-direction: column;
+		gap: adapt(20px, 1440px);
+
+		> button {
+			background-color: $color_white;
+			padding: adapt(10px, 1440px);
+			border-radius: adapt(10px, 1440px);
+
+			&:hover {
+				cursor: pointer;
+				border: 2px solid $color_blue;
+			}
+		}
+	}
+}

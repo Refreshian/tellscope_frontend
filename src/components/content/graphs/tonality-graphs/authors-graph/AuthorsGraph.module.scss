@@ -1,0 +1,7 @@
+@import '@st/variables';
+@import '@st/functions';
+@import '@st/mixins';
+
+.block__sources {
+	@include block__sources();
+}

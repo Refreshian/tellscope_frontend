@@ -1,0 +1,167 @@
+@import '@st/functions.scss';
+@import '@st/variables.scss';
+@import '@st/mixins.scss';
+
+.calendar {
+	font-size: 0.8rem;
+}
+
+.calendar-header {
+	display: flex;
+	gap: adapt(8px, 1440px);
+	align-items: center;
+	margin-bottom: adapt(16px, 1440px);
+
+	&__month {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		border: 1px solid $color_blue;
+		color: $color_blue;
+		padding: adapt(6px, 1440px) adapt(8px, 1440px);
+		width: adapt(138px, 1920px);
+		gap: adapt(10px, 1440px);
+		border-radius: adapt(4px, 1440px);
+		background-color: $color_white;
+
+		> .calendar-header__block-buttons {
+			width: adapt(18px, 1440px);
+			height: adapt(18px, 1440px);
+			position: relative;
+			background-image: url('/images/icons/arrows_calendar.png');
+			background-repeat: no-repeat;
+			background-size: cover;
+
+			> button {
+				position: absolute;
+				top: 0;
+				background-color: transparent;
+				color: $color_blue;
+				cursor: pointer;
+				width: 100%;
+				height: adapt(9px, 1440px);
+			}
+
+			> button:nth-child(2) {
+				position: absolute;
+				bottom: 0;
+				top: auto;
+				width: 100%;
+				height: adapt(9px, 1440px);
+				z-index: 3;
+			}
+		}
+	}
+
+	&__year {
+		background-color: $color_white;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		border: 1px solid $color_blue;
+		color: $color_blue;
+		padding: adapt(6px, 1440px) adapt(8px, 1440px);
+		gap: adapt(10px, 1440px);
+		border-radius: adapt(4px, 1440px);
+
+		> .calendar-header__block-buttons {
+			width: adapt(18px, 1440px);
+			height: adapt(18px, 1440px);
+			position: relative;
+			background-image: url('/images/icons/arrows_calendar.png');
+			background-repeat: no-repeat;
+			background-size: cover;
+
+			> button {
+				position: absolute;
+				top: 0;
+				background-color: transparent;
+				color: $color_blue;
+				cursor: pointer;
+				width: 100%;
+				height: adapt(9px, 1440px);
+			}
+
+			> button:nth-child(2) {
+				position: absolute;
+				bottom: 0;
+				top: auto;
+				width: 100%;
+				height: adapt(9px, 1440px);
+				z-index: 3;
+			}
+		}
+	}
+}
+
+.weekDays {
+	display: flex;
+	align-items: center;
+}
+
+.week {
+	display: flex;
+	justify-content: space-between;
+}
+
+.weekDay {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: adapt(28px, 1440px);
+	height: adapt(28px, 1440px);
+	color: rgba($color: $color_black, $alpha: 0.4);
+}
+
+.day {
+	width: adapt(36px, 1920px);
+	height: adapt(32px, 1920px);
+	font-size: 0.875rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: adapt(4px, 1920px);
+	transition: background-color 0.3s;
+
+	&:hover {
+		cursor: pointer;
+	}
+}
+
+.currentMonth {
+	// background-color: #f9f9f9;
+	font-weight: 600;
+
+	&:hover {
+		background-color: #e6f7ff;
+		color: $color_black;
+	}
+}
+
+.otherMonth {
+	color: rgba($color: $color_black, $alpha: 0.6);
+
+	&:hover {
+		cursor: default;
+	}
+}
+
+// .inRange {
+// 	// background-color: #bae7ff;
+// 	background-color: rgba($color: $color_blue, $alpha: 0.05);
+// }
+
+.selected {
+	background-color: $color_blue;
+	color: $color_white;
+}
+
+.disabled {
+	font-weight: 400;
+	color: rgba($color: $color_black, $alpha: 0.6);
+
+	&:hover {
+		cursor: default;
+		background-color: transparent;
+	}
+}

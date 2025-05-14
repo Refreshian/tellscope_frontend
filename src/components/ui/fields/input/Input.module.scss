@@ -1,0 +1,45 @@
+@import '@st/functions.scss';
+@import '@st/variables.scss';
+
+.block__input {
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	// padding-left: adapt(32px, 1440px);
+}
+
+.label {
+	margin-bottom: adapt(4px, 1440px);
+	font-size: 0.87rem;
+	line-height: 1.3;
+	font-weight: 400;
+	color: $color_black;
+}
+
+.img {
+	width: adapt(12px, 1440px);
+	height: adapt(14.35px, 1440px);
+	position: absolute;
+	left: adapt(12px, 1440px);
+	top: 50%;
+	transform: translateY(-50%);
+}
+
+.input {
+	width: adapt(336px, 1440px);
+	height: adapt(36px, 1440px);
+	border-radius: adapt(4px, 1440px);
+	padding: adapt(9px, 1440px) adapt(35px, 1440px) adapt(8px, 1440px)
+		adapt(32px, 1440px);
+	background-color: $color_white;
+	border: 1px solid rgba($color: $color_black, $alpha: 0.08);
+	font-size: 0.81rem;
+	font-weight: 400;
+	line-height: 1.4;
+	color: $color_black;
+	outline: none;
+
+	&::placeholder {
+		color: rgba($color: $color_black, $alpha: 0.4);
+	}
+}

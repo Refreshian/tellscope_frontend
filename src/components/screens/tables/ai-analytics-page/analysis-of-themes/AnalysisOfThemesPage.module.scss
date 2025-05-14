@@ -1,0 +1,78 @@
+@import '@st/mixins';
+@import '@st/variables';
+@import '@st/functions';
+
+@include pages__styles();
+
+.block__pageName {
+	height: 100%;
+	width: 100%;
+
+	> h3 {
+		align-self: start;
+	}
+}
+
+.block__calculation {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+	gap: adapt(8px, 1440px);
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+
+	// > .title__calculation {
+	// 	margin-bottom: adapt(8px, 1440px);
+	// }
+
+	> .description__calculation {
+		font-size: 0.875rem;
+		margin-bottom: adapt(8px, 1440px);
+		color: rgba($color: $color_black, $alpha: 0.6);
+		text-align: center;
+	}
+
+	> .link__calculation {
+		font-size: 0.875rem;
+		color: $color_blue;
+		margin-top: adapt(8px, 1440px);
+	}
+}
+
+.button {
+	background-color: transparent;
+	color: $color_blue;
+	font-size: 1rem;
+
+	&:hover {
+		cursor: pointer;
+	}
+}
+
+.button__back {
+	align-self: start;
+	width: adapt(14px, 1440px);
+	height: adapt(10.89px, 1440px);
+	font-size: 0.77rem;
+	background-color: transparent;
+	display: flex;
+	align-items: center;
+	margin-top: adapt(22px, 1440px);
+
+	&:hover {
+		cursor: pointer;
+	}
+
+	> img {
+		width: adapt(14px, 1440px);
+		height: adapt(10.89px, 1440px);
+		margin-right: adapt(8px, 1440px);
+	}
+}
+
+.block__configureSearch {
+	width: 100%;
+}

@@ -1,0 +1,10 @@
+@import '@st/functions';
+
+.loader {
+	width: adapt(150px, 1440px);
+	height: adapt(150px, 1440px);
+	position: absolute;
+	top: 48%;
+	left: 48%;
+	z-index: 90000;
+}

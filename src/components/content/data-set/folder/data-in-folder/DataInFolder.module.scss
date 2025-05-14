@@ -1,0 +1,169 @@
+@import '@st/variables';
+@import '@st/functions';
+@import '@st/mixins';
+
+.wrapper_dataInFolder {
+	margin-top: adapt(24px, 1440px);
+	width: 80%;
+	height: 100%;
+}
+
+.button__back {
+	width: adapt(14px, 1440px);
+	height: adapt(10.89px, 1440px);
+	font-size: 0.77rem;
+	background-color: transparent;
+	display: flex;
+	align-items: center;
+
+	&:hover {
+		cursor: pointer;
+	}
+
+	> img {
+		width: adapt(14px, 1440px);
+		height: adapt(10.89px, 1440px);
+		margin-right: adapt(8px, 1440px);
+	}
+}
+
+.block__title {
+	margin-top: adapt(16px, 1440px);
+	display: flex;
+	justify-content: space-between;
+}
+
+.title {
+	font-size: 1rem;
+	font-weight: 500;
+}
+
+.block__field {
+	align-self: center;
+	display: flex;
+	align-items: center;
+	gap: adapt(8px, 1440px);
+	padding: adapt(12px, 1440px) adapt(11px, 1440px);
+	background-color: $color_white;
+	border-radius: adapt(8px, 1440px);
+	max-width: adapt(285px, 1440px);
+	border: 1px solid rgba($color: $color_black, $alpha: 0.12);
+
+	> .image__search {
+		width: adapt(12px, 1440px);
+		height: adapt(14px, 1440px);
+	}
+	> .input__search {
+		font-size: 0.72rem;
+		color: $color_black;
+		outline: none;
+
+		&::placeholder {
+			color: rgba($color: $color_black, $alpha: 0.6);
+		}
+	}
+}
+
+.block__files {
+	width: 100%;
+	height: 85%;
+	margin-top: adapt(16px, 1440px);
+	border-top: 1px solid rgba($color: $color_black, $alpha: 0.04);
+	position: relative;
+
+	> .file {
+		@include file_for_dataInFolder();
+	}
+}
+
+.block__add {
+	width: adapt(462px, 1440px);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+
+	> .title__add {
+		font-size: 1.55rem;
+		font-weight: 500;
+		color: $color_black;
+		margin-bottom: adapt(24px, 1440px);
+	}
+
+	> .add__file {
+		position: relative;
+		padding: adapt(24px, 1440px);
+		border: 0;
+		border-radius: 10px;
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-direction: column;
+
+		&::before {
+			content: '';
+			position: absolute;
+			width: 100%;
+			height: 100%;
+			pointer-events: none;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			border-top: 2px dashed rgba($color: $color_black, $alpha: 0.12);
+			border-bottom: 2px dashed rgba($color: $color_black, $alpha: 0.12);
+			border-radius: 10px;
+		}
+
+		&::after {
+			content: '';
+			position: absolute;
+			width: 100%;
+			height: 100%;
+			pointer-events: none;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			border-left: 2px dashed rgba($color: $color_black, $alpha: 0.12);
+			border-right: 2px dashed rgba($color: $color_black, $alpha: 0.12);
+			border-radius: 10px;
+		}
+
+		> .description {
+			font-size: 0.77rem;
+			color: rgba($color: $color_black, $alpha: 60);
+		}
+
+		> .choice__file {
+			position: relative;
+			margin-top: adapt(8px, 1440px);
+			width: adapt(200px, 1440px);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			> .input__add {
+				position: absolute;
+				top: 0;
+				left: 0;
+				opacity: 0;
+			}
+			> .choice {
+				font-size: 0.88rem;
+				color: $color_blue;
+			}
+		}
+	}
+}
+
+.file__group {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+
+	> .file {
+		@include file_for_dataInFolder();
+	}
+}

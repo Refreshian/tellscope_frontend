@@ -1,0 +1,31 @@
+@import '@st/mixins';
+@import '@st/variables';
+@import '@st/functions';
+
+.block__graph {
+	@include style-graph-page();
+}
+
+.block__subcategory {
+	height: adapt(42px, 1440px);
+	border-radius: adapt(8px, 1440px);
+	display: flex;
+	align-items: center;
+	gap: adapt(32px, 1440px);
+
+	> .block__radio {
+		display: flex;
+		align-items: center;
+		gap: adapt(8px, 1440px);
+
+		> .radio {
+			&:hover {
+				cursor: pointer;
+			}
+		}
+		> .text__radio {
+			color: $color_black;
+			font-size: 0.91rem;
+		}
+	}
+}

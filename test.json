@@ -1,0 +1,26 @@
+{
+	"Afghanistan": {
+		"2017": "35643418",
+		"2018": "36686784",
+		"2019": "37769499",
+		"2020": "38972230",
+		"2021": "40099462",
+		"2022": "41128771",
+		"2023": "..",
+		"Country Code": "AFG",
+		"Indicator Name": "Population, total",
+		"Indicator Code": "SP.POP.TOTL"
+	},
+	"Albania": {
+		"2017": "2873457",
+		"2018": "2866376",
+		"2019": "2854191",
+		"2020": "2837849",
+		"2021": "2811666",
+		"2022": "2777689",
+		"2023": "..",
+		"Country Code": "ALB",
+		"Indicator Name": "Population, total",
+		"Indicator Code": "SP.POP.TOTL"
+	}
+}

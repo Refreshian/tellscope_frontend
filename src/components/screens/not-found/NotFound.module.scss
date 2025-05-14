@@ -1,0 +1,27 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.wrapper_notFound {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: adapt(32px, 1440px);
+	padding: adapt(63px, 1440px) 0px;
+}
+
+.logo {
+	width: adapt(136px, 1440px);
+	height: adapt(28px, 1440px);
+	margin-bottom: adapt(37px, 1440px);
+}
+.error {
+	width: adapt(800px, 1440px);
+	height: adapt(300px, 1440px);
+}
+.paragraph {
+	font-weight: 500;
+	font-size: 1.12rem;
+	line-height: 1.3;
+	color: $color_black;
+}

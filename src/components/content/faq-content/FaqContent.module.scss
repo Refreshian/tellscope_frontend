@@ -1,0 +1,35 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.wrapper_faq {
+	display: flex;
+	flex-direction: column;
+	gap: adapt(24px, 1440px);
+	overflow-y: auto;
+
+	&::-webkit-scrollbar {
+		width: 0;
+		height: 0;
+	}
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+
+	> .title {
+		font-size: 1.12rem;
+		font-weight: 500;
+	}
+	> .menu {
+		display: flex;
+		flex-direction: column;
+		gap: adapt(8px, 1440px);
+		overflow-y: auto;
+		padding-right: 30px;
+
+		&::-webkit-scrollbar {
+			width: 0;
+			height: 0;
+		}
+		scrollbar-width: none;
+		-ms-overflow-style: none;
+	}
+}

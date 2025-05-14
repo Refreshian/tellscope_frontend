@@ -1,0 +1,71 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.wrapper_popup {
+	position: absolute;
+	z-index: 100000;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	background-color: $color_white;
+	display: flex;
+	flex-direction: column;
+	gap: adapt(32px, 1440px);
+	border-radius: adapt(20px, 1440px);
+	max-width: adapt(800px, 1440px);
+	max-height: adapt(600px, 1440px);
+	overflow-y: auto;
+	padding: adapt(32px, 1440px);
+}
+
+.button__exit {
+	background-color: transparent;
+
+	&:hover {
+		cursor: pointer;
+
+		> img {
+			width: adapt(16px, 1440px);
+			height: adapt(16px, 1440px);
+		}
+	}
+
+	> img {
+		width: adapt(12px, 1440px);
+		height: adapt(12px, 1440px);
+	}
+}
+
+.block__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.title {
+	font-weight: 500;
+	font-size: 1.125rem;
+}
+
+.block__content {
+	display: flex;
+	flex-direction: column;
+	gap: adapt(16px, 1440px);
+}
+
+.block__footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.error {
+	font-size: 0.75rem;
+	color: $color_red;
+}
+
+.block_buttons {
+	display: flex;
+	align-items: center;
+	gap: adapt(8px, 1440px);
+}

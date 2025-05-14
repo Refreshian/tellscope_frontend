@@ -1,0 +1,901 @@
+@import '@st/mixins';
+
+@include pages__styles();
+
+// Основные стили компонента
+.aiAnalysisBlock {
+  width: 100%;
+  margin-top: 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  padding-top: 20px;
+}
+
+.analyzeButton {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  
+  &:hover {
+    background-color: #0056b3;
+  }
+}
+
+.aiInteractionWrapper {
+  margin-top: 15px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.aiInputContainer {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  align-items: flex-start;
+}
+
+.aiTextarea {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  resize: vertical;
+  font-family: inherit;
+  min-height: 80px;
+  
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  }
+}
+
+.sendButton {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  height: fit-content;
+  min-width: 120px;
+  
+  &:hover {
+    background-color: #218838;
+  }
+  
+  &:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+  }
+}
+
+.aiLoading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #6c757d;
+}
+
+// Стили для ответа AI с markdown
+.aiResponse {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 15px;
+  overflow: hidden;
+  
+  h4 {
+    margin-top: 0;
+    color: #212529;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    font-weight: 600;
+  }
+  
+  .aiResponseContent {
+    line-height: 1.6;
+    color: #333;
+    font-size: 15px;
+    
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.2em;
+      margin-bottom: 0.6em;
+      line-height: 1.3;
+    }
+    
+    h1 { font-size: 1.8em; }
+    h2 { font-size: 1.5em; }
+    h3 { font-size: 1.3em; }
+    h4 { font-size: 1.1em; }
+    
+    p {
+      margin: 0 0 1em;
+    }
+    
+    ul, ol {
+      margin: 0 0 1em 1.5em;
+      padding-left: 1.5em;
+    }
+    
+    li {
+      margin-bottom: 0.5em;
+    }
+    
+    blockquote {
+      border-left: 4px solid #dfe2e5;
+      padding: 0 1em;
+      color: #6a737d;
+      margin: 0 0 1em;
+    }
+    
+    pre {
+      background-color: #f6f8fa;
+      border-radius: 6px;
+      padding: 16px;
+      overflow-x: auto;
+      margin: 0 0 1em;
+      font-size: 85%;
+      line-height: 1.45;
+      
+      code {
+        background-color: transparent;
+        padding: 0;
+        border-radius: 0;
+        font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+    }
+    
+    code {
+      background-color: rgba(175, 184, 193, 0.2);
+      border-radius: 3px;
+      padding: 0.2em 0.4em;
+      font-size: 85%;
+      font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1em 0;
+      border: 1px solid #dfe2e5;
+      
+      th, td {
+        border: 1px solid #dfe2e5;
+        padding: 8px 12px;
+        text-align: left;
+      }
+      
+      th {
+        background-color: #f6f8fa;
+        font-weight: 600;
+      }
+      
+      tr:nth-child(even) {
+        background-color: #f6f8fa;
+      }
+    }
+    
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    
+    hr {
+      border: 0;
+      height: 1px;
+      background-color: #e1e4e8;
+      margin: 1.5em 0;
+    }
+  }
+}
+
+// Стили для слайдеров фильтрации
+.scrollableResults {
+  overflow-y: auto;
+  height: 100%;
+  padding-top: 12px;
+}
+
+.slidersContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.sliderRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  width: 100%;
+}
+
+.sliderWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 200px;
+  
+  label {
+    font-weight: 500;
+    white-space: nowrap;
+    font-size: 14px;
+    color: #495057;
+  }
+  
+  .sliderValues {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #6c757d;
+  }
+  
+  .MuiSlider-root {
+    color: #1976d2;
+    
+    .MuiSlider-thumb {
+      width: 16px;
+      height: 16px;
+      margin-top: -7px;
+      margin-left: -8px;
+    }
+    
+    .MuiSlider-track {
+      height: 2px;
+    }
+    
+    .MuiSlider-rail {
+      height: 2px;
+      opacity: 0.5;
+    }
+    
+    &:hover {
+      .MuiSlider-thumb {
+        box-shadow: 0 0 0 8px rgba(25, 118, 210, 0.1);
+      }
+    }
+  }
+}
+
+.filterInfo {
+  font-size: 14px;
+  color: #495057;
+  margin-bottom: 15px;
+  
+  b {
+    font-weight: 600;
+    color: #212529;
+  }
+}
+
+@media (max-width: 768px) {
+  .sliderRow {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .sliderWrapper {
+    min-width: 100%;
+  }
+}
+
+// Анимации
+.highlight {
+  animation: fadeInHighlight 1.5s ease;
+}
+
+@keyframes fadeInHighlight {
+  0% { background-color: rgba(255, 255, 200, 0.8); }
+  100% { background-color: transparent; }
+}
+
+// Стили для ошибок
+.aiError {
+  color: #dc3545;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  padding: 10px 15px;
+  margin-top: 10px;
+}
+
+// Дополнительные классы для markdown
+.markdown {
+  @extend .aiResponseContent;
+}
+
+.tableToggle {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.showTableButton {
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: #e0e0e0;
+  }
+}
+
+.dataTableContainer {
+  margin-top: 20px;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.tableWrapper {
+  max-height: 500px;
+  overflow-y: auto;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  
+  th, td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f5f5f5;
+    position: sticky;
+    top: 0;
+  }
+
+  tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+
+  tr:hover {
+    background-color: #f1f1f1;
+  }
+}
+
+.textCell {
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  
+  &:hover {
+    white-space: normal;
+    overflow: visible;
+    position: relative;
+    z-index: 1;
+    background-color: white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+}
+
+.tableSwitcher {
+  display: flex;
+  margin: 15px 0;
+  gap: 10px;
+}
+
+.tableSwitchButton {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: #e0e0e0;
+  }
+
+  &.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+  }
+}
+
+.tableSection {
+  margin: 1.5rem 0;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.tableToggleHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: #f1f3f5;
+  }
+}
+
+.toggleTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+  color: #212529;
+}
+
+.toggleIcon {
+  transition: transform 0.2s ease;
+  
+  &.rotated {
+    transform: rotate(180deg);
+  }
+}
+
+.toggleStatus {
+  color: #495057;
+  font-size: 0.875rem;
+}
+
+.tableControls {
+  margin-top: 0.5rem;
+  background-color: #fff;
+  border-radius: 0 0 8px 8px;
+  padding: 1rem;
+  border: 1px solid #e9ecef;
+  border-top: none;
+}
+
+.tableTabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tabButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background-color: #f8f9fa;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #e9ecef;
+    color: #212529;
+  }
+
+  svg {
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+  }
+
+  &:hover svg {
+    opacity: 1;
+  }
+}
+
+.activeTab {
+  background-color: #228be6;
+  color: white;
+
+  &:hover {
+    background-color: #1c7ed6;
+    color: white;
+  }
+
+  svg {
+    opacity: 1;
+    color: white;
+  }
+}
+
+.exportButtons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.exportButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: #e9e9e9;
+  }
+  
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.exportAllButton {
+  background-color: #1890ff;
+  color: white;
+  border-color: #1890ff;
+  
+  &:hover {
+    background-color: #40a9ff;
+    border-color: #40a9ff;
+  }
+}
+
+// Table — базовый стиль
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 16px;
+  text-align: left;
+}
+
+table th, table td {
+  border: 1px solid #dddddd;
+  padding: 12px 15px;
+}
+
+table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+table tbody tr {
+  transition: background-color 0.3s;
+}
+
+table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+// Sticky меню наверху
+.headerMenu {
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.stickyTop {
+  position: sticky;
+  z-index: 10;
+  top: 0;
+  background: #f6f7fb;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+// Стили для скроллбаров (Webkit)
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+  border: 2px solid #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb:hover { 
+  background: #555; 
+}
+
+.block__title {
+  justify-content: flex-start !important;
+  align-items: flex-start !important;
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+.block__configureSearch > * {
+  margin-left: 0 !important;
+  margin-right: 15px !important;
+}
+
+.stickyTop {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; // Ключевое свойство для выравнивания по левому краю
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .block__pageName {
+    width: 100%;
+    text-align: left;
+    padding-left: 0;
+    margin-left: 0;
+    
+    h3 {
+      text-align: left;
+      margin: 0;
+      padding: 0;
+    }
+  }
+  
+  .block__configureSearch {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 15px;
+    justify-content: flex-start; // Выравнивание по левому краю
+    width: 100%;
+    padding-left: 0;
+    margin-left: 0;
+    
+    > * {
+      margin-left: 0 !important;
+    }
+  }
+
+  .tableSection {
+    margin: 1.5rem 0;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .tableToggleHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border: none;
+    width: 100%;
+    text-align: left;
+  
+    &:hover {
+      background-color: #f1f3f5;
+    }
+  }
+  
+  .toggleTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
+    color: #212529;
+    font-size: 16px;
+  }
+  
+  .toggleIcon {
+    transition: transform 0.2s ease;
+    
+    &.rotated {
+      transform: rotate(180deg);
+    }
+  }
+  
+  .toggleStatus {
+    color: #495057;
+    font-size: 0.875rem;
+  }
+  
+  .tableControls {
+    margin-top: 0.5rem;
+    background-color: #fff;
+    border-radius: 0 0 8px 8px;
+    padding: 1rem;
+    border: 1px solid #e9ecef;
+    border-top: none;
+  }
+  
+  .exportButtons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .exportButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: #e9e9e9;
+    }
+    
+    svg {
+      flex-shrink: 0;
+    }
+  }
+  
+  .tableWrapper {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 4px;
+  }
+  
+  .dataTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    
+    th, td {
+      padding: 12px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+  
+    th {
+      background-color: #f5f5f5;
+      position: sticky;
+      top: 0;
+      font-weight: 600;
+    }
+  
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+  
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+  }
+  
+  .sortableHeader {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+    
+    &:hover {
+      background-color: #e9ecef;
+    }
+  }
+  
+  .sortIcon {
+    margin-left: 4px;
+    font-weight: bold;
+  }
+  
+  .textCell {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    
+    a {
+      color: #1890ff;
+      text-decoration: none;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+    
+    &:hover {
+      white-space: normal;
+      overflow: visible;
+      position: relative;
+      z-index: 1;
+      background-color: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+  }
+  
+  // Адаптивность для мобильных устройств
+  @media (max-width: 768px) {
+    .tableToggleHeader {
+      padding: 0.75rem 1rem;
+    }
+    
+    .toggleTitle {
+      font-size: 14px;
+    }
+    
+    .dataTable {
+      th, td {
+        padding: 8px;
+        font-size: 13px;
+      }
+    }
+    
+    .tableWrapper {
+      max-height: 400px;
+    }
+  }
+
+// Добавьте в конец файла стилей
+.scrollableResults {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  // Стили для контейнеров графиков
+  :global {
+    .am4-chart,
+    .highcharts-container,
+    .chartdiv,
+    .graphContainer {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+  }
+
+/* Возьми параметры из второго примера */
+.scrollableResults {
+  width: 100%;
+  max-width: 100%;
+  height: calc(100vh - 180px); /* 180px — высота stickyTop + отступы, подбери по макету */
+  overflow-y: auto;
+  overflow-x: visible;
+  padding-top: 0;
+  margin-top: 0;
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+}
+@media (max-width: 900px) {
+  .scrollableResults {
+    height: calc(100vh - 230px);
+  }
+}
+
+.scrollableResults {
+  width: 100%;
+  max-width: 100%;
+  height: calc(100vh - 180px); // или твоя высота!
+  overflow-y: auto;
+  overflow-x: hidden; // <--- ЭТО
+  padding-top: 0;
+  margin-top: 0;
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+}

@@ -1,0 +1,90 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.block__pageName {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	align-self: flex-start;
+	width: 100%;
+
+	> .pageName__title {
+		font-size: 1.12rem;
+		font-weight: 500;
+		line-height: 1.18;
+	}
+}
+
+.background__loader {
+	position: absolute;
+	z-index: 8999;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background-color: rgba($color: $color_full_black, $alpha: 0.3);
+}
+
+.button__title {
+	width: adapt(132px, 1440px);
+	height: adapt(30px, 1440px);
+	border-radius: adapt(8px, 1440px);
+	background-color: $color_blue;
+	font-size: 0.66rem;
+	font-weight: 400;
+	line-height: 1.4;
+	color: $color_white;
+
+	&:hover {
+		cursor: pointer;
+	}
+}
+
+.download {
+	width: adapt(144.91px, 1440px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+
+	> .file {
+		position: absolute;
+		opacity: 0;
+
+		&:hover {
+			cursor: pointer;
+		}
+	}
+
+	> .upload {
+		width: adapt(10.91px, 1440px);
+		height: adapt(12px, 1440px);
+		margin-right: adapt(5px, 1440px);
+	}
+}
+
+.pageName__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px; // красивый отступ между кнопками
+}
+
+.tooltip {
+  position: absolute;
+  background: #333;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 100;
+  transform: translateY(5px);
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+
+  &.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

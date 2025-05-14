@@ -1,0 +1,72 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.block__popup {
+	position: absolute;
+	z-index: 10000;
+	top: 30%;
+	left: 38%;
+	background-color: $color_white;
+	display: flex;
+	flex-direction: column;
+	border-radius: adapt(20px, 1440px);
+	max-width: adapt(400px, 1440px);
+	max-height: adapt(236px, 1440px);
+	padding: adapt(32px, 1440px) adapt(32px, 1440px) adapt(46px, 1440px)
+		adapt(31px, 1440px);
+
+	> .block__title {
+		display: flex;
+		justify-content: space-between;
+		margin-bottom: adapt(24px, 1440px);
+
+		> .button__exit {
+			align-self: flex-end;
+			background-color: transparent;
+
+			&:hover {
+				cursor: pointer;
+
+				> img {
+					width: adapt(30px, 1440px);
+					height: adapt(30px, 1440px);
+				}
+			}
+
+			> img {
+				width: adapt(25px, 1440px);
+				height: adapt(25px, 1440px);
+			}
+		}
+	}
+
+	> .input {
+		font-size: 0.72rem;
+		color: $color_black;
+		outline: none;
+		border: 1px solid rgba($color: $color_black, $alpha: 0.12);
+		background-color: #f5f5f7;
+		border-radius: adapt(8px, 1440px);
+		width: adapt(334px, 1440px);
+		height: adapt(36px, 1440px);
+		padding: adapt(10.5px, 1440px) adapt(35px, 1440px) adapt(9.5px, 1440px)
+			adapt(13px, 1440px);
+	}
+}
+
+.button__title {
+	margin-top: adapt(32px, 1440px);
+	width: adapt(132px, 1440px);
+	height: adapt(30px, 1440px);
+	border-radius: adapt(8px, 1440px);
+	background-color: $color_blue;
+	font-size: 0.66rem;
+	font-weight: 400;
+	line-height: 1.4;
+	color: $color_white;
+	align-self: flex-end;
+
+	&:hover {
+		cursor: pointer;
+	}
+}

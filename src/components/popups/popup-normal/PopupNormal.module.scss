@@ -1,0 +1,59 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.block__popup {
+	position: absolute;
+	z-index: 100000;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	background-color: $color_white;
+	display: flex;
+	flex-direction: column;
+	border-radius: adapt(20px, 1440px);
+	max-width: adapt(900px, 1440px);
+	max-height: adapt(550px, 1440px);
+	overflow-y: auto;
+	padding: adapt(20px, 1440px) adapt(40px, 1440px);
+
+	> .button__exit {
+		align-self: end;
+		background-color: transparent;
+
+		&:hover {
+			cursor: pointer;
+
+			> img {
+				width: adapt(16px, 1440px);
+				height: adapt(16px, 1440px);
+			}
+		}
+
+		> img {
+			width: adapt(12px, 1440px);
+			height: adapt(12px, 1440px);
+		}
+	}
+	> .text {
+		font-size: 1rem;
+		line-height: 1.5rem;
+	}
+}
+
+.block__link {
+	margin-top: adapt(20px, 1440px);
+
+	> .title {
+		font-size: 0.88rem;
+		color: rgba($color: $color_black, $alpha: 0.5);
+	}
+
+	> .link {
+	}
+}
+
+.time {
+	font-size: 0.88rem;
+	color: rgba($color: $color_black, $alpha: 0.5);
+	margin-bottom: adapt(20px, 1440px);
+}

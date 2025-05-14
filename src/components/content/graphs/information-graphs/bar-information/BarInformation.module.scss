@@ -1,0 +1,80 @@
+@import '@st/variables';
+@import '@st/functions';
+
+// .figure {
+// 	margin: 0;
+// 	width: 100%;
+// }
+
+// .controls {
+// 	max-width: 1000px;
+// 	margin: 1em auto;
+// 	display: flex;
+// 	align-items: center;
+// 	gap: 10px;
+// }
+
+// .chartContainer {
+// 	height: 900px;
+// 	max-width: 1000px;
+// 	margin: 0 auto;
+// }
+
+// .playButton {
+// 	width: 50px;
+// 	height: 50px;
+// 	cursor: pointer;
+// 	border: 1px solid rgba(2, 117, 255, 1);
+// 	border-radius: 25px;
+// 	color: white;
+// 	background-color: rgba(2, 117, 255, 1);
+// 	transition: background-color 250ms;
+// 	display: flex;
+// 	align-items: center;
+// 	justify-content: center;
+// 	font-size: 18px;
+// }
+
+// .playButton:hover {
+// 	background-color: rgba(2, 117, 255, 0.5);
+// }
+
+// .range {
+// 	flex-grow: 1;
+// 	height: 4px;
+// 	background: #f8f8f8;
+// }
+
+.wrapper_bar {
+	width: 100%;
+	padding-top: adapt(20px, 1440px);
+	position: relative;
+}
+
+.block__button {
+	display: flex;
+	gap: adapt(20px, 1440px);
+}
+
+.button__play {
+	background-color: $color_blue;
+	width: adapt(50px, 1440px);
+	height: adapt(50px, 1440px);
+	border-radius: 50%;
+	color: $color_white;
+	font-size: 1.3rem;
+	text-align: center;
+
+	&:hover {
+		cursor: pointer;
+		background-color: rgba($color: $color_blue, $alpha: 0.8);
+	}
+}
+
+.range {
+	width: 100%;
+
+	&:hover {
+		cursor: pointer;
+	}
+}

@@ -1,0 +1,16 @@
+@import '@st/functions';
+
+.noData {
+	display: flex;
+	align-items: center;
+	flex-direction: column;
+}
+
+.image {
+	width: adapt(484px, 1440px);
+	height: adapt(330px, 1440px);
+}
+
+.description {
+	text-align: center;
+}

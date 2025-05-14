@@ -1,0 +1,12 @@
+@import '@st/functions';
+
+.wrapper_content {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: adapt(32px, 1440px) adapt(48px, 1440px);
+	position: relative;
+}

@@ -1,0 +1,58 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.logo {
+	width: adapt(136px, 1440px);
+	height: adapt(28px, 1440px);
+	margin-bottom: adapt(14px, 1440px);
+}
+
+.block__logo {
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+	gap: adapt(15px, 1440px);
+	margin-bottom: adapt(33px, 1440px);
+}
+
+.logo__image {
+	width: adapt(38px, 1440px);
+	height: adapt(40px, 1440px);
+	// margin-bottom: adapt(5px, 1440px);
+}
+
+.description {
+	font-size: 0.75rem;
+	line-height: 1.4;
+	font-weight: 400;
+	color: rgba($color: $color_black, $alpha: 0.7);
+	// margin-bottom: adapt(33px, 1440px);
+	text-align: center;
+}
+
+.max {
+	font-size: 1rem;
+	color: $color_blue;
+	font-weight: 500;
+}
+
+.mini {
+	font-size: 0.65rem;
+}
+
+.title {
+	font-size: 2rem;
+	font-weight: 600;
+	color: $color_black;
+	text-align: center;
+	margin-bottom: adapt(46px, 1440px);
+}
+
+.block__choice {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: adapt(16px, 1440px);
+	max-width: adapt(830px, 1440px);
+	// max-width: adapt(900px, 1440px);
+}
