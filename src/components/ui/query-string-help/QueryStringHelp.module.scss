@@ -1,0 +1,30 @@
+@import '@st/variables';
+@import '@st/functions';
+@import '@st/mixins';
+
+.block__queryStr {
+	position: absolute;
+	bottom: adapt(-20px, 1440px);
+	right: adapt(240px, 1440px);
+	color: rgba($color: $color_black, $alpha: 0.5);
+
+	> h1 {
+		&:hover {
+			cursor: pointer;
+		}
+	}
+}
+
+.tooltip-manual {
+	position: absolute;
+	top: 0;
+	right: 0;
+	background-color: $color_twelve;
+	width: adapt(340px, 1440px);
+	height: adapt(300px, 1440px);
+	padding: adapt(10px, 1440px);
+	border-radius: adapt(10px, 1440px);
+
+	overflow: auto;
+	@include scrollbar();
+}

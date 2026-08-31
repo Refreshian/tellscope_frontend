@@ -1,0 +1,98 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.block__folder {
+	width: adapt(180px, 1440px);
+	height: adapt(169px, 1440px);
+
+	> .folder {
+		width: adapt(180px, 1440px);
+		height: adapt(143px, 1440px);
+
+		&:hover {
+			cursor: pointer;
+		}
+	}
+
+	> .data {
+		margin-top: adapt(8px, 1440px);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		position: relative;
+
+		> .title {
+			font-size: 0.77rem;
+			color: $color_black;
+		}
+
+		> .button__delete {
+			background-color: transparent;
+			width: adapt(16px, 1440px);
+			height: adapt(16px, 1440px);
+
+			&:hover {
+				cursor: pointer;
+			}
+
+			> .delete {
+				width: adapt(16px, 1440px);
+				height: adapt(16px, 1440px);
+			}
+		}
+
+		> .processed {
+			background-color: $color_very_light_blue;
+			width: adapt(24px, 1440px);
+			height: adapt(24px, 1440px);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			border-radius: adapt(4px, 1440px);
+
+			&:hover {
+				background-color: rgba($color: $color_blue, $alpha: 0.12);
+			}
+		}
+	}
+}
+
+.block__buttons {
+	position: absolute;
+	top: 0;
+	left: 20%;
+	width: adapt(108px, 1440px);
+	height: adapt(78px, 1440px);
+	background-color: $color_white;
+	border-radius: adapt(8px, 1440px);
+	padding: adapt(16px, 1440px);
+	border: 1px solid rgba($color: $color_black, $alpha: 0.08);
+
+	> button {
+		background-color: transparent;
+		display: flex;
+		align-items: center;
+		gap: adapt(4px, 1440px);
+		font-size: 0.77rem;
+
+		&:hover {
+			cursor: pointer;
+		}
+	}
+
+	> .button__delete {
+		> .delete {
+			width: adapt(16px, 1440px);
+			height: adapt(16px, 1440px);
+		}
+	}
+
+	> .button__download {
+		margin-bottom: adapt(10px, 1440px);
+
+		> .download {
+			width: adapt(16px, 1440px);
+			height: adapt(16px, 1440px);
+		}
+	}
+}

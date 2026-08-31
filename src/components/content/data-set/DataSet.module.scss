@@ -16,6 +16,7 @@
 	position: relative;
 	border-bottom: 2px solid rgba($color: $color_very_light_blue, $alpha: 0.04);
 	width: max-content;
+	max-width: 100%;
 
 	> .tab__button {
 		background-color: transparent;
@@ -298,5 +299,36 @@
 	to {
 		transform: translateY(0);
 		opacity: 1;
+	}
+}
+
+@media (max-width: 900px) {
+	.block__tabs {
+		width: 100%;
+		overflow-x: auto;
+		flex-wrap: nowrap;
+		gap: 16px;
+		font-size: 0.95rem;
+		padding-bottom: 8px;
+		-webkit-overflow-scrolling: touch;
+
+		> .tab__button {
+			flex-shrink: 0;
+			white-space: nowrap;
+			padding: 8px 4px;
+		}
+	}
+
+	.block__content {
+		padding-top: 16px;
+		padding-right: 0;
+		gap: 12px;
+
+		> .block__field {
+			position: static;
+			max-width: 100%;
+			width: 100%;
+			margin-bottom: 8px;
+		}
 	}
 }

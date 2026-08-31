@@ -1,0 +1,35 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.block__faq {
+	width: adapt(668px, 1440px);
+	border-radius: adapt(8px, 1440px);
+	padding: adapt(16px, 1440px) adapt(32px, 1440px);
+	display: flex;
+	gap: adapt(40px, 1440px);
+	justify-content: space-between;
+	background-color: $color_white;
+}
+
+.block__content {
+	align-self: center;
+	margin-bottom: adapt(16px, 1440px);
+}
+.title__faq {
+	font-size: 1rem;
+	font-weight: 500;
+}
+.description__faq {
+	font-size: 0.87rem;
+}
+.button {
+	background-color: transparent;
+
+	&:hover {
+		cursor: pointer;
+	}
+}
+.image {
+	width: adapt(16px, 1440px);
+	height: adapt(16px, 1440px);
+}

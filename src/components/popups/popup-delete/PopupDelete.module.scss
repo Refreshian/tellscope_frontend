@@ -1,0 +1,43 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.block__popupDelete {
+	font-size: 0.77rem;
+	position: fixed;
+	bottom: 3%;
+	left: 7.5%;
+	width: adapt(344px, 1440px);
+	height: adapt(48px, 1440px);
+	border-radius: adapt(4px, 1440px);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	box-shadow: 0px 0px adapt(10px, 1440px)
+		rgba($color: $color_black, $alpha: 0.09);
+	padding-left: adapt(16px, 1440px);
+	padding-right: adapt(12px, 1440px);
+	background-color: $color_very_light_grey;
+
+	> p {
+	}
+
+	> button {
+		background-color: transparent;
+
+		&:hover {
+			cursor: pointer;
+		}
+	}
+
+	> .button__stop {
+		margin-left: adapt(90px, 1440px);
+		color: $color_blue;
+	}
+
+	> .button__close {
+		> img {
+			width: adapt(12px, 1440px);
+			height: adapt(12px, 1440px);
+		}
+	}
+}

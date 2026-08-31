@@ -1,0 +1,66 @@
+@import '@st/functions.scss';
+@import '@st/variables.scss';
+
+.block__input {
+	display: flex;
+	flex-direction: column;
+	position: relative;
+
+	> .label {
+		margin-bottom: adapt(4px, 1440px);
+		font-size: 0.875rem;
+		line-height: 1.3;
+		font-weight: 400;
+		color: $color_black;
+	}
+
+	.input {
+		width: adapt(336px, 1440px);
+		height: adapt(36px, 1440px);
+		border-radius: adapt(4px, 1440px);
+		padding: adapt(9px, 1440px) adapt(35px, 1440px) adapt(8px, 1440px)
+			adapt(13px, 1440px);
+		background-color: $color_white;
+		border: 1px solid rgba($color: $color_black, $alpha: 0.08);
+		font-size: 0.8125rem;
+		font-weight: 400;
+		line-height: 1.4;
+		color: $color_black;
+		outline: none;
+		transition: border-color 0.3s ease;
+
+		&::placeholder {
+			color: rgba($color: $color_black, $alpha: 0.4);
+			font-size: 0.8125rem;
+		}
+	}
+
+	> .button__view {
+		position: absolute;
+		bottom: 12.3%;
+		right: 3%;
+		z-index: 5;
+		background-color: transparent;
+
+		&:hover {
+			cursor: pointer;
+		}
+
+		> img {
+			width: adapt(15px, 1440px);
+			height: adapt(15px, 1440px);
+		}
+	}
+}
+
+// .input:focus {
+// 	border-color: $color_blue; /* Синие границы при фокусе */
+// }
+
+// .focusedLabel {
+// 	color: $color_blue; /* Синий цвет текста при фокусе на input */
+// }
+
+// .focusedInput {
+// 	border-color: $color_blue; /* Синий цвет границ при фокусе */
+// }

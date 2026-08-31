@@ -1,0 +1,82 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.logo {
+	width: adapt(136px, 1440px);
+	height: adapt(28px, 1440px);
+	margin-bottom: adapt(14px, 1440px);
+}
+
+.block__logo {
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+	gap: adapt(15px, 1440px);
+	margin-bottom: adapt(33px, 1440px);
+}
+
+.logo__image {
+	width: adapt(38px, 1440px);
+	height: adapt(40px, 1440px);
+}
+
+.description {
+	font-size: 0.75rem;
+	line-height: 1.4;
+	font-weight: 400;
+	color: rgba($color: $color_black, $alpha: 0.7);
+	text-align: center;
+}
+
+.max {
+	font-size: 1rem;
+	color: $color_blue;
+	font-weight: 500;
+}
+
+.mini {
+	font-size: 0.65rem;
+}
+
+.title {
+	font-size: 1.25rem; // Уменьшенный размер шрифта (было 2rem)
+	font-weight: 600;
+	color: $color_blue; // Синий цвет как у "Аналитика"
+	text-align: center;
+	margin-bottom: adapt(46px, 1440px);
+}
+
+.block__choice {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	grid-template-rows: repeat(2, auto);
+	gap: adapt(16px, 1440px);
+	max-width: adapt(830px, 1440px);
+	margin: 0 auto;
+	justify-items: center;
+}
+
+@media (max-width: 900px) {
+	.block__logo {
+		margin-bottom: 16px;
+		gap: 10px;
+	}
+
+	.logo__image {
+		width: 32px;
+		height: 34px;
+	}
+
+	.title {
+		font-size: 1.1rem;
+		margin-bottom: 20px;
+	}
+
+	.block__choice {
+		grid-template-columns: 1fr;
+		grid-template-rows: none;
+		width: 100%;
+		max-width: 100%;
+		gap: 10px;
+	}
+}

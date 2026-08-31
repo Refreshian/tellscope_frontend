@@ -1,0 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Rubik:wght@400;500;600&display=swap');
+@import './variables';
+
+*,
+*::before,
+*::after {
+	padding: 0;
+	margin: 0;
+	border: 0;
+	box-sizing: border-box;
+}
+
+a {
+	text-decoration: none;
+}
+
+ul,
+ol,
+li {
+	list-style: none;
+}
+
+img {
+	vertical-align: none;
+	max-width: 100%;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-weight: inherit;
+	font-size: inherit;
+}
+
+html,
+body {
+	height: 100vh;
+	font-size: $fz_standart;
+	font-family: 'Rubik', sans-serif;
+	color: $color_black;
+	background-color: $color_very_light_grey;
+	-webkit-text-size-adjust: 100%;
+
+	@media (max-width: 1440px) {
+		font-size: 15px;
+	}
+
+	@media (max-width: 1340px) {
+		font-size: 14px;
+	}
+
+	@media (max-width: 1240px) {
+		font-size: 13px;
+	}
+
+	@media (max-width: 1140px) {
+		font-size: 12px;
+	}
+
+	@media (max-width: 1040px) {
+		font-size: 11px;
+	}
+
+	@media (max-width: 900px) {
+		font-size: 16px;
+		height: 100%;
+		overflow: hidden;
+	}
+}
+
+#root {
+	height: 100vh;
+
+	@media (max-width: 900px) {
+		height: 100%;
+		overflow: hidden;
+	}
+}
+
+.highcharts-credits {
+	display: none;
+}
+
+@media (max-width: 900px) {
+	input,
+	select,
+	textarea {
+		font-size: 16px;
+		max-width: 100%;
+	}
+
+	button {
+		max-width: 100%;
+	}
+
+	table {
+		max-width: 100%;
+	}
+
+	.highcharts-container,
+	.highcharts-root {
+		max-width: 100% !important;
+	}
+}

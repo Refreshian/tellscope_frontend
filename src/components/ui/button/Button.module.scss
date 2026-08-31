@@ -1,0 +1,23 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.button {
+	width: adapt(283px, 1440px);
+	height: adapt(40px, 1440px);
+	border-radius: adapt(8px, 1440px);
+	background-color: $color_blue;
+	font-size: 1rem;
+	font-weight: 400;
+	line-height: 1.4;
+	color: $color_white;
+
+	&:hover {
+		cursor: pointer;
+	}
+
+	&:disabled {
+		// opacity: 0.5;
+		background-color: rgba($color: $color_black, $alpha: 0.4);
+		cursor: default;
+	}
+}

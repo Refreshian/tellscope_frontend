@@ -1,0 +1,11 @@
+@import '@st/variables';
+@import '@st/functions';
+@import '@st/mixins';
+
+.wrapper_calendar {
+	position: relative;
+}
+
+.block__data {
+	@include settings-for-search(adapt(217px, 1440px));
+}

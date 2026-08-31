@@ -1,0 +1,57 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.wrapper_graf {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 480px;
+  gap: adapt(20px, 1440px);
+
+  > .block__categories {
+    padding: adapt(20px, 1440px) 0px;
+    display: flex;
+    height: adapt(82px, 1440px);
+    gap: adapt(20px, 1440px);
+    overflow-x: auto; // Для прокрутки если кнопок много
+    white-space: nowrap;
+
+    > .name {
+      text-transform: capitalize;
+      padding: adapt(10px, 1440px);
+      border-radius: adapt(10px, 1440px);
+      text-align: center;
+      font-size: 0.9rem;
+      flex-shrink: 0; // Чтобы кнопки не сжимались
+
+      &:hover {
+        cursor: pointer;
+        background-color: $color_blue;
+        color: $color_white;
+      }
+    }
+  }
+}
+
+.name_active {
+  background-color: $color_blue;
+  color: $color_white;
+  text-transform: capitalize;
+  padding: adapt(10px, 1440px);
+  border-radius: adapt(10px, 1440px);
+  text-align: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+
+  &:hover {
+    cursor: pointer;
+  }
+}
+
+.chartContainer {
+  flex: 1 1 auto; // чтобы занимал всё свободное пространство родителя, если column-layout
+  min-height: 480px; // можно, например, как у тебя уже есть 
+  // или фиксируй, если нужно высоту (например, height: 500px)
+  height: 100%; // если весь компонент-родитель гарантировано ограничен по высоте
+} 

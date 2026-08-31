@@ -1,0 +1,180 @@
+@use "sass:color";
+@import '@st/mixins';
+@import '@st/variables';
+@import '@st/functions';
+
+@include pages__styles();
+
+.block__pageName {
+	height: 100%;
+	width: 100%;
+
+	> h3 {
+		align-self: start;
+	}
+}
+
+.block__calculation {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+	gap: adapt(8px, 1440px);
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+
+	// > .title__calculation {
+	// 	margin-bottom: adapt(8px, 1440px);
+	// }
+
+	> .description__calculation {
+		font-size: 0.875rem;
+		margin-bottom: adapt(8px, 1440px);
+		color: rgba($color: $color_black, $alpha: 0.6);
+		text-align: center;
+	}
+
+	> .link__calculation {
+		font-size: 0.875rem;
+		color: $color_blue;
+		margin-top: adapt(8px, 1440px);
+	}
+}
+
+.button {
+	background-color: transparent;
+	color: $color_blue;
+	font-size: 1rem;
+
+	&:hover {
+		cursor: pointer;
+	}
+}
+
+.button__back {
+	align-self: start;
+	width: adapt(14px, 1440px);
+	height: adapt(10.89px, 1440px);
+	font-size: 0.77rem;
+	background-color: transparent;
+	display: flex;
+	align-items: center;
+	margin-top: adapt(22px, 1440px);
+
+	&:hover {
+		cursor: pointer;
+	}
+
+	> img {
+		width: adapt(14px, 1440px);
+		height: adapt(10.89px, 1440px);
+		margin-right: adapt(8px, 1440px);
+	}
+}
+
+.block__configureSearch {
+	width: 100%;
+}
+
+.button__toResult {
+  background-color: $color_blue;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: adapt(8px, 1440px);
+  padding: adapt(8px, 1440px) adapt(20px, 1440px); // Обычно 8/12px сверху-снизу и 16/20px слева-справа
+  border: none;
+  margin-top: adapt(16px, 1440px);
+  min-width: 0; // Сброс
+  width: auto; // Только по содержимому
+
+  box-shadow: 0 2px 8px rgba($color: $color_blue, $alpha: 0.08);
+
+  transition: background 0.15s;
+
+	&:hover {
+		background-color: color.adjust($color_blue, $lightness: -5%);
+		cursor: pointer;
+	}
+}
+
+// Ограничение ширины всего селектора и выпадашки на 50vw
+.analysisThemesSelector {
+  max-width: 50vw !important;
+  min-width: 340px;
+  width: 100%;
+
+  .block__options {
+    max-width: 50vw !important;
+    min-width: 340px !important;
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .analysisThemesSelector {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100%;
+
+    .block__data,
+    .block__options {
+      min-width: 0 !important;
+      max-width: 100% !important;
+    }
+  }
+}
+
+.searchAndButtonsContainer {
+    display: flex;
+    flex-direction: row;
+    gap: adapt(16px, 1440px);
+    width: 100%;
+    align-items: stretch;
+    flex-wrap: nowrap;
+}
+
+
+.buttonsContainer {
+    display: flex;
+    gap: adapt(16px, 1440px);
+    
+    button {
+        flex: 1;
+        height: 60px; // Фиксированная высота вместо 100%
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+}
+
+// Если нужно переопределить стили для конкретных кнопок
+.button__toResult {
+    margin-top: 0;
+}
+
+// Мобильная адаптация
+@media (max-width: 900px) {
+    .searchAndButtonsContainer {
+        flex-direction: column;
+    }
+
+    .buttonsContainer {
+        flex-direction: column;
+        gap: 12px;
+
+        button {
+            height: auto;
+            width: 100%;
+        }
+    }
+}
+
+.block__configureSearch {
+  position: relative;
+  z-index: 2;
+  overflow: hidden; // Добавьте это
+}

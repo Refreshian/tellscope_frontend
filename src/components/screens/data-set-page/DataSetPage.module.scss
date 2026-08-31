@@ -1,0 +1,465 @@
+@use "sass:color";
+@import '@st/variables';
+@import '@st/functions';
+
+// Общий контейнер страницы
+.page__container {
+  min-height: 100vh;
+  padding: 24px;
+  background-color: #f8f9fa;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+// Заголовок страницы
+.block__pageName {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 32px;
+  padding: 0 4px;
+
+  > .pageName__title {
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #1a1a1a;
+  }
+}
+
+.pageName__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+// Кнопки
+.button__title {
+  padding: 12px 24px;
+  border-radius: 8px;
+  background-color: $color_blue;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: $color_white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: color.scale($color_blue, $lightness: -8%);
+    transform: translateY(-1px);
+  }
+}
+
+.download {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 12px 24px;
+  border: 2px solid $color_blue;
+  border-radius: 8px;
+  background-color: transparent;
+  color: $color_blue;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: $color_blue;
+    color: white;
+  }
+
+  > .file {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  > .upload {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+  }
+}
+
+// Навигационные вкладки
+.navigation__tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 32px;
+  border-bottom: 1px solid #e5e5e5;
+  padding: 0 4px;
+
+  .tab {
+    padding: 16px 24px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #666;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+    position: relative;
+
+    &:hover {
+      color: $color_blue;
+      background-color: rgba($color_blue, 0.05);
+    }
+
+    &.active {
+      color: $color_blue;
+      border-bottom-color: $color_blue;
+      background-color: rgba($color_blue, 0.05);
+    }
+  }
+}
+
+// Основной контент
+.block__data {
+  width: 100%;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+// Заголовок секции с поиском
+.data__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  gap: 24px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+.data__search {
+  flex: 1;
+  max-width: 400px;
+  
+  .searchInput {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #d0d0d0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: border-color 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: $color_blue;
+      box-shadow: 0 0 0 3px rgba($color_blue, 0.1);
+    }
+
+    &::placeholder {
+      color: #999;
+    }
+  }
+}
+
+.data__filter {
+  .filterSelect {
+    padding: 12px 16px;
+    border: 1px solid #d0d0d0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background-color: white;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: $color_blue;
+      box-shadow: 0 0 0 3px rgba($color_blue, 0.1);
+    }
+  }
+}
+
+// Контент файлов и папок
+.data__content {
+  width: 100%;
+  min-height: 400px;
+}
+
+.data__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px;
+  width: 100%;
+  padding: 8px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+  }
+}
+
+// Состояния загрузки
+.loading, .error {
+  width: 100%;
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.error {
+  color: #dc3545;
+}
+
+// Папки и файлы
+.block__folder {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: rgba($color_blue, 0.2);
+  }
+
+  .folder {
+    width: 100%;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+
+  .data {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+
+    .folder__name {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #333;
+      word-break: break-word;
+    }
+
+    .folder__info {
+      font-size: 0.8rem;
+      color: #666;
+    }
+  }
+}
+
+// Прогресс-бары
+.progressContainer {
+  margin: 24px 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.progressLabel {
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  color: #333;
+  font-weight: 500;
+}
+
+.progressBar {
+  height: 8px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  min-width: 2px;
+}
+
+.fileProgressContainer {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.fileHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.fileName {
+  font-weight: 500;
+  color: #333;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.fileStatus {
+  font-size: 0.8rem;
+  color: #666;
+  white-space: nowrap;
+}
+
+.progressDetails {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: #999;
+  font-style: italic;
+}
+
+// Лоадер
+.background__loader {
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+// Тултипы
+.tooltip {
+  position: absolute;
+  background: #333;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  z-index: 1000;
+  transform: translateY(5px);
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+
+  &.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Адаптивность
+@media (max-width: 1024px) {
+  .page__container {
+    padding: 16px;
+  }
+  
+  .block__pageName > .pageName__title {
+    font-size: 1.75rem;
+  }
+  
+  .data__grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .block__pageName {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .pageName__actions {
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .button__title,
+  .download {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .navigation__tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 16px;
+    flex-wrap: nowrap;
+
+    .tab {
+      padding: 12px 14px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+  }
+
+  .data__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .data__search {
+    max-width: none;
+  }
+
+  .block__data {
+    padding: 16px 12px;
+  }
+}
+
+.tooltip {
+  position: absolute;
+  top: 100%;           // появляется под кнопкой
+  left: 0;             // выравнивается по левому краю родителя
+  // right: 0;         // Используйте вместо left: 0, если хотите выравнивать по правому краю
+  margin-top: 8px;     // небольшой отступ вниз
+  background: #333;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  z-index: 1000;
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: 270px;
+  box-sizing: border-box;
+
+  &.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

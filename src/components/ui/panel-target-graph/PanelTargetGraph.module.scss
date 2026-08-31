@@ -1,0 +1,35 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.block__buttons {
+	height: adapt(42px, 1440px);
+	border-radius: adapt(8px, 1440px);
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: adapt(24px, 1440px);
+
+	> button {
+		background-color: transparent;
+		height: 100%;
+		padding: adapt(8px, 1440px) 0px;
+		font-size: 1rem;
+		line-height: 1.4;
+
+		&:hover {
+			cursor: pointer;
+		}
+	}
+
+	> .target__line {
+		background-color: $color_blue;
+		position: absolute;
+		bottom: 0;
+		height: 2px;
+		border-top-left-radius: adapt(20px, 1440px);
+		border-top-right-radius: adapt(20px, 1440px);
+		transition:
+			left 0.2s ease-in-out,
+			width 0.2s ease-in-out;
+	}
+}

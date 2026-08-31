@@ -1,0 +1,31 @@
+@import '@st/variables';
+@import '@st/functions';
+
+.wrapper_progressBar {
+	display: flex;
+	align-items: center;
+	gap: adapt(16px, 1440px);
+}
+
+.block__progressBar {
+	width: adapt(400px, 1440px);
+	height: adapt(8px, 1440px);
+	border-radius: adapt(20px, 1440px);
+	background-color: rgba($color: $color_blue, $alpha: 0.08);
+}
+
+.progress {
+	background-color: $color_blue;
+	height: 100%;
+	border-radius: adapt(20px, 1440px);
+	transition: width 0.3s ease;
+}
+
+.present {
+	font-size: 0.87rem;
+	color: $color_blue;
+}
+
+.green {
+	background-color: $color_green;
+}
