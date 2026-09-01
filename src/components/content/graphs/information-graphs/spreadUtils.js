@@ -48,6 +48,7 @@ const messageNode = (message, chainId, kind, index) => {
 		views: Number(message?.viewsCount) || 0,
 		er: Number(message?.er) || 0,
 		time: toMs(message?.timeCreate),
+		text: message?.text || '',
 	};
 };
 
@@ -115,7 +116,7 @@ export function layoutSpreadGraph(graph, width, height) {
 	const pad = { left: 148, right: 28, top: 28, bottom: 36 };
 	const lane = Math.max(42, (height - pad.top - pad.bottom) / Math.max(hubs.length, 1));
 	const svgHeight = Math.max(height, pad.top + pad.bottom + hubs.length * lane);
-	const svgWidth = Math.max(width, 960);
+	const svgWidth = Math.max(width, 1);
 	const innerW = svgWidth - pad.left - pad.right;
 	const hubIndex = new Map(hubs.map((hub, index) => [hub.hub, index]));
 	const maxAudience = Math.max(1, ...nodes.map(node => node.audience));
