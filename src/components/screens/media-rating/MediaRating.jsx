@@ -75,8 +75,10 @@ const MediaRating = () => {
   }, [data_media]);
 
   const [sliderRange, setSliderRange] = useState([0, 100_000]);
+  const [appliedRange, setAppliedRange] = useState([0, 100_000]);
   useEffect(() => {
     setSliderRange(indexRange);
+    setAppliedRange(indexRange);
   }, [indexRange[0], indexRange[1]]);
 
   const [isNoData, setIsNoData] = useState(false);
@@ -105,18 +107,18 @@ const MediaRating = () => {
     if (!data_media) return null;
     const result = { ...data_media };
     result.filtered_second_graph = result.second_graph?.filter(
-      item => item.index >= sliderRange[0] && item.index <= sliderRange[1]
+      item => item.index >= appliedRange[0] && item.index <= appliedRange[1]
     ) || [];
     result.filtered_first_graph = {
       positive_smi: result.first_graph?.positive_smi?.filter(
-        item => item.index >= sliderRange[0] && item.index <= sliderRange[1]
+        item => item.index >= appliedRange[0] && item.index <= appliedRange[1]
       ) || [],
       negative_smi: result.first_graph?.negative_smi?.filter(
-        item => item.index >= sliderRange[0] && item.index <= sliderRange[1]
+        item => item.index >= appliedRange[0] && item.index <= appliedRange[1]
       ) || []
     };
     return result;
-  }, [data_media, sliderRange]);
+  }, [data_media, appliedRange]);
 
   const handleSliderChange = value => setSliderRange(value);
   const getMediaData = useCallback(() => { trigger(dataForRequest); }, [dataForRequest, trigger]);
@@ -287,9 +289,8 @@ const MediaRating = () => {
             )}
           <Button
             style={{
-              flex: '1 1 180px',
-              minWidth: 160,
-              height: 56,
+              width: 'calc(220/1440*100vw)',
+              height: 'calc(56/1440*100vw)',
             }}
             onClick={getMediaData}
           >
@@ -307,6 +308,8 @@ const MediaRating = () => {
                   max={indexRange[1]}
                   value={sliderRange}
                   onChange={handleSliderChange}
+                  onChangeComplete={setAppliedRange}
+                  onAfterChange={setAppliedRange}
                   trackStyle={[{ backgroundColor: '#6ED2FF', height: 4 }]}
                   handleStyle={[
                     { borderColor: '#fff', backgroundColor: '#3E8DF6', width: 14, height: 14 },

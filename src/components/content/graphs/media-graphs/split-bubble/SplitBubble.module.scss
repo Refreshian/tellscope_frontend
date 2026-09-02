@@ -1,0 +1,33 @@
+@import '@st/variables';
+
+.wrap {
+	width: 100%;
+	height: 100%;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	min-width: 0;
+}
+
+.hint,
+.empty {
+	font-size: 0.78rem;
+	line-height: 1.4;
+	color: rgba($color_black, 0.62);
+	padding: 0 4px 8px;
+	flex-shrink: 0;
+}
+
+.empty {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 1;
+}
+
+.chart {
+	flex: 1 1 auto;
+	min-height: 0;
+	width: 100%;
+}

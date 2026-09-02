@@ -6,11 +6,8 @@ import styles from './MediaGraphs.module.scss';
 import BubbleChart from './bubble-chart/BubbleChart';
 import SplitBubble from './split-bubble/SplitBubble';
 import { mediaButtons } from '@/data/panel.data';
-import Highcharts from 'highcharts';
-import HighchartsReact from 'highcharts-react-official';
 
-// ПРИНИМАЕМ ПРОПСЫ!
-const MediaGraphs = ({ originalData, filteredData, selectedIndexRange }) => {
+const MediaGraphs = ({ filteredData }) => {
   const handleDownloadImage = useSaveImageGraph();
   const [activeButton, setActiveButton] = useState('Рейтинг тональности в СМИ');
 
@@ -23,7 +20,7 @@ const MediaGraphs = ({ originalData, filteredData, selectedIndexRange }) => {
       <div className={styles.block__title}>
         <PanelTargetGraph
           handleClick={handleClick}
-          dataButtons={mediaButtons} 
+          dataButtons={mediaButtons}
           activeButton={activeButton}
         />
         <div className={styles.block__settings}>
