@@ -227,49 +227,95 @@ export function packNodesInCircle(nodes, cx, cy, maxR) {
 	const list = [...(nodes || [])].sort((a, b) => nodeRadius(b) - nodeRadius(a));
 	if (!list.length) return 0;
 
-	const golden = Math.PI * (3 - Math.sqrt(5));
-	list.forEach((node, i) => {
-		const r = nodeRadius(node);
-		const t = list.length === 1 ? 0 : Math.sqrt(i / (list.length - 1));
-		const rad = t * Math.max(0, maxR - r);
-		const a = i * golden;
-		setNodePos(node, cx + rad * Math.cos(a), cy + rad * Math.sin(a));
-	});
+	const gap = 4;
+	const radius = node => nodeRadius(node);
 
-	for (let iter = 0; iter < 48; iter += 1) {
-		for (let i = 0; i < list.length; i += 1) {
-			for (let j = i + 1; j < list.length; j += 1) {
-				const a = list[i];
-				const b = list[j];
-				const minD = nodeRadius(a) + nodeRadius(b) + 2;
-				let dx = b.plotX - a.plotX;
-				let dy = b.plotY - a.plotY;
-				const dist = Math.hypot(dx, dy) || 0.01;
-				if (dist >= minD) continue;
-				const push = (minD - dist) / 2;
-				dx /= dist;
-				dy /= dist;
-				setNodePos(a, a.plotX - dx * push, a.plotY - dy * push);
-				setNodePos(b, b.plotX + dx * push, b.plotY + dy * push);
+	list.forEach((node, i) => {
+		const r = radius(node);
+		if (i === 0) {
+			node._x = 0;
+			node._y = 0;
+			return;
+		}
+		if (i === 1) {
+			node._x = radius(list[0]) + r + gap;
+			node._y = 0;
+			return;
+		}
+
+		const placed = list.slice(0, i);
+		let best = null;
+		let bestScore = Infinity;
+		for (let a = 0; a < placed.length; a += 1) {
+			for (let b = a + 1; b < placed.length; b += 1) {
+				const c1 = placed[a];
+				const c2 = placed[b];
+				const d = Math.hypot(c2._x - c1._x, c2._y - c1._y);
+				const r1 = radius(c1) + r + gap;
+				const r2 = radius(c2) + r + gap;
+				if (d < 0.01 || d > r1 + r2 || d < Math.abs(r1 - r2)) continue;
+				const along = (d * d + r1 * r1 - r2 * r2) / (2 * d);
+				const height = Math.sqrt(Math.max(0, r1 * r1 - along * along));
+				const ux = (c2._x - c1._x) / d;
+				const uy = (c2._y - c1._y) / d;
+				const candidates = [
+					{
+						x: c1._x + along * ux - height * uy,
+						y: c1._y + along * uy + height * ux,
+					},
+					{
+						x: c1._x + along * ux + height * uy,
+						y: c1._y + along * uy - height * ux,
+					},
+				];
+				candidates.forEach(pos => {
+					const overlaps = placed.some(item => {
+						const need = radius(item) + r + gap;
+						return Math.hypot(pos.x - item._x, pos.y - item._y) + 0.05 < need;
+					});
+					if (overlaps) return;
+					const score = pos.x * pos.x + pos.y * pos.y;
+					if (score < bestScore) {
+						bestScore = score;
+						best = pos;
+					}
+				});
 			}
 		}
-		list.forEach(node => {
-			const r = nodeRadius(node);
-			const dx = node.plotX - cx;
-			const dy = node.plotY - cy;
-			const dist = Math.hypot(dx, dy);
-			const limit = Math.max(0, maxR - r);
-			if (dist > limit) {
-				const k = limit / (dist || 1);
-				setNodePos(node, cx + dx * k, cy + dy * k);
-			}
-		});
-	}
 
-	return list.reduce((bound, node) => {
-		const reach = Math.hypot(node.plotX - cx, node.plotY - cy) + nodeRadius(node);
-		return Math.max(bound, reach);
-	}, 0);
+		if (!best) {
+			const last = placed[placed.length - 1];
+			const dist = radius(last) + r + gap;
+			const ang = Math.atan2(last._y, last._x || 1) + 0.7;
+			best = {
+				x: last._x + dist * Math.cos(ang),
+				y: last._y + dist * Math.sin(ang),
+			};
+		}
+		node._x = best.x;
+		node._y = best.y;
+	});
+
+	let bound = 0;
+	list.forEach(node => {
+		bound = Math.max(bound, Math.hypot(node._x, node._y) + radius(node));
+	});
+	const scale = bound > maxR && bound > 0 ? maxR / bound : 1;
+	list.forEach(node => {
+		const r = radius(node) * scale;
+		node.radius = r;
+		node.marker = {
+			...(node.marker || {}),
+			radius: r,
+			width: r * 2,
+			height: r * 2,
+		};
+		setNodePos(node, cx + node._x * scale, cy + node._y * scale);
+		delete node._x;
+		delete node._y;
+	});
+
+	return bound * scale;
 }
 
 const groupOrder = name => {
