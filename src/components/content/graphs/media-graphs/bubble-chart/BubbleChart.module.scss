@@ -31,3 +31,77 @@
 	min-height: 420px;
 	width: 100%;
 }
+
+.filters {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 0 4px 10px;
+	flex-shrink: 0;
+}
+
+.filterBlock {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.filterHead {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	color: #687087;
+	font-size: 0.78rem;
+
+	strong {
+		font-weight: 500;
+		color: #1e1e1e;
+	}
+}
+
+.filterReset {
+	border: 0;
+	background: transparent;
+	color: #1760e8;
+	cursor: pointer;
+	font-size: 0.74rem;
+	padding: 0;
+}
+
+.chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	max-height: 72px;
+	overflow: auto;
+}
+
+.chip {
+	border: 1px solid #d9e4f2;
+	background: #f6fafe;
+	border-radius: 999px;
+	padding: 4px 10px;
+	cursor: pointer;
+	font-size: 0.74rem;
+	color: #3a4460;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+
+	em {
+		font-style: normal;
+		color: rgba($color_black, 0.45);
+		font-size: 0.68rem;
+	}
+}
+
+.chipOn {
+	background: #1760e8;
+	border-color: #1760e8;
+	color: #fff;
+
+	em {
+		color: rgba(255, 255, 255, 0.8);
+	}
+}

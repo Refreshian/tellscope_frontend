@@ -1,3 +1,5 @@
+import Slider from 'rc-slider';
+import 'rc-slider/assets/index.css';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import highchartsMore from 'highcharts/highcharts-more';
@@ -6,7 +8,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import MessagePicker from '../message-picker/MessagePicker';
 import {
 	buildDynamics,
+	collectMediaFacets,
 	esc,
+	filterDynamicsRows,
 	formatCount,
 	formatTime,
 	openUrl,
@@ -26,10 +30,30 @@ const BubbleChart = ({ filteredData }) => {
 	const hoverRef = useRef(null);
 	const [chartSize, setChartSize] = useState({ w: 0, h: 0 });
 	const [picker, setPicker] = useState(null);
+	const [selectedCats, setSelectedCats] = useState(null);
+	const [sliderDup, setSliderDup] = useState(null);
+	const [appliedDup, setAppliedDup] = useState(null);
 
 	const rows = Array.isArray(filteredData?.filtered_second_graph)
 		? filteredData.filtered_second_graph
 		: [];
+
+	const facets = useMemo(() => collectMediaFacets(rows), [rows]);
+	const hasCategories =
+		facets.categories.length > 1 ||
+		(facets.categories.length === 1 && facets.categories[0][0] !== 'Без категории');
+	const hasDuplicates = facets.maxDup > facets.minDup;
+
+	useEffect(() => {
+		setSelectedCats(new Set(facets.categories.map(([name]) => name)));
+		setSliderDup([facets.minDup, facets.maxDup]);
+		setAppliedDup([facets.minDup, facets.maxDup]);
+	}, [rows, facets.minDup, facets.maxDup, facets.categories]);
+
+	const visibleRows = useMemo(
+		() => filterDynamicsRows(rows, selectedCats, appliedDup),
+		[rows, selectedCats, appliedDup],
+	);
 
 	useEffect(() => {
 		const el = chartRef.current;
@@ -41,7 +65,7 @@ const BubbleChart = ({ filteredData }) => {
 		return () => observer.disconnect();
 	}, []);
 
-	const model = useMemo(() => buildDynamics(rows), [rows]);
+	const model = useMemo(() => buildDynamics(visibleRows), [visibleRows]);
 
 	const openPoint = useCallback(point => {
 		const opts = point?.options || {};
@@ -170,6 +194,8 @@ const BubbleChart = ({ filteredData }) => {
 						`<b>${esc(opts.source || this.point.name)}</b><br/>` +
 						`Тональность: <b>${opts.sign === 'negative' ? 'негатив' : 'позитив'}</b><br/>` +
 						`Индекс: <b>${formatCount(opts.y ?? this.y)}</b><br/>` +
+						`Категория СМИ: <b>${esc(opts.categoryName || '—')}</b><br/>` +
+						`Число дубликатов: <b>${formatCount(opts.duplicateCount || 1)}</b><br/>` +
 						`Время: ${formatTime(this.x)}` +
 						extra +
 						`<br/><span style="color:#1760e8">Двойной клик — открыть сообщение</span>`
@@ -217,7 +243,7 @@ const BubbleChart = ({ filteredData }) => {
 		[series, chartSize.h, model.timeRange],
 	);
 
-	if (!model.allCount) {
+	if (!rows.length) {
 		return (
 			<div className={styles.wrap}>
 				<p className={styles.empty}>Нет публикаций в выбранном диапазоне</p>
@@ -225,23 +251,117 @@ const BubbleChart = ({ filteredData }) => {
 		);
 	}
 
+	const allSelected =
+		selectedCats instanceof Set &&
+		selectedCats.size === facets.categories.length;
+	const toggleCat = name => {
+		setSelectedCats(prev => {
+			const next = new Set(prev || []);
+			if (next.has(name)) next.delete(name);
+			else next.add(name);
+			return next;
+		});
+	};
+
 	return (
 		<div className={styles.wrap} ref={rootRef}>
+			{(hasCategories || hasDuplicates) && (
+				<div className={styles.filters}>
+					{hasCategories && (
+						<div className={styles.filterBlock}>
+							<div className={styles.filterHead}>
+								<span>Категория СМИ</span>
+								<button
+									type="button"
+									className={styles.filterReset}
+									onClick={() =>
+										setSelectedCats(
+											allSelected
+												? new Set()
+												: new Set(facets.categories.map(([name]) => name)),
+										)
+									}
+								>
+									{allSelected ? 'Снять все' : 'Все'}
+								</button>
+							</div>
+							<div className={styles.chips}>
+								{facets.categories.map(([name, count]) => {
+									const on = selectedCats?.has(name);
+									return (
+										<button
+											key={name}
+											type="button"
+											className={`${styles.chip} ${on ? styles.chipOn : ''}`}
+											onClick={() => toggleCat(name)}
+										>
+											{name}
+											<em>{formatCount(count)}</em>
+										</button>
+									);
+								})}
+							</div>
+						</div>
+					)}
+					{hasDuplicates && sliderDup && (
+						<div className={styles.filterBlock}>
+							<div className={styles.filterHead}>
+								<span>Число дубликатов</span>
+								<strong>
+									{formatCount(sliderDup[0])} — {formatCount(sliderDup[1])}
+								</strong>
+							</div>
+							<Slider
+								range
+								min={facets.minDup}
+								max={facets.maxDup}
+								value={sliderDup}
+								onChange={value => setSliderDup(value)}
+								onChangeComplete={value => setAppliedDup(value)}
+								onAfterChange={value => setAppliedDup(value)}
+								trackStyle={[{ backgroundColor: '#6ED2FF', height: 4 }]}
+								handleStyle={[
+									{
+										borderColor: '#fff',
+										backgroundColor: '#3E8DF6',
+										width: 14,
+										height: 14,
+									},
+									{
+										borderColor: '#fff',
+										backgroundColor: '#3E8DF6',
+										width: 14,
+										height: 14,
+									},
+								]}
+								railStyle={{ backgroundColor: '#E8F4FB', height: 4 }}
+							/>
+						</div>
+					)}
+				</div>
+			)}
 			<p className={styles.hint}>
 				Кружки — отдельные публикации, размер по индексу. Линия — как
 				менялся средний индекс, тонкие нити связывают источники с несколькими
 				выходами. Двойной клик открывает сообщение.
+				{visibleRows.length !== rows.length
+					? ` Показано публикаций: ${formatCount(visibleRows.length)} из ${formatCount(rows.length)}.`
+					: ''}
 				{model.truncated > 0
-					? ` Показаны ${model.shownCount} самых заметных кружков, скрыто: ${model.truncated}.`
+					? ` На графике ${model.shownCount} самых заметных кружков, скрыто: ${model.truncated}.`
 					: ''}
 			</p>
-			<div className={styles.chart} ref={chartRef}>
-				<HighchartsReact
-					highcharts={Highcharts}
-					options={options}
-					containerProps={{ style: { width: '100%', height: '100%' } }}
-				/>
-			</div>
+			{!model.allCount ? (
+				<p className={styles.empty}>Нет публикаций по выбранным фильтрам</p>
+			) : (
+				<div className={styles.chart} ref={chartRef}>
+					<HighchartsReact
+						highcharts={Highcharts}
+						options={options}
+						containerProps={{ style: { width: '100%', height: '100%' } }}
+					/>
+				</div>
+			)}
 			<MessagePicker
 				title={picker?.title}
 				messages={picker?.messages}

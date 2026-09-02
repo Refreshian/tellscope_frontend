@@ -127,6 +127,56 @@ export function buildSplitSeries(
 	];
 }
 
+export const mediaCategory = item => {
+	const raw = item?.categoryName ?? item?.category_name ?? item?.category ?? '';
+	const text = String(raw || '').trim();
+	return text || 'Без категории';
+};
+
+export const mediaDuplicates = item => {
+	const n = Number(item?.duplicateCount ?? item?.duplicate_count ?? 1);
+	if (!Number.isFinite(n) || n < 1) return 1;
+	return Math.round(n);
+};
+
+export function collectMediaFacets(rows) {
+	const counts = new Map();
+	let minDup = Infinity;
+	let maxDup = 1;
+	(rows || []).forEach(item => {
+		const cat = mediaCategory(item);
+		counts.set(cat, (counts.get(cat) || 0) + 1);
+		const dup = mediaDuplicates(item);
+		minDup = Math.min(minDup, dup);
+		maxDup = Math.max(maxDup, dup);
+	});
+	if (!Number.isFinite(minDup)) minDup = 1;
+	return {
+		categories: [...counts.entries()].sort(
+			(a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ru'),
+		),
+		minDup,
+		maxDup,
+	};
+}
+
+export function filterDynamicsRows(rows, selectedCategories, dupRange) {
+	const cats = selectedCategories instanceof Set ? selectedCategories : null;
+	const minDup = Array.isArray(dupRange) ? Number(dupRange[0]) : null;
+	const maxDup = Array.isArray(dupRange) ? Number(dupRange[1]) : null;
+	return (rows || []).filter(item => {
+	if (cats) {
+		if (!cats.size) return false;
+		if (!cats.has(mediaCategory(item))) return false;
+	}
+		if (minDup != null && maxDup != null) {
+			const dup = mediaDuplicates(item);
+			if (dup < minDup || dup > maxDup) return false;
+		}
+		return true;
+	});
+}
+
 const nodeRadius = node =>
 	Math.max(3, Number(node?.marker?.radius || node?.radius || 8) || 8);
 
@@ -138,6 +188,40 @@ const setNodePos = (node, x, y) => {
 	node.dispX = 0;
 	node.dispY = 0;
 };
+
+const pointIndexValue = node => {
+	const raw =
+		node?.options?.value ??
+		node?.value ??
+		node?.options?.index ??
+		node?.index ??
+		0;
+	const n = Math.abs(Number(raw) || 0);
+	return n;
+};
+
+export function applyIndexRadii(nodes, maxR) {
+	const list = (nodes || []).filter(node => node && !node.isParentNode);
+	if (!list.length) return;
+	const values = list.map(pointIndexValue);
+	const logs = values.map(value => Math.log10(Math.max(value, 1)));
+	const minL = Math.min(...logs);
+	const maxL = Math.max(...logs);
+	const span = Math.max(maxL - minL, 0.001);
+	const minR = Math.max(5, maxR * 0.07);
+	const maxBubbleR = Math.max(minR + 12, maxR * 0.5);
+	list.forEach((node, i) => {
+		const t = (logs[i] - minL) / span;
+		const r = minR + (maxBubbleR - minR) * t;
+		node.radius = r;
+		node.marker = {
+			...(node.marker || {}),
+			radius: r,
+			width: r * 2,
+			height: r * 2,
+		};
+	});
+}
 
 export function packNodesInCircle(nodes, cx, cy, maxR) {
 	const list = [...(nodes || [])].sort((a, b) => nodeRadius(b) - nodeRadius(a));
@@ -222,7 +306,9 @@ export function placeSplitPackedNodes(layout) {
 				: width * (0.26 + (0.48 * i) / Math.max(names.length - 1, 1));
 		const cy = height * 0.5;
 		const maxR = Math.min(width * 0.34, height * 0.4);
-		const packedR = packNodesInCircle(nodes, cx, cy, maxR * 0.78);
+		const packR = maxR * 0.78;
+		applyIndexRadii(nodes, packR);
+		const packedR = packNodesInCircle(nodes, cx, cy, packR);
 		const parent = nodes[0]?.series?.parentNode;
 		if (parent) {
 			setNodePos(parent, cx, cy);
@@ -316,6 +402,8 @@ export function buildDynamics(secondGraph, maxBubbles = 320) {
 				source: item.name || 'Источник',
 				url: item.url || '',
 				sign: y >= 0 ? 'positive' : 'negative',
+				categoryName: mediaCategory(item),
+				duplicateCount: mediaDuplicates(item),
 			};
 		})
 		.filter(point => point.x > 1e11)

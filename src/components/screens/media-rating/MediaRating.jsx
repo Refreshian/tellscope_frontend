@@ -256,9 +256,16 @@ const MediaRating = () => {
         ]);
       });
     } else {
-      ws_data.push(['Ресурс', 'Индекс', 'Время', 'URL']);
+      ws_data.push(['Ресурс', 'Индекс', 'Время', 'Категория СМИ', 'Число дубликатов', 'URL']);
       sortedTableData.forEach(row => {
-        ws_data.push([row.name, row.index, row.time, row.url]);
+        ws_data.push([
+          row.name,
+          row.index,
+          row.time,
+          row.categoryName || row.category_name || '',
+          row.duplicateCount ?? row.duplicate_count ?? 1,
+          row.url,
+        ]);
       });
     }
 
@@ -493,6 +500,20 @@ const MediaRating = () => {
                                     </span>
                                   )}
                                 </th>
+                                <th onClick={() => handleSort('categoryName')} className={styles.sortableHeader}>Категория СМИ
+                                  {sortConfig.key === 'categoryName' && (
+                                    <span className={styles.sortIcon}>
+                                      {sortConfig.direction === 'desc' ? '↓' : '↑'}
+                                    </span>
+                                  )}
+                                </th>
+                                <th onClick={() => handleSort('duplicateCount')} className={styles.sortableHeader}>Число дубликатов
+                                  {sortConfig.key === 'duplicateCount' && (
+                                    <span className={styles.sortIcon}>
+                                      {sortConfig.direction === 'desc' ? '↓' : '↑'}
+                                    </span>
+                                  )}
+                                </th>
                                 <th>Ссылка на сообщение</th>
                               </>
                             )}
@@ -527,6 +548,8 @@ const MediaRating = () => {
                                 <td>{item.name}</td>
                                 <td>{item.index}</td>
                                 <td>{item.time}</td>
+                                <td>{item.categoryName || item.category_name || '—'}</td>
+                                <td>{item.duplicateCount ?? item.duplicate_count ?? 1}</td>
                                 <td className={styles.textCell}>
                                   {item.url
                                     ? <a href={item.url} target="_blank" rel="noopener noreferrer">{item.url}</a>
@@ -538,7 +561,7 @@ const MediaRating = () => {
                           ))}
                           {!sortedTableData.length && (
                             <tr>
-                              <td colSpan={activeTab === 'rating' ? 5 : 4}>
+                              <td colSpan={activeTab === 'rating' ? 5 : 6}>
                                 Нет данных для отображения
                               </td>
                             </tr>
