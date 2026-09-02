@@ -1,6 +1,6 @@
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 
 import { funksInformationGraph } from '@/utils/editData';
@@ -10,9 +10,21 @@ import { formatTime, hubColor, toMs } from '../spreadUtils';
 import styles from './BarInformation.module.scss';
 
 const BarInformation = () => {
+	const wrapRef = useRef(null);
+	const [chartHeight, setChartHeight] = useState(0);
 	const { dynamicdata_audience } = useSelector(
 		state => state.informationGraphData,
 	);
+
+	useEffect(() => {
+		const el = wrapRef.current;
+		if (!el) return undefined;
+		const apply = () => setChartHeight(el.clientHeight);
+		apply();
+		const observer = new ResizeObserver(apply);
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, []);
 
 	const series = useMemo(() => {
 		const formatted =
@@ -43,6 +55,7 @@ const BarInformation = () => {
 			accessibility: { enabled: false },
 			chart: {
 				backgroundColor: 'transparent',
+				height: chartHeight || null,
 				zoomType: 'x',
 				panning: { enabled: true, type: 'x' },
 				panKey: 'shift',
@@ -92,7 +105,7 @@ const BarInformation = () => {
 			},
 			series,
 		}),
-		[series],
+		[series, chartHeight],
 	);
 
 	if (!series.length) {
@@ -109,7 +122,7 @@ const BarInformation = () => {
 				Как аудитория набиралась по площадкам со временем. Выделите участок
 				мышью, чтобы приблизить; Shift + перетаскивание — сдвиг.
 			</p>
-			<div className={styles.chart}>
+			<div className={styles.chart} ref={wrapRef}>
 				<HighchartsReact
 					highcharts={Highcharts}
 					options={options}

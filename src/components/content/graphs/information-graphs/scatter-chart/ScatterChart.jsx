@@ -1,13 +1,26 @@
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { funksInformationGraph } from '@/utils/editData';
 
 import { formatTime, toMs } from '../spreadUtils';
 
+import styles from './ScatterChart.module.scss';
+
 const ScatterChart = ({ data }) => {
-	const chartComponent = useRef(null);
+	const wrapRef = useRef(null);
+	const [chartHeight, setChartHeight] = useState(0);
+
+	useEffect(() => {
+		const el = wrapRef.current;
+		if (!el) return undefined;
+		const apply = () => setChartHeight(el.clientHeight);
+		apply();
+		const observer = new ResizeObserver(apply);
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, []);
 
 	const series = useMemo(() => {
 		const origins = [];
@@ -53,10 +66,12 @@ const ScatterChart = ({ data }) => {
 			credits: { enabled: false },
 			chart: {
 				type: 'scatter',
+				height: chartHeight || null,
 				zoomType: 'xy',
 				panning: { enabled: true, type: 'xy' },
 				panKey: 'shift',
 				backgroundColor: 'transparent',
+				spacing: [12, 12, 8, 8],
 			},
 			title: { text: null },
 			xAxis: {
@@ -69,7 +84,10 @@ const ScatterChart = ({ data }) => {
 				title: { text: 'Аудитория' },
 				min: 0,
 			},
-			legend: { enabled: true },
+			legend: {
+				enabled: true,
+				itemStyle: { fontSize: '11px', fontWeight: '400' },
+			},
 			plotOptions: {
 				series: {
 					turboThreshold: 0,
@@ -105,16 +123,31 @@ const ScatterChart = ({ data }) => {
 			},
 			series,
 		}),
-		[series],
+		[series, chartHeight],
 	);
 
+	if (!series.some(item => item.data.length)) {
+		return (
+			<div className={styles.wrap}>
+				<p className={styles.empty}>Нет точек для выбранных фильтров</p>
+			</div>
+		);
+	}
+
 	return (
-		<HighchartsReact
-			ref={chartComponent}
-			highcharts={Highcharts}
-			options={options}
-			containerProps={{ style: { width: '100%', height: '100%' } }}
-		/>
+		<div className={styles.wrap}>
+			<p className={styles.hint}>
+				Каждая точка — сообщение. Клик открывает пост. Выделите область
+				мышью, чтобы приблизить; Shift + перетаскивание — сдвиг.
+			</p>
+			<div className={styles.chart} ref={wrapRef}>
+				<HighchartsReact
+					highcharts={Highcharts}
+					options={options}
+					containerProps={{ style: { width: '100%', height: '100%' } }}
+				/>
+			</div>
+		</div>
 	);
 };
 

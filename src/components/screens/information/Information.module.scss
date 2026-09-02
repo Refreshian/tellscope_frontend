@@ -873,6 +873,27 @@ table tbody tr:hover {
     }
   }
 
+.graphContainer {
+  width: 100%;
+  max-width: 100%;
+  height: calc(100vh - 270px);
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+
+  > * {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    width: 100%;
+  }
+
+  @media (max-width: 900px) {
+    height: auto;
+    min-height: 420px;
+  }
+}
+
 .scrollableResults {
   width: 100%;
   max-width: 100%;
@@ -895,17 +916,20 @@ table tbody tr:hover {
 
 .block__configureSearch {
   display: flex;
-  justify-content: stretch;
-  align-items: stretch;
+  justify-content: center;
+  align-items: center;
   gap: 15px;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   padding: 0;
   margin: 0;
   margin-top: 12px;
   background-color: transparent;
+  align-self: center;
 
   @media (max-width: 768px) {
     flex-direction: column;
+    width: 100%;
   }
 
   @media (min-width: 769px) {
@@ -914,8 +938,7 @@ table tbody tr:hover {
 
   > * {
     margin: 0 !important;
-    flex: 1 1 200px;
-    min-width: 180px;
+    flex: 0 1 auto;
     max-width: 100%;
   }
 }
