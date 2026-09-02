@@ -54,10 +54,27 @@ const localSummary = (text, query) => {
 	return (hit || sentences[0] || source).slice(0, 420);
 };
 
+const ruCount = (n, one, few, many) => {
+	const abs = Math.abs(Number(n) || 0) % 100;
+	const last = abs % 10;
+	if (abs > 10 && abs < 20) return many;
+	if (last === 1) return one;
+	if (last >= 2 && last <= 4) return few;
+	return many;
+};
+
+const formatCount = value => (Number(value) || 0).toLocaleString('ru-RU');
+
+const easeOut = t => 1 - (1 - t) * (1 - t);
+
 const SpreadFlow = ({ data }) => {
 	const canvasRef = useRef(null);
 	const svgRef = useRef(null);
 	const dragRef = useRef(null);
+	const clickTimerRef = useRef(null);
+	const viewRef = useRef({ x: 0, y: 0, w: 900, h: 520 });
+	const layoutRef = useRef(null);
+	const viewAnimRef = useRef(0);
 	const [size, setSize] = useState({ w: 900, h: 520 });
 	const [hoverId, setHoverId] = useState(null);
 	const [focusId, setFocusId] = useState(null);
@@ -137,9 +154,12 @@ const SpreadFlow = ({ data }) => {
 		() => layoutSpreadGraph(graph, size.w, size.h),
 		[graph, size],
 	);
+	layoutRef.current = layout;
 
 	useEffect(() => {
-		setView({ x: 0, y: 0, w: layout.svgWidth, h: layout.svgHeight });
+		const next = { x: 0, y: 0, w: layout.svgWidth, h: layout.svgHeight };
+		viewRef.current = next;
+		setView(next);
 	}, [layout.svgWidth, layout.svgHeight]);
 
 	useEffect(() => {
@@ -169,12 +189,14 @@ const SpreadFlow = ({ data }) => {
 			const nextH = nextW * ratio;
 			const px = prev.w ? (cx - prev.x) / prev.w : 0.5;
 			const py = prev.h ? (cy - prev.y) / prev.h : 0.5;
-			return {
+			const next = {
 				w: nextW,
 				h: nextH,
 				x: cx - px * nextW,
 				y: cy - py * nextH,
 			};
+			viewRef.current = next;
+			return next;
 		});
 	}, [layout.svgWidth]);
 
@@ -221,11 +243,15 @@ const SpreadFlow = ({ data }) => {
 		const move = event => {
 			const drag = dragRef.current;
 			if (!drag) return;
-			setView(prev => ({
-				...prev,
-				x: drag.vx - (event.clientX - drag.sx) * drag.scaleX,
-				y: drag.vy - (event.clientY - drag.sy) * drag.scaleY,
-			}));
+			setView(prev => {
+				const next = {
+					...prev,
+					x: drag.vx - (event.clientX - drag.sx) * drag.scaleX,
+					y: drag.vy - (event.clientY - drag.sy) * drag.scaleY,
+				};
+				viewRef.current = next;
+				return next;
+			});
 		};
 		const up = () => {
 			dragRef.current = null;
@@ -243,8 +269,99 @@ const SpreadFlow = ({ data }) => {
 		zoomAt(factor, view.x + view.w / 2, view.y + view.h / 2);
 	};
 
+	const resetView = () => {
+		viewAnimRef.current += 1;
+		const next = { x: 0, y: 0, w: layout.svgWidth, h: layout.svgHeight };
+		viewRef.current = next;
+		setView(next);
+		setFocusId(null);
+	};
+
+	const animateView = useCallback(next => {
+		const from = viewRef.current;
+		const id = (viewAnimRef.current += 1);
+		const started = performance.now();
+		const duration = 320;
+		const step = now => {
+			if (viewAnimRef.current !== id) return;
+			const t = Math.min(1, (now - started) / duration);
+			const e = easeOut(t);
+			const frame = {
+				x: from.x + (next.x - from.x) * e,
+				y: from.y + (next.y - from.y) * e,
+				w: from.w + (next.w - from.w) * e,
+				h: from.h + (next.h - from.h) * e,
+			};
+			viewRef.current = frame;
+			setView(frame);
+			if (t < 1) requestAnimationFrame(step);
+		};
+		requestAnimationFrame(step);
+	}, []);
+
+	const fitChain = useCallback(
+		chainKey => {
+			const lay = layoutRef.current;
+			if (!lay) return;
+			const nodes = lay.nodes.filter(node => node.chainId === chainKey);
+			if (!nodes.length) return;
+			const padX = 88;
+			const padY = 64;
+			const minX = Math.min(...nodes.map(node => node.x)) - padX;
+			const maxX = Math.max(...nodes.map(node => node.x)) + padX;
+			const minY = Math.min(...nodes.map(node => node.y)) - padY;
+			const maxY = Math.max(...nodes.map(node => node.y)) + padY;
+			let w = Math.max(maxX - minX, 140);
+			let h = Math.max(maxY - minY, 110);
+			const aspect = (size.w || lay.svgWidth) / (size.h || lay.svgHeight || 1);
+			if (w / h > aspect) h = w / aspect;
+			else w = h * aspect;
+			w = Math.max(w, lay.svgWidth * 0.3);
+			h = w / aspect;
+			const cx = (minX + maxX) / 2;
+			const cy = (minY + maxY) / 2;
+			animateView({ x: cx - w / 2, y: cy - h / 2, w, h });
+		},
+		[animateView, size.w, size.h],
+	);
+
+	const selectNode = useCallback(
+		(node, shouldFit = true) => {
+			if (!node) return;
+			const current = layoutRef.current?.byId.get(focusId);
+			const sameChain = current && current.chainId === node.chainId;
+			setFocusId(node.id);
+			if (shouldFit && !sameChain) fitChain(node.chainId);
+		},
+		[fitChain, focusId],
+	);
+
+	const openUrl = url => {
+		if (url) window.open(url, '_blank', 'noopener,noreferrer');
+	};
+
+	const onNodeClick = (event, node) => {
+		event.stopPropagation();
+		if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+		clickTimerRef.current = setTimeout(() => {
+			clickTimerRef.current = null;
+			selectNode(node, true);
+		}, 220);
+	};
+
+	const onNodeDblClick = (event, node) => {
+		event.stopPropagation();
+		event.preventDefault();
+		if (clickTimerRef.current) {
+			clearTimeout(clickTimerRef.current);
+			clickTimerRef.current = null;
+		}
+		openUrl(node.url);
+	};
+
 	const activeId = hoverId || focusId;
 	const activeNode = activeId ? layout.byId.get(activeId) : null;
+	const focusedChainId = focusId ? layout.byId.get(focusId)?.chainId : null;
 	const chainId = activeNode?.chainId;
 	const chainNodes = useMemo(() => {
 		if (chainId == null) return [];
@@ -299,10 +416,6 @@ const SpreadFlow = ({ data }) => {
 		};
 	}, [chainId, chainNodes.length, chainNodes[0]?.text, query, themeName]);
 
-	const openUrl = url => {
-		if (url) window.open(url, '_blank', 'noopener,noreferrer');
-	};
-
 	if (!values.length) {
 		return (
 			<div className={styles.empty}>
@@ -317,9 +430,9 @@ const SpreadFlow = ({ data }) => {
 		<div className={styles.wrap}>
 			<div className={styles.toolbar}>
 				<div className={styles.hint}>
-					Дорожки — источники, слева направо — время. Клик открывает
-					сообщение. Колёсико масштабирует вокруг курсора, перетаскивание
-					сдвигает карту.
+					Размер — аудитория, оранжевое кольцо — комментарии, красная
+					точка — лайки. Клик выделяет и приближает цепочку, двойной
+					клик открывает сообщение.
 				</div>
 				<div className={styles.tools}>
 					<button type="button" onClick={() => zoomCenter(1 / 1.2)} aria-label="Отдалить">
@@ -328,12 +441,7 @@ const SpreadFlow = ({ data }) => {
 					<button type="button" onClick={() => zoomCenter(1.2)} aria-label="Приблизить">
 						+
 					</button>
-					<button
-						type="button"
-						onClick={() =>
-							setView({ x: 0, y: 0, w: layout.svgWidth, h: layout.svgHeight })
-						}
-					>
+					<button type="button" onClick={resetView}>
 						Сброс
 					</button>
 				</div>
@@ -395,34 +503,43 @@ const SpreadFlow = ({ data }) => {
 							))}
 							{layout.links.map(link => {
 								const on = chainId != null && link.chainId === chainId;
+								const dimmed =
+									focusedChainId != null && link.chainId !== focusedChainId;
 								const target = layout.byId.get(link.target);
 								const faded = target && target.time > now;
 								return (
 									<path
 										key={`${link.source}-${link.target}`}
 										d={link.d}
-										className={`${styles.link} ${on ? styles.linkOn : ''} ${faded ? styles.faded : ''}`}
+										className={`${styles.link} ${on ? styles.linkOn : ''} ${dimmed ? styles.dimmed : ''} ${faded ? styles.faded : ''}`}
 									/>
 								);
 							})}
 							{layout.nodes.map(node => {
 								const hidden = node.time > now;
 								const on = chainId != null && node.chainId === chainId;
+								const selected = node.id === focusId;
+								const dimmed =
+									focusedChainId != null && node.chainId !== focusedChainId;
 								return (
 									<g
 										key={node.id}
 										data-node="1"
 										transform={`translate(${node.x}, ${node.y})`}
-										className={`${styles.node} ${hidden ? styles.faded : ''} ${on ? styles.nodeOn : ''}`}
+										className={`${styles.node} ${hidden ? styles.faded : ''} ${on ? styles.nodeOn : ''} ${selected ? styles.nodeSelected : ''} ${dimmed ? styles.dimmed : ''}`}
 										onMouseEnter={() => setHoverId(node.id)}
-										onClick={event => {
-											event.stopPropagation();
-											setFocusId(node.id);
-											openUrl(node.url);
-										}}
+										onClick={event => onNodeClick(event, node)}
+										onDoubleClick={event => onNodeDblClick(event, node)}
 									>
 										{node.kind === 'origin' && (
 											<circle r={node.r + 4} className={styles.originHalo} />
+										)}
+										{node.comments > 0 && (
+											<circle
+												r={node.r + 3 + node.commentRing * 0.4}
+												className={styles.commentRing}
+												strokeWidth={node.commentRing}
+											/>
 										)}
 										<circle
 											r={node.r}
@@ -430,6 +547,23 @@ const SpreadFlow = ({ data }) => {
 											stroke={node.kind === 'origin' ? '#1e1e1e' : '#fff'}
 											strokeWidth={node.kind === 'origin' ? 2 : 1.2}
 										/>
+										{node.likes > 0 && (
+											<circle
+												className={styles.likeDot}
+												r={Math.max(2, Math.min(3.4, node.r * 0.28))}
+												cx={node.r * 0.55}
+												cy={-node.r * 0.55}
+											/>
+										)}
+										{on && node.comments > 0 && (
+											<text
+												className={styles.badge}
+												y={-node.r - 7}
+												textAnchor="middle"
+											>
+												{formatCount(node.comments)}
+											</text>
+										)}
 									</g>
 								);
 							})}
@@ -449,6 +583,12 @@ const SpreadFlow = ({ data }) => {
 							<i className={styles.dotSpread} /> распространение
 						</span>
 						<span>размер — аудитория</span>
+						<span>
+							<i className={styles.legendRing} /> комментарии
+						</span>
+						<span>
+							<i className={styles.legendLike} /> лайки
+						</span>
 					</div>
 					{activeNode ? (
 						<>
@@ -460,11 +600,34 @@ const SpreadFlow = ({ data }) => {
 							<h4>{activeNode.name}</h4>
 							<p className={styles.meta}>
 								{activeNode.hub}
+								{activeNode.authorType ? ` · ${activeNode.authorType}` : ''}
 								<br />
 								{formatTime(activeNode.time)}
-								<br />
-								Аудитория: {activeNode.audience.toLocaleString('ru-RU')}
 							</p>
+							<ul className={styles.stats}>
+								<li>
+									Аудитория
+									<strong>{formatCount(activeNode.audience)}</strong>
+								</li>
+								<li>
+									Просмотры
+									<strong>{formatCount(activeNode.views)}</strong>
+								</li>
+								<li>
+									Комментарии
+									<strong>{formatCount(activeNode.comments)}</strong>
+								</li>
+								<li>
+									Лайки
+									<strong>{formatCount(activeNode.likes)}</strong>
+								</li>
+								{activeNode.er > 0 && (
+									<li>
+										ER
+										<strong>{formatCount(activeNode.er)}</strong>
+									</li>
+								)}
+							</ul>
 							{chainNodes.length > 3 && (
 								<div className={styles.summary}>
 									<p className={styles.chainTitle}>Краткое содержание</p>
@@ -486,21 +649,29 @@ const SpreadFlow = ({ data }) => {
 								Открыть на источнике
 							</button>
 							<p className={styles.chainTitle}>
-								Цепочка · {chainNodes.length} сообщ.
+								Цепочка · {chainNodes.length}{' '}
+								{ruCount(chainNodes.length, 'сообщение', 'сообщения', 'сообщений')}
 							</p>
 							<ul className={styles.chain}>
 								{chainNodes.map(node => (
 									<li key={node.id}>
 										<button
 											type="button"
-											onClick={() => {
-												setFocusId(node.id);
-												openUrl(node.url);
-											}}
+											className={node.id === focusId ? styles.chainActive : undefined}
+											onClick={() => selectNode(node, false)}
+											onDoubleClick={() => openUrl(node.url)}
 										>
 											<span>{formatTime(node.time)}</span>
 											<strong>{node.name}</strong>
-											<em>{node.hub}</em>
+											<em>
+												{node.hub}
+												{node.comments
+													? ` · ${formatCount(node.comments)} комм.`
+													: ''}
+												{node.likes
+													? ` · ${formatCount(node.likes)} лайк.`
+													: ''}
+											</em>
 										</button>
 									</li>
 								))}
@@ -508,8 +679,8 @@ const SpreadFlow = ({ data }) => {
 						</>
 					) : (
 						<p className={styles.placeholder}>
-							Наведите на точку, чтобы увидеть цепочку. Клик открывает пост
-							на источнике.
+							Клик по точке выделяет цепочку и приближает её. Двойной
+							клик открывает пост на источнике.
 						</p>
 					)}
 					{graph.truncated > 0 && (

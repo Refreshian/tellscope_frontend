@@ -157,6 +157,36 @@
 	filter: drop-shadow(0 0 4px rgba(23, 96, 232, 0.55));
 }
 
+.nodeSelected {
+	.commentRing,
+	.originHalo {
+		filter: drop-shadow(0 0 6px rgba(224, 122, 47, 0.45));
+	}
+}
+
+.dimmed {
+	opacity: 0.16;
+}
+
+.commentRing {
+	fill: none;
+	stroke: #e07a2f;
+}
+
+.likeDot {
+	fill: $color_red;
+	stroke: $color_white;
+	stroke-width: 0.7;
+	pointer-events: none;
+}
+
+.badge {
+	fill: #b85a16;
+	font-size: 9px;
+	font-weight: 600;
+	pointer-events: none;
+}
+
 .originHalo {
 	fill: none;
 	stroke: rgba(30, 30, 30, 0.18);
@@ -214,6 +244,56 @@
 .dotSpread {
 	opacity: 0.75;
 	transform: scale(0.85);
+}
+
+.legendRing,
+.legendLike {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	display: inline-block;
+}
+
+.legendRing {
+	border: 2px solid #e07a2f;
+	background: transparent;
+	box-sizing: border-box;
+}
+
+.legendLike {
+	background: $color_red;
+	width: 8px;
+	height: 8px;
+}
+
+.stats {
+	list-style: none;
+	margin: 0 0 8px;
+	padding: 0;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 6px;
+
+	li {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+		padding: 6px 8px;
+		border-radius: 8px;
+		background: $color_white;
+		font-size: 0.68rem;
+		color: rgba($color_black, 0.55);
+	}
+
+	strong {
+		font-size: 0.84rem;
+		font-weight: 600;
+		color: $color_black;
+	}
+}
+
+.chainActive {
+	outline: 1px solid $color_blue;
 }
 
 .kicker {

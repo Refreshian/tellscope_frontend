@@ -35,6 +35,11 @@ export const domainFromUrl = url => {
 	}
 };
 
+const metric = value => {
+	const n = Number(value);
+	return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
 const messageNode = (message, chainId, kind, index) => {
 	const url = message?.url || '';
 	return {
@@ -44,9 +49,12 @@ const messageNode = (message, chainId, kind, index) => {
 		name: message?.fullname || 'Без имени',
 		url,
 		hub: message?.hub || domainFromUrl(url) || 'источник',
-		audience: Number(message?.audienceCount) || 0,
-		views: Number(message?.viewsCount) || 0,
-		er: Number(message?.er) || 0,
+		authorType: message?.author_type || '',
+		audience: metric(message?.audienceCount),
+		views: metric(message?.viewsCount),
+		comments: metric(message?.commentsCount),
+		likes: metric(message?.likesCount),
+		er: metric(message?.er),
 		time: toMs(message?.timeCreate),
 		text: message?.text || '',
 	};
@@ -54,7 +62,16 @@ const messageNode = (message, chainId, kind, index) => {
 
 export function buildSpreadGraph(values, maxNodes = 720) {
 	if (!Array.isArray(values) || !values.length) {
-		return { nodes: [], links: [], hubs: [], tMin: 0, tMax: 1, truncated: 0 };
+		return {
+			nodes: [],
+			links: [],
+			hubs: [],
+			tMin: 0,
+			tMax: 1,
+			truncated: 0,
+			maxComments: 1,
+			maxLikes: 1,
+		};
 	}
 
 	const chains = values
@@ -96,6 +113,8 @@ export function buildSpreadGraph(values, maxNodes = 720) {
 	const times = nodes.map(node => node.time).filter(Boolean);
 	const tMin = times.length ? Math.min(...times) : 0;
 	const tMax = times.length ? Math.max(...times) : 1;
+	const maxComments = Math.max(1, ...nodes.map(node => node.comments || 0));
+	const maxLikes = Math.max(1, ...nodes.map(node => node.likes || 0));
 	const hubStats = new Map();
 	nodes.forEach(node => {
 		const prev = hubStats.get(node.hub) || { hub: node.hub, count: 0, audience: 0, first: node.time };
@@ -108,7 +127,16 @@ export function buildSpreadGraph(values, maxNodes = 720) {
 		(a, b) => a.first - b.first || b.audience - a.audience,
 	);
 
-	return { nodes, links, hubs, tMin, tMax: tMax === tMin ? tMin + 1 : tMax, truncated };
+	return {
+		nodes,
+		links,
+		hubs,
+		tMin,
+		tMax: tMax === tMin ? tMin + 1 : tMax,
+		truncated,
+		maxComments,
+		maxLikes,
+	};
 }
 
 export function layoutSpreadGraph(graph, width, height) {
@@ -120,6 +148,7 @@ export function layoutSpreadGraph(graph, width, height) {
 	const innerW = svgWidth - pad.left - pad.right;
 	const hubIndex = new Map(hubs.map((hub, index) => [hub.hub, index]));
 	const maxAudience = Math.max(1, ...nodes.map(node => node.audience));
+	const maxComments = Math.max(1, graph.maxComments || 1);
 
 	const placed = nodes.map(node => {
 		const x =
@@ -127,7 +156,21 @@ export function layoutSpreadGraph(graph, width, height) {
 			((node.time - tMin) / (tMax - tMin || 1)) * innerW;
 		const y = pad.top + ((hubIndex.get(node.hub) ?? 0) + 0.5) * lane;
 		const r = 5 + Math.sqrt(node.audience / maxAudience) * 13;
-		return { ...node, x, y, r, color: hubColor(node.hub) };
+		const commentRing =
+			node.comments > 0
+				? Math.min(3.6, 1.2 + Math.log10(node.comments + 1) * 1.15)
+				: 0;
+		return {
+			...node,
+			x,
+			y,
+			r,
+			commentRing,
+			color: hubColor(node.hub),
+			hot:
+				node.comments >= Math.max(3, maxComments * 0.35) ||
+				node.likes >= 10,
+		};
 	});
 
 	const byId = new Map(placed.map(node => [node.id, node]));
