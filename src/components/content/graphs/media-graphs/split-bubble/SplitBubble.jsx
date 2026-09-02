@@ -10,8 +10,10 @@ import {
 	formatCount,
 	formatTime,
 	openUrl,
+	placeSplitPackedNodes,
 	ruCount,
 	sortMessages,
+	syncSplitPackedChart,
 } from '../mediaView';
 
 import styles from './SplitBubble.module.scss';
@@ -20,7 +22,7 @@ if (typeof Highcharts === 'object') {
 	packedbubble(Highcharts);
 }
 
-const MAX_PER_SIDE = 36;
+const MAX_PER_SIDE = 28;
 
 const SplitBubble = ({ filteredData }) => {
 	const rootRef = useRef(null);
@@ -122,6 +124,19 @@ const SplitBubble = ({ filteredData }) => {
 				backgroundColor: 'transparent',
 				animation: false,
 				spacing: [8, 8, 8, 8],
+				events: {
+					load() {
+						const chart = this;
+						syncSplitPackedChart(chart, { repack: true });
+						window.setTimeout(
+							() => syncSplitPackedChart(chart, { repack: true }),
+							0,
+						);
+					},
+					redraw() {
+						syncSplitPackedChart(this, { repack: true });
+					},
+				},
 			},
 			title: { text: null },
 			legend: {
@@ -172,22 +187,28 @@ const SplitBubble = ({ filteredData }) => {
 			},
 			plotOptions: {
 				packedbubble: {
-					minSize: '6%',
-					maxSize: '42%',
+					minSize: '5%',
+					maxSize: '12%',
 					zMin: 0,
 					zMax,
 					animation: false,
 					draggable: false,
+					useSimulation: true,
 					layoutAlgorithm: {
 						enableSimulation: false,
-						maxIterations: 3,
-						gravitationalConstant: 0.02,
+						maxIterations: 0,
 						splitSeries: true,
 						seriesInteraction: false,
 						dragBetweenSeries: false,
 						parentNodeLimit: true,
-						bubblePadding: 6,
-						friction: 0.98,
+						bubblePadding: 2,
+						initialPositions() {
+							placeSplitPackedNodes(this);
+						},
+						parentNodeOptions: {
+							enableSimulation: false,
+							maxIterations: 0,
+						},
 					},
 					dataLabels: {
 						enabled: true,

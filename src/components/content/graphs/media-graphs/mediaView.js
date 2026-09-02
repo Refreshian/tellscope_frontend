@@ -127,6 +127,180 @@ export function buildSplitSeries(
 	];
 }
 
+const nodeRadius = node =>
+	Math.max(3, Number(node?.marker?.radius || node?.radius || 8) || 8);
+
+const setNodePos = (node, x, y) => {
+	node.plotX = x;
+	node.plotY = y;
+	node.prevX = x;
+	node.prevY = y;
+	node.dispX = 0;
+	node.dispY = 0;
+};
+
+export function packNodesInCircle(nodes, cx, cy, maxR) {
+	const list = [...(nodes || [])].sort((a, b) => nodeRadius(b) - nodeRadius(a));
+	if (!list.length) return 0;
+
+	const golden = Math.PI * (3 - Math.sqrt(5));
+	list.forEach((node, i) => {
+		const r = nodeRadius(node);
+		const t = list.length === 1 ? 0 : Math.sqrt(i / (list.length - 1));
+		const rad = t * Math.max(0, maxR - r);
+		const a = i * golden;
+		setNodePos(node, cx + rad * Math.cos(a), cy + rad * Math.sin(a));
+	});
+
+	for (let iter = 0; iter < 48; iter += 1) {
+		for (let i = 0; i < list.length; i += 1) {
+			for (let j = i + 1; j < list.length; j += 1) {
+				const a = list[i];
+				const b = list[j];
+				const minD = nodeRadius(a) + nodeRadius(b) + 2;
+				let dx = b.plotX - a.plotX;
+				let dy = b.plotY - a.plotY;
+				const dist = Math.hypot(dx, dy) || 0.01;
+				if (dist >= minD) continue;
+				const push = (minD - dist) / 2;
+				dx /= dist;
+				dy /= dist;
+				setNodePos(a, a.plotX - dx * push, a.plotY - dy * push);
+				setNodePos(b, b.plotX + dx * push, b.plotY + dy * push);
+			}
+		}
+		list.forEach(node => {
+			const r = nodeRadius(node);
+			const dx = node.plotX - cx;
+			const dy = node.plotY - cy;
+			const dist = Math.hypot(dx, dy);
+			const limit = Math.max(0, maxR - r);
+			if (dist > limit) {
+				const k = limit / (dist || 1);
+				setNodePos(node, cx + dx * k, cy + dy * k);
+			}
+		});
+	}
+
+	return list.reduce((bound, node) => {
+		const reach = Math.hypot(node.plotX - cx, node.plotY - cy) + nodeRadius(node);
+		return Math.max(bound, reach);
+	}, 0);
+}
+
+const groupOrder = name => {
+	if (name === 'Негатив') return 0;
+	if (name === 'Позитив') return 1;
+	return 2;
+};
+
+export function placeSplitPackedNodes(layout) {
+	const box = layout?.box || {};
+	const width = Number(box.width) || 0;
+	const height = Number(box.height) || 0;
+	if (width < 40 || height < 40) return;
+
+	const groups = new Map();
+	(layout.nodes || []).forEach(node => {
+		if (!node || node.isParentNode) return;
+		const name = node.series?.name || node.series?.options?.name || '';
+		const list = groups.get(name) || [];
+		list.push(node);
+		groups.set(name, list);
+	});
+
+	const names = [...groups.keys()].sort(
+		(a, b) => groupOrder(a) - groupOrder(b) || a.localeCompare(b),
+	);
+	if (!names.length) return;
+
+	names.forEach((name, i) => {
+		const nodes = groups.get(name) || [];
+		const cx =
+			names.length <= 1
+				? width / 2
+				: width * (0.26 + (0.48 * i) / Math.max(names.length - 1, 1));
+		const cy = height * 0.5;
+		const maxR = Math.min(width * 0.34, height * 0.4);
+		const packedR = packNodesInCircle(nodes, cx, cy, maxR * 0.78);
+		const parent = nodes[0]?.series?.parentNode;
+		if (parent) {
+			setNodePos(parent, cx, cy);
+			const parentR = Math.max(packedR + 10, 36);
+			parent.radius = parentR;
+			if (parent.marker) parent.marker.radius = parentR;
+			const series = nodes[0].series;
+			if (series) series.parentNodeRadius = parentR;
+		}
+	});
+}
+
+const moveGraphic = (graphic, x, y, r) => {
+	if (!graphic || !r) return;
+	graphic.attr({
+		x: x - r,
+		y: y - r,
+		width: r * 2,
+		height: r * 2,
+	});
+};
+
+export function syncSplitPackedChart(chart, { repack = false } = {}) {
+	if (!chart || chart._mediaPacking) return;
+	chart._mediaPacking = true;
+	try {
+		if (repack) {
+			const layout = chart.series?.find(
+				series => series.type === 'packedbubble',
+			)?.layout;
+			if (layout) placeSplitPackedNodes(layout);
+		}
+
+		(chart.series || []).forEach(series => {
+			if (series.type !== 'packedbubble' || !series.visible) return;
+			const parent = series.parentNode;
+			const children = (series.points || []).filter(
+				point => !point.isParentNode,
+			);
+			if (!parent || !children.length) return;
+
+			let sx = 0;
+			let sy = 0;
+			children.forEach(point => {
+				sx += Number(point.plotX) || 0;
+				sy += Number(point.plotY) || 0;
+			});
+			const cx = sx / children.length;
+			const cy = sy / children.length;
+			if (!Number.isFinite(cx) || !Number.isFinite(cy)) return;
+
+			setNodePos(parent, cx, cy);
+			let packedR = 0;
+			children.forEach(point => {
+				packedR = Math.max(
+					packedR,
+					Math.hypot(point.plotX - cx, point.plotY - cy) +
+						nodeRadius(point),
+				);
+				moveGraphic(
+					point.graphic,
+					point.plotX,
+					point.plotY,
+					nodeRadius(point),
+				);
+			});
+
+			const parentR = Math.max(packedR + 10, 36);
+			series.parentNodeRadius = parentR;
+			parent.radius = parentR;
+			if (parent.marker) parent.marker.radius = parentR;
+			moveGraphic(parent.graphic || series.graph, cx, cy, parentR);
+		});
+	} finally {
+		chart._mediaPacking = false;
+	}
+}
+
 const DAY = 86400000;
 
 export function buildDynamics(secondGraph, maxBubbles = 320) {
@@ -166,16 +340,10 @@ export function buildDynamics(secondGraph, maxBubbles = 320) {
 		byDay.set(day, slot);
 	});
 	const days = [...byDay.entries()].sort((a, b) => a[0] - b[0]);
-	const volume = days.map(([x, slot]) => [x, slot.n]);
 	const average = days.map(([x, slot]) => [
 		x,
 		Math.round(slot.sum / Math.max(slot.n, 1)),
 	]);
-	let running = 0;
-	const cumulative = days.map(([x, slot]) => {
-		running += slot.n;
-		return [x, running];
-	});
 
 	const ranked = [...all].sort(
 		(a, b) => Math.abs(b.y) - Math.abs(a.y) || b.z - a.z,
@@ -216,9 +384,7 @@ export function buildDynamics(secondGraph, maxBubbles = 320) {
 		truncated: Math.max(0, all.length - bubbles.length),
 		positive,
 		negative,
-		volume,
 		average,
-		cumulative,
 		trails,
 		timeRange:
 			times.length > 0 ? { min: tMin - pad, max: tMax + pad } : null,

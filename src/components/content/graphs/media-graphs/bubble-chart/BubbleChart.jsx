@@ -81,23 +81,8 @@ const BubbleChart = ({ filteredData }) => {
 		setPicker(null);
 	}, [rows]);
 
-	const series = useMemo(() => {
-		const next = [
-			{
-				type: 'column',
-				name: 'Публикаций за день',
-				yAxis: 1,
-				data: model.volume,
-				color: 'rgba(23,96,232,0.16)',
-				borderWidth: 0,
-				zIndex: 1,
-				turboThreshold: 0,
-				tooltip: {
-					pointFormatter() {
-						return `Публикаций за день: <b>${this.y}</b><br/>`;
-					},
-				},
-			},
+	const series = useMemo(
+		() => [
 			{
 				type: 'spline',
 				name: 'Средний индекс',
@@ -106,18 +91,6 @@ const BubbleChart = ({ filteredData }) => {
 				lineWidth: 2.2,
 				marker: { enabled: false },
 				zIndex: 3,
-				turboThreshold: 0,
-			},
-			{
-				type: 'spline',
-				name: 'Накоплено сообщений',
-				yAxis: 1,
-				data: model.cumulative,
-				color: '#8B5CF6',
-				dashStyle: 'ShortDash',
-				lineWidth: 1.6,
-				marker: { enabled: false },
-				zIndex: 2,
 				turboThreshold: 0,
 			},
 			...model.trails,
@@ -141,9 +114,9 @@ const BubbleChart = ({ filteredData }) => {
 				minSize: 6,
 				maxSize: 22,
 			},
-		];
-		return next;
-	}, [model]);
+		],
+		[model],
+	);
 
 	const options = useMemo(
 		() => ({
@@ -169,20 +142,13 @@ const BubbleChart = ({ filteredData }) => {
 				max: model.timeRange?.max,
 				crosshair: true,
 			},
-			yAxis: [
-				{
-					title: { text: 'Индекс СМИ' },
-					startOnTick: false,
-					endOnTick: false,
-					gridLineColor: 'rgba(0,0,0,0.06)',
-				},
-				{
-					title: { text: 'Число публикаций' },
-					opposite: true,
-					min: 0,
-					gridLineWidth: 0,
-				},
-			],
+			yAxis: {
+				title: { text: 'Индекс СМИ' },
+				startOnTick: false,
+				endOnTick: false,
+				min: 0,
+				gridLineColor: 'rgba(0,0,0,0.06)',
+			},
 			tooltip: {
 				useHTML: true,
 				shared: false,
@@ -242,11 +208,6 @@ const BubbleChart = ({ filteredData }) => {
 						},
 					},
 				},
-				column: {
-					maxPointWidth: 18,
-					pointPadding: 0.08,
-					groupPadding: 0.12,
-				},
 				spline: {
 					states: { hover: { lineWidthPlus: 1 } },
 				},
@@ -267,10 +228,9 @@ const BubbleChart = ({ filteredData }) => {
 	return (
 		<div className={styles.wrap} ref={rootRef}>
 			<p className={styles.hint}>
-				Кружки — отдельные публикации (размер по индексу). Столбики — сколько
-				вышло за день, линия — средний индекс, пунктир — накопленный объём.
-				Тонкие нити связывают источники с несколькими выходами. Двойной клик
-				открывает сообщение.
+				Кружки — отдельные публикации, размер по индексу. Линия — как
+				менялся средний индекс, тонкие нити связывают источники с несколькими
+				выходами. Двойной клик открывает сообщение.
 				{model.truncated > 0
 					? ` Показаны ${model.shownCount} самых заметных кружков, скрыто: ${model.truncated}.`
 					: ''}
