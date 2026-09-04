@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import Slider from 'rc-slider';
@@ -12,7 +12,9 @@ import {
 	applyVoiceFilters,
 	emptyVoiceFilters,
 	mentionCount,
+	selectedList,
 	sliderBounds,
+	toggleVoiceFilter,
 	voiceFacets,
 } from '@/components/content/graphs/voice-graphs/voiceView';
 import Layout from '@/components/layout/Layout';
@@ -35,6 +37,14 @@ import NoDataRequest from '../../no-data-request/NoDataRequest';
 import styles from './VoiceOfCustomer.module.scss';
 
 const DIM_TO_FILTER = { q: 'search', t: 'type', h: 'hub', s: 'tonality' };
+const FILTER_TO_DIM = { search: 'q', type: 't', hub: 'h', tonality: 's' };
+
+const facetSummary = selected => {
+	const chosen = selectedList(selected);
+	if (!chosen.length) return 'Все';
+	if (chosen.length === 1) return chosen[0];
+	return `Выбрано: ${chosen.length}`;
+};
 
 const VoiceAiAnalysis = ({
 	filteredData,
@@ -198,38 +208,60 @@ const VoiceOfCustomer = () => {
 	const totalMentions = mentionCount(data_voice?.values);
 	const facets = useMemo(() => voiceFacets(data_voice?.values), [data_voice]);
 
-	const setFilterKey = (key, value) => {
-		setFilters(prev => ({ ...prev, [key]: prev[key] === value ? '' : value }));
-		const dim = { search: 'q', type: 't', hub: 'h', tonality: 's', author_type: 'a' }[key];
-		if (dim && dim !== 'a') {
-			const id = `${dim}::${value}`;
-			setHighlightId(prev => (prev === id || !value ? null : id));
-		}
+	const [openFacet, setOpenFacet] = useState(null);
+	const facetRowRef = useRef(null);
+
+	useEffect(() => {
+		if (!openFacet) return undefined;
+		const onDoc = event => {
+			if (!facetRowRef.current?.contains(event.target)) setOpenFacet(null);
+		};
+		const onKey = event => {
+			if (event.key === 'Escape') setOpenFacet(null);
+		};
+		document.addEventListener('mousedown', onDoc);
+		document.addEventListener('keydown', onKey);
+		return () => {
+			document.removeEventListener('mousedown', onDoc);
+			document.removeEventListener('keydown', onKey);
+		};
+	}, [openFacet]);
+
+	const toggleFilterValue = (key, value, allNames) => {
+		const next = toggleVoiceFilter(filters[key], value, allNames);
+		setFilters(prev => ({ ...prev, [key]: next }));
+		const dim = FILTER_TO_DIM[key];
+		if (dim && next.includes(value)) setHighlightId(`${dim}::${value}`);
+		else setHighlightId(null);
+	};
+
+	const clearFilterKey = key => {
+		setFilters(prev => ({ ...prev, [key]: [] }));
+		setHighlightId(null);
 	};
 
 	const handleNodeFilter = useCallback(({ dim, value }) => {
 		const key = DIM_TO_FILTER[dim];
 		if (!key) return;
-		setFilters(prev => ({ ...prev, [key]: prev[key] === value ? '' : value }));
+		setFilters(prev => ({ ...prev, [key]: toggleVoiceFilter(prev[key], value) }));
 		const id = `${dim}::${value}`;
 		setHighlightId(prev => (prev === id ? null : id));
 	}, []);
 
 	const handleHubFilter = useCallback(hub => {
-		setFilters(prev => ({ ...prev, hub: prev.hub === hub ? '' : hub }));
+		setFilters(prev => ({ ...prev, hub: toggleVoiceFilter(prev.hub, hub) }));
 		const id = `h::${hub}`;
 		setHighlightId(prev => (prev === id ? null : id));
 	}, []);
 
-	const activeNote = [
-		filters.search,
-		filters.type,
-		filters.hub,
-		filters.tonality,
-		filters.author_type,
-	]
-		.filter(Boolean)
-		.join(' → ') || 'Голос клиента';
+	const activeNote =
+		[
+			...selectedList(filters.search),
+			...selectedList(filters.type),
+			...selectedList(filters.hub),
+			...selectedList(filters.tonality),
+			...selectedList(filters.author_type),
+		].join(' → ') || 'Голос клиента';
 
 	const [showTable, setShowTable] = useState(false);
 	const [activeTable, setActiveTable] = useState('sources');
@@ -329,22 +361,53 @@ const VoiceOfCustomer = () => {
 		XLSX.writeFile(book, 'Типы_упоминаний.xlsx');
 	};
 
-	const selectFilter = (label, key, options) => (
-		<label className={styles.facet}>
-			<span>{label}</span>
-			<select
-				value={filters[key]}
-				onChange={event => setFilterKey(key, event.target.value)}
-			>
-				<option value="">Все</option>
-				{options.map(item => (
-					<option key={item.name} value={item.name}>
-						{item.name} ({item.count})
-					</option>
-				))}
-			</select>
-		</label>
-	);
+	const selectFilter = (label, key, options) => {
+		const chosen = selectedList(filters[key]);
+		const allNames = options.map(item => item.name);
+		const allChecked = chosen.length === 0;
+		return (
+			<div className={styles.facet}>
+				<span>{label}</span>
+				<div className={styles.facetMenu}>
+					<button
+						type="button"
+						className={styles.facetToggle}
+						aria-expanded={openFacet === key}
+						onClick={() => setOpenFacet(prev => (prev === key ? null : key))}
+					>
+						<span className={styles.facetToggleText}>{facetSummary(chosen)}</span>
+						<span className={styles.facetArrow} aria-hidden>
+							▾
+						</span>
+					</button>
+					{openFacet === key && (
+						<div className={styles.facetDropdown} role="group" aria-label={label}>
+							<label className={styles.facetOption}>
+								<input
+									type="checkbox"
+									checked={allChecked}
+									onChange={() => clearFilterKey(key)}
+								/>
+								<span>Все</span>
+							</label>
+							{options.map(item => (
+								<label key={item.name} className={styles.facetOption}>
+									<input
+										type="checkbox"
+										checked={chosen.includes(item.name)}
+										onChange={() => toggleFilterValue(key, item.name, allNames)}
+									/>
+									<span>
+										{item.name} ({Number(item.count).toLocaleString('ru-RU')})
+									</span>
+								</label>
+							))}
+						</div>
+					)}
+				</div>
+			</div>
+		);
+	};
 
 	return (
 		<Layout>
@@ -355,8 +418,8 @@ const VoiceOfCustomer = () => {
 				</>
 			)}
 			{pathname !== '/home' && active_menu ? <LeftMenuActive /> : <LeftMenu />}
-			<Content alignStart>
-				<div className={styles.block__pageName} style={!isSuccess_voice ? { alignSelf: 'center' } : {}}>
+			<Content alignStart={Boolean(isSuccess_voice)}>
+				<div className={styles.block__pageName} style={!isSuccess_voice ? { alignSelf: 'center', textAlign: 'center', width: 'auto' } : {}}>
 					{isSuccess_voice ? (
 						<h3 className={styles.pageName__title}>Голос клиента</h3>
 					) : (
@@ -366,7 +429,7 @@ const VoiceOfCustomer = () => {
 						/>
 					)}
 				</div>
-				<div className={styles.block__configureSearch} style={!isSuccess_voice ? { alignSelf: 'center' } : {}}>
+				<div className={styles.block__configureSearch} style={!isSuccess_voice ? { alignSelf: 'center', justifyContent: 'center', width: 'auto' } : {}}>
 					{isSuccess && dataUser && Object.keys(dataUser).length > 0 && <DataForSearch />}
 					{isSuccess && dataForRequest.index !== null && dataUser && Object.keys(dataUser).length > 0 && (
 						<CustomCalendar />
@@ -436,7 +499,7 @@ const VoiceOfCustomer = () => {
 							</div>
 						</div>
 
-						<div className={styles.facetRow}>
+						<div className={styles.facetRow} ref={facetRowRef}>
 							{selectFilter('Запрос', 'search', facets.searches)}
 							{selectFilter('Тип сообщения', 'type', facets.types)}
 							{selectFilter('Источник', 'hub', facets.hubs)}

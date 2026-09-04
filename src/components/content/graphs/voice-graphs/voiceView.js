@@ -18,12 +18,27 @@ export const TYPE_COLORS = {
 };
 
 export const emptyVoiceFilters = () => ({
-	search: '',
-	type: '',
-	hub: '',
-	tonality: '',
-	author_type: '',
+	search: [],
+	type: [],
+	hub: [],
+	tonality: [],
+	author_type: [],
 });
+
+export const selectedList = value => {
+	if (Array.isArray(value)) return value.filter(Boolean);
+	return value ? [value] : [];
+};
+
+export const toggleVoiceFilter = (current, value, allNames = []) => {
+	if (!value) return [];
+	const list = selectedList(current);
+	const next = list.includes(value)
+		? list.filter(item => item !== value)
+		: [...list, value];
+	if (allNames.length && next.length === allNames.length) return [];
+	return next;
+};
 
 export const flattenRows = values => {
 	const rows = [];
@@ -42,14 +57,18 @@ export const flattenRows = values => {
 export const mentionCount = values =>
 	flattenRows(values).reduce((sum, row) => sum + n(row.count), 0);
 
-const rowMatch = (row, filters = {}) => {
-	if (filters.search && row.search !== filters.search) return false;
-	if (filters.type && row.type !== filters.type) return false;
-	if (filters.hub && row.hub !== filters.hub) return false;
-	if (filters.tonality && row.tonality !== filters.tonality) return false;
-	if (filters.author_type && row.author_type !== filters.author_type) return false;
-	return true;
+const matchesFacet = (selected, cell) => {
+	const list = selectedList(selected);
+	if (!list.length) return true;
+	return list.includes(cell);
 };
+
+const rowMatch = (row, filters = {}) =>
+	matchesFacet(filters.search, row.search) &&
+	matchesFacet(filters.type, row.type) &&
+	matchesFacet(filters.hub, row.hub) &&
+	matchesFacet(filters.tonality, row.tonality) &&
+	matchesFacet(filters.author_type, row.author_type);
 
 export const applyVoiceFilters = (values, filters, ranges) => {
 	if (!values) return [];
@@ -75,7 +94,11 @@ export const applyVoiceFilters = (values, filters, ranges) => {
 				);
 			}),
 		}))
-		.filter(group => (filters.search ? group.name === filters.search : true));
+		.filter(group => {
+			if (!(group.sunkey_data || []).length) return false;
+			const searches = selectedList(filters.search);
+			return !searches.length || searches.includes(group.name);
+		});
 };
 
 const uniqSorted = (items, getValue) => {
