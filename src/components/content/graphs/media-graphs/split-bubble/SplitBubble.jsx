@@ -1,7 +1,7 @@
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import packedbubble from 'highcharts/highcharts-more';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import MessagePicker from '../message-picker/MessagePicker';
 import {
@@ -24,27 +24,45 @@ if (typeof Highcharts === 'object') {
 	packedbubble(Highcharts);
 }
 
+const EMPTY = [];
+
 const SplitBubble = ({ filteredData }) => {
 	const rootRef = useRef(null);
 	const chartRef = useRef(null);
 	const hoverRef = useRef(null);
+	const hcRef = useRef(null);
 	const [chartSize, setChartSize] = useState({ w: 0, h: 0 });
 	const [picker, setPicker] = useState(null);
 	const [level, setLevel] = useState(0);
 
-	const positive = filteredData?.filtered_first_graph?.positive_smi ?? [];
-	const negative = filteredData?.filtered_first_graph?.negative_smi ?? [];
-	const secondGraph = filteredData?.filtered_second_graph ?? [];
+	const positive = filteredData?.filtered_first_graph?.positive_smi ?? EMPTY;
+	const negative = filteredData?.filtered_first_graph?.negative_smi ?? EMPTY;
+	const secondGraph = filteredData?.filtered_second_graph ?? EMPTY;
 
 	useEffect(() => {
 		const el = chartRef.current;
 		if (!el) return undefined;
-		const apply = () => setChartSize({ w: el.clientWidth, h: el.clientHeight });
+		const apply = () => {
+			const w = el.clientWidth;
+			const h = el.clientHeight;
+			setChartSize(prev => (prev.w === w && prev.h === h ? prev : { w, h }));
+		};
 		apply();
 		const observer = new ResizeObserver(apply);
 		observer.observe(el);
 		return () => observer.disconnect();
 	}, []);
+
+	useEffect(() => {
+		const chart = hcRef.current?.chart;
+		if (!chart || !chartSize.w || !chartSize.h) return;
+		const same =
+			Math.abs((chart.chartWidth || 0) - chartSize.w) < 2 &&
+			Math.abs((chart.chartHeight || 0) - chartSize.h) < 2;
+		if (same) return;
+		chart.setSize(chartSize.w, chartSize.h, false);
+		syncSplitPackedChart(chart, { repack: true });
+	}, [chartSize.w, chartSize.h]);
 
 	const ranked = useMemo(
 		() => rankSplitSources(positive, negative, secondGraph),
@@ -58,7 +76,7 @@ const SplitBubble = ({ filteredData }) => {
 	useEffect(() => {
 		setLevel(0);
 		setPicker(null);
-	}, [filteredData]);
+	}, [positive, negative, secondGraph]);
 
 	useEffect(() => {
 		if (level > page.levels - 1) setLevel(Math.max(0, page.levels - 1));
@@ -90,6 +108,16 @@ const SplitBubble = ({ filteredData }) => {
 			(series.data || []).map(point => Number(point.value) || 0),
 		),
 	);
+	const chartKey = [
+		page.level,
+		pointCount,
+		positive.length,
+		negative.length,
+		positive[0]?.name || '',
+		negative[0]?.name || '',
+		positive[0]?.index ?? '',
+		negative[0]?.index ?? '',
+	].join(':');
 
 	const openPoint = useCallback(point => {
 		if (!point || point.isParentNode || point.options?.isOther) return;
@@ -147,7 +175,7 @@ const SplitBubble = ({ filteredData }) => {
 				backgroundColor: 'transparent',
 				animation: false,
 				spacing: [8, 8, 8, 8],
-				events: {
+					events: {
 					load() {
 						const chart = this;
 						syncSplitPackedChart(chart, { repack: true });
@@ -157,7 +185,7 @@ const SplitBubble = ({ filteredData }) => {
 						);
 					},
 					redraw() {
-						syncSplitPackedChart(this, { repack: true });
+						syncSplitPackedChart(this, { repack: false });
 					},
 				},
 			},
@@ -168,18 +196,7 @@ const SplitBubble = ({ filteredData }) => {
 			tooltip: {
 				useHTML: true,
 				formatter() {
-					if (this.point.isParentNode) {
-						const kids = this.series.points.filter(point => !point.isParentNode);
-						const messages = kids.reduce(
-							(sum, point) => sum + (Number(point.options.message_count) || 0),
-							0,
-						);
-						return (
-							`<b>${esc(this.series.name)}</b><br/>` +
-							`Источников: <b>${kids.length}</b><br/>` +
-							`Сообщений: <b>${formatCount(messages)}</b>`
-						);
-					}
+					if (this.point.isParentNode) return false;
 					const opts = this.point.options || {};
 					if (opts.isOther) {
 						return `<b>${esc(this.point.name)}</b><br/>Скрыты мелкие источники, чтобы график не тормозил.`;
@@ -217,6 +234,22 @@ const SplitBubble = ({ filteredData }) => {
 					animation: false,
 					draggable: false,
 					useSimulation: true,
+					parentNode: {
+						allowPointSelect: false,
+						marker: {
+							fillOpacity: 0,
+							fillColor: 'transparent',
+							lineWidth: 0,
+							lineColor: 'transparent',
+							states: {
+								hover: {
+									enabled: false,
+									lineWidth: 0,
+									fillOpacity: 0,
+								},
+							},
+						},
+					},
 					layoutAlgorithm: {
 						enableSimulation: false,
 						maxIterations: 0,
@@ -231,6 +264,12 @@ const SplitBubble = ({ filteredData }) => {
 						parentNodeOptions: {
 							enableSimulation: false,
 							maxIterations: 0,
+							marker: {
+								fillOpacity: 0,
+								fillColor: 'transparent',
+								lineWidth: 0,
+								lineColor: 'transparent',
+							},
 						},
 					},
 					dataLabels: {
@@ -277,10 +316,11 @@ const SplitBubble = ({ filteredData }) => {
 		<div className={styles.wrap} ref={rootRef}>
 			<div className={styles.chart} ref={chartRef}>
 				<HighchartsReact
+					ref={hcRef}
 					highcharts={Highcharts}
 					options={options}
-					immutable
-					key={`split-level-${page.level}-${pointCount}`}
+					allowChartUpdate={false}
+					key={chartKey}
 					containerProps={{ style: { width: '100%', height: '100%' } }}
 				/>
 			</div>
@@ -321,4 +361,4 @@ const SplitBubble = ({ filteredData }) => {
 	);
 };
 
-export default SplitBubble;
+export default memo(SplitBubble);

@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useState } from 'react';
+import { memo, Suspense, useCallback, useState } from 'react';
 import Loader from '@/components/loading/loader/Loader';
 import PanelTargetGraph from '@/components/ui/panel-target-graph/PanelTargetGraph';
 import { useSaveImageGraph } from '@/hooks/useSaveImageGraph';
@@ -56,4 +56,4 @@ const MediaGraphs = ({ filteredData, tab = 'rating', onTabChange }) => {
   );
 };
 
-export default MediaGraphs;
+export default memo(MediaGraphs);

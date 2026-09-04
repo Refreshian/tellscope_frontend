@@ -94,6 +94,106 @@ const SortableTh = ({ label, sortKey, sortConfig, onSort, styles }) => (
   </th>
 );
 
+const AI_SUGGESTIONS = [
+  'Какие СМИ выделяются в негативе при текущем индексе?',
+  'Кто лидирует в позитиве и насколько это устойчиво?',
+  'Какие источники стоит смотреть в первую очередь?',
+];
+
+const MediaAiAnalysis = ({ filteredData, dataForRequest, dataMedia, appliedRange }) => {
+  const [showAiInput, setShowAiInput] = useState(false);
+  const [aiQuery, setAiQuery] = useState('');
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+
+  const handleAiSubmit = async () => {
+    if (!aiQuery.trim()) {
+      setAiError('Пожалуйста, введите запрос для анализа');
+      setAiAnalysis(null);
+      return;
+    }
+    setIsAiLoading(true);
+    setAiAnalysis(null);
+    setAiError(null);
+
+    try {
+      if (!filteredData)
+        throw new Error('Нет отфильтрованных данных для анализа');
+
+      const requestData = {
+        question: aiQuery,
+        data: {
+          ...filteredData,
+          first_graph: filteredData.filtered_first_graph || filteredData.first_graph,
+          second_graph: filteredData.filtered_second_graph || filteredData.second_graph,
+        },
+        index: dataForRequest.index,
+        min_date: dataForRequest.min_date,
+        max_date: dataForRequest.max_date,
+        filters: {
+          audienceRange: [0, 10000],
+          repostsRange: [0, 1000],
+          erRange: [0, 1],
+          viewsCountRange: [0, 100000],
+          indexRange: appliedRange,
+          sliderRange: appliedRange,
+        },
+      };
+      const response = await fetch('/api/ai-question-media-rating', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData),
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok)
+        throw new Error(result.error || `Ошибка запроса: ${response.status}`);
+
+      if (result.content)
+        setAiAnalysis(result.content);
+      else if (result.response?.content)
+        setAiAnalysis(result.response.content);
+      else if (result.analysis)
+        setAiAnalysis(result.analysis);
+      else if (typeof result === 'string')
+        setAiAnalysis(result);
+      else
+        setAiAnalysis(JSON.stringify(result, null, 2));
+    } catch (error) {
+      console.error('Ошибка при запросе к ИИ:', error);
+      setAiError(error.message || 'Произошла ошибка при анализе. Попробуйте позже.');
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
+  return (
+    <AiAnalysisBlock
+      visibleCount={
+        (filteredData?.filtered_first_graph?.positive_smi?.length || 0)
+        + (filteredData?.filtered_first_graph?.negative_smi?.length || 0)
+      }
+      totalCount={
+        (dataMedia?.first_graph?.positive_smi?.length || 0)
+        + (dataMedia?.first_graph?.negative_smi?.length || 0)
+      }
+      unit="ресурсов"
+      extraNote={`индекс ${appliedRange[0]}–${appliedRange[1]}`}
+      suggestions={AI_SUGGESTIONS}
+      showInput={showAiInput}
+      onToggle={() => setShowAiInput((v) => !v)}
+      query={aiQuery}
+      onQueryChange={setAiQuery}
+      onSubmit={handleAiSubmit}
+      loading={isAiLoading}
+      error={aiError}
+      analysis={aiAnalysis}
+      loadingNode={<Loader size="small" />}
+    />
+  );
+};
+
 const MediaRating = () => {
   useCheckAuth();
 
@@ -172,85 +272,6 @@ const MediaRating = () => {
   const handleSliderChange = value => setSliderRange(value);
   const getMediaData = useCallback(() => { trigger(dataForRequest); }, [dataForRequest, trigger]);
 
-  // AI
-  const [showAiInput, setShowAiInput] = useState(false);
-  const [aiQuery, setAiQuery] = useState('');
-  const [searchInTexts, setSearchInTexts] = useState(false);
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [aiError, setAiError] = useState(null);
-  const [aiAnalysis, setAiAnalysis] = useState(null);
-
-  // Фиктивные значения для фильтров
-  // Если у вас они есть в стейте или пропсах, замените!
-  const audienceRange = [0, 10000];
-  const repostsRange = [0, 1000];
-  const erRange = [0, 1];
-  const viewsCountRange = [0, 100000];
-
-  // Новый способ отправки AI-запроса
-  const handleAiSubmit = async () => {
-    if (!aiQuery.trim()) {
-      setAiError('Пожалуйста, введите запрос для анализа');
-      setAiAnalysis(null);
-      return;
-    }
-    setIsAiLoading(true);
-    setAiAnalysis(null);
-    setAiError(null);
-
-    try {
-      if (!filteredData)
-        throw new Error('Нет отфильтрованных данных для анализа');
-
-      const requestData = {
-        question: aiQuery,
-        data: {
-          ...filteredData,
-          first_graph: filteredData.filtered_first_graph || filteredData.first_graph,
-          second_graph: filteredData.filtered_second_graph || filteredData.second_graph,
-        },
-        index: dataForRequest.index,
-        min_date: dataForRequest.min_date,
-        max_date: dataForRequest.max_date,
-        filters: {
-          audienceRange,
-          repostsRange,
-          erRange,
-          viewsCountRange,
-          indexRange: appliedRange,
-          sliderRange: appliedRange,
-        },
-        searchInTexts,
-      };
-// http://localhost:5000/ai-question-media-rating
-      const response = await fetch('/api/ai-question-media-rating', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestData),
-      });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok)
-        throw new Error(result.error || `Ошибка запроса: ${response.status}`);
-
-      if (result.content)
-        setAiAnalysis(result.content);
-      else if (result.response?.content)
-        setAiAnalysis(result.response.content);
-      else if (result.analysis)
-        setAiAnalysis(result.analysis);
-      else if (typeof result === 'string')
-        setAiAnalysis(result);
-      else
-        setAiAnalysis(JSON.stringify(result, null, 2));
-    } catch (error) {
-      console.error('Ошибка при запросе к ИИ:', error);
-      setAiError(error.message || 'Произошла ошибка при анализе. Попробуйте позже.');
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
   // Table Tabs and Data
   const [activeTab, setActiveTab] = useState('rating'); // 'rating' или 'dynamics'
   const [showTable, setShowTable] = useState(false);
@@ -293,14 +314,14 @@ const MediaRating = () => {
     });
   };
 
-  const handleGraphTab = (nextTab) => {
+  const handleGraphTab = useCallback((nextTab) => {
     setActiveTab(nextTab);
     setSortConfig(
       nextTab === 'rating'
         ? { key: 'index', direction: 'desc' }
         : { key: 'time', direction: 'desc' },
     );
-  };
+  }, []);
 
   const exportTable = () => {
     if (!sortedTableData?.length) return;
@@ -406,39 +427,17 @@ const MediaRating = () => {
                 <MediaGraphs
                   tab={activeTab}
                   onTabChange={handleGraphTab}
-                  originalData={data_media}
                   filteredData={filteredData}
-                  selectedIndexRange={sliderRange}
                 />
               </div>
 
               <div className={styles.belowGraph}>
-                <AiAnalysisBlock
-                visibleCount={
-                  (filteredData?.filtered_first_graph?.positive_smi?.length || 0)
-                  + (filteredData?.filtered_first_graph?.negative_smi?.length || 0)
-                }
-                totalCount={
-                  (data_media?.first_graph?.positive_smi?.length || 0)
-                  + (data_media?.first_graph?.negative_smi?.length || 0)
-                }
-                unit="ресурсов"
-                extraNote={`индекс ${appliedRange[0]}–${appliedRange[1]}`}
-                suggestions={[
-                  'Какие СМИ выделяются в негативе при текущем индексе?',
-                  'Кто лидирует в позитиве и насколько это устойчиво?',
-                  'Какие источники стоит смотреть в первую очередь?',
-                ]}
-                showInput={showAiInput}
-                onToggle={() => setShowAiInput((v) => !v)}
-                query={aiQuery}
-                onQueryChange={setAiQuery}
-                onSubmit={handleAiSubmit}
-                loading={isAiLoading}
-                error={aiError}
-                analysis={aiAnalysis}
-                loadingNode={<Loader size="small" />}
-              />
+                <MediaAiAnalysis
+                  filteredData={filteredData}
+                  dataForRequest={dataForRequest}
+                  dataMedia={data_media}
+                  appliedRange={appliedRange}
+                />
 
               {/* ====== Таблица ====== */}
               <div className={styles.tableSection}>

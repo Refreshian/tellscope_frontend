@@ -78,6 +78,13 @@
 	flex: 1 1 auto;
 	min-height: 0;
 	width: 100%;
+
+	:global(.highcharts-parent-node),
+	:global(.highcharts-parent-nodes) {
+		display: none;
+		opacity: 0;
+		pointer-events: none;
+	}
 }
 
 @media (max-width: 900px) {

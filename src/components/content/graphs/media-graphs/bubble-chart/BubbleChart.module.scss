@@ -10,16 +10,12 @@
 	min-width: 0;
 }
 
-.hint,
 .empty {
 	font-size: 0.78rem;
 	line-height: 1.4;
 	color: rgba($color_black, 0.62);
 	padding: 0 4px 8px;
 	flex-shrink: 0;
-}
-
-.empty {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -104,4 +100,53 @@
 	em {
 		color: rgba(255, 255, 255, 0.8);
 	}
+}
+
+.pagerBar {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-shrink: 0;
+	padding: 2px 0 6px;
+}
+
+.pager {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	flex-shrink: 0;
+	border: 1px solid rgba($color_black, 0.12);
+	border-radius: 999px;
+	padding: 3px 8px 3px 5px;
+	background: $color_white;
+}
+
+.pagerBtn {
+	min-width: 26px;
+	height: 24px;
+	border: none;
+	background: transparent;
+	border-radius: 999px;
+	color: rgba($color_black, 0.72);
+	font-size: 0.78rem;
+	cursor: pointer;
+
+	&:disabled {
+		opacity: 0.35;
+		cursor: default;
+	}
+
+	&:hover:not(:disabled) {
+		background: rgba($color_blue, 0.08);
+		color: $color_blue;
+	}
+}
+
+.pagerLabel {
+	min-width: 110px;
+	text-align: center;
+	font-size: 0.78rem;
+	color: rgba($color_black, 0.72);
+	white-space: nowrap;
+	padding: 0 4px;
 }

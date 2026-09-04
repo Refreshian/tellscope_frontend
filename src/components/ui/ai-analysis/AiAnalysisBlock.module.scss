@@ -154,6 +154,7 @@
 }
 
 .response {
+  margin-top: 12px;
   background: #f8fafc;
   border: 1px solid #e8eaef;
   border-radius: 8px;
@@ -165,7 +166,7 @@
 }
 
 .responseContent {
-  max-height: 480px;
+  max-height: min(70vh, 900px);
   overflow: auto;
 }
 

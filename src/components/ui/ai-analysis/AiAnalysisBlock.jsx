@@ -104,16 +104,17 @@ const AiAnalysisBlock = ({
               <p>Ошибка: {error}</p>
             </div>
           )}
-          {analysis && (
-            <div className={styles.response}>
-              <h4>Результаты анализа</h4>
-              <div className={styles.responseContent}>
-                <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
-                  {analysis}
-                </ReactMarkdown>
-              </div>
-            </div>
-          )}
+        </div>
+      )}
+
+      {analysis && (
+        <div className={styles.response}>
+          <h4>Результаты анализа</h4>
+          <div className={styles.responseContent}>
+            <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
+              {analysis}
+            </ReactMarkdown>
+          </div>
         </div>
       )}
     </div>

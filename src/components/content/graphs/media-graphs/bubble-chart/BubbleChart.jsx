@@ -3,10 +3,11 @@ import 'rc-slider/assets/index.css';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import highchartsMore from 'highcharts/highcharts-more';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import MessagePicker from '../message-picker/MessagePicker';
 import {
+	DYNAMICS_PAGE_SIZE,
 	buildDynamics,
 	collectMediaFacets,
 	esc,
@@ -33,6 +34,7 @@ const BubbleChart = ({ filteredData }) => {
 	const [selectedCats, setSelectedCats] = useState(null);
 	const [sliderDup, setSliderDup] = useState(null);
 	const [appliedDup, setAppliedDup] = useState(null);
+	const [level, setLevel] = useState(0);
 
 	const rows = Array.isArray(filteredData?.filtered_second_graph)
 		? filteredData.filtered_second_graph
@@ -56,16 +58,32 @@ const BubbleChart = ({ filteredData }) => {
 	);
 
 	useEffect(() => {
+		setLevel(0);
+		setPicker(null);
+	}, [visibleRows]);
+
+	useEffect(() => {
 		const el = chartRef.current;
 		if (!el) return undefined;
-		const apply = () => setChartSize({ w: el.clientWidth, h: el.clientHeight });
+		const apply = () => {
+			const w = el.clientWidth;
+			const h = el.clientHeight;
+			setChartSize(prev => (prev.w === w && prev.h === h ? prev : { w, h }));
+		};
 		apply();
 		const observer = new ResizeObserver(apply);
 		observer.observe(el);
 		return () => observer.disconnect();
 	}, []);
 
-	const model = useMemo(() => buildDynamics(visibleRows), [visibleRows]);
+	const model = useMemo(
+		() => buildDynamics(visibleRows, DYNAMICS_PAGE_SIZE, level),
+		[visibleRows, level],
+	);
+
+	useEffect(() => {
+		if (level > model.levels - 1) setLevel(Math.max(0, model.levels - 1));
+	}, [level, model.levels]);
 
 	const openPoint = useCallback(point => {
 		const opts = point?.options || {};
@@ -340,17 +358,6 @@ const BubbleChart = ({ filteredData }) => {
 					)}
 				</div>
 			)}
-			<p className={styles.hint}>
-				Кружки — отдельные публикации, размер по индексу. Линия — как
-				менялся средний индекс, тонкие нити связывают источники с несколькими
-				выходами. Двойной клик открывает сообщение.
-				{visibleRows.length !== rows.length
-					? ` Показано публикаций: ${formatCount(visibleRows.length)} из ${formatCount(rows.length)}.`
-					: ''}
-				{model.truncated > 0
-					? ` На графике ${model.shownCount} самых заметных кружков, скрыто: ${model.truncated}.`
-					: ''}
-			</p>
 			{!model.allCount ? (
 				<p className={styles.empty}>Нет публикаций по выбранным фильтрам</p>
 			) : (
@@ -358,10 +365,39 @@ const BubbleChart = ({ filteredData }) => {
 					<HighchartsReact
 						highcharts={Highcharts}
 						options={options}
+						allowChartUpdate={false}
+						key={`dyn-level-${model.level}-${model.shownCount}-${chartSize.h || 0}-${visibleRows.length}`}
 						containerProps={{ style: { width: '100%', height: '100%' } }}
 					/>
 				</div>
 			)}
+			{model.levels > 1 ? (
+				<div className={styles.pagerBar}>
+					<div className={styles.pager}>
+						<button
+							type="button"
+							className={styles.pagerBtn}
+							disabled={model.level <= 0}
+							onClick={() => setLevel(model.level - 1)}
+							aria-label="Более крупные публикации"
+						>
+							‹
+						</button>
+						<span className={styles.pagerLabel}>
+							Уровень {model.level + 1} из {model.levels}
+						</span>
+						<button
+							type="button"
+							className={styles.pagerBtn}
+							disabled={model.level >= model.levels - 1}
+							onClick={() => setLevel(model.level + 1)}
+							aria-label="Следующие по индексу публикации"
+						>
+							›
+						</button>
+					</div>
+				</div>
+			) : null}
 			<MessagePicker
 				title={picker?.title}
 				messages={picker?.messages}
@@ -371,4 +407,4 @@ const BubbleChart = ({ filteredData }) => {
 	);
 };
 
-export default BubbleChart;
+export default memo(BubbleChart);

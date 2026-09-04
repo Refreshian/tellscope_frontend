@@ -435,6 +435,19 @@ const moveGraphic = (graphic, x, y, r) => {
 	});
 };
 
+const hideParentGraphic = graphic => {
+	if (!graphic) return;
+	graphic.attr({
+		opacity: 0,
+		fill: 'none',
+		stroke: 'none',
+		'stroke-width': 0,
+		visibility: 'hidden',
+	});
+	if (graphic.css) graphic.css({ pointerEvents: 'none' });
+	if (graphic.hide) graphic.hide();
+};
+
 export function syncSplitPackedChart(chart, { repack = false } = {}) {
 	if (!chart || chart._mediaPacking) return;
 	chart._mediaPacking = true;
@@ -484,7 +497,7 @@ export function syncSplitPackedChart(chart, { repack = false } = {}) {
 			series.parentNodeRadius = parentR;
 			parent.radius = parentR;
 			if (parent.marker) parent.marker.radius = parentR;
-			moveGraphic(parent.graphic || series.graph, cx, cy, parentR);
+			hideParentGraphic(parent.graphic);
 		});
 	} finally {
 		chart._mediaPacking = false;
@@ -492,9 +505,21 @@ export function syncSplitPackedChart(chart, { repack = false } = {}) {
 }
 
 const DAY = 86400000;
+const NEG_COLORS = new Set(['#ff3232', '#d92d20']);
 
-export function buildDynamics(secondGraph, maxBubbles = 320) {
-	const all = (secondGraph || [])
+export const DYNAMICS_PAGE_SIZE = 320;
+
+const pointSign = item => {
+	const color = String(item?.color || '').trim().toLowerCase();
+	if (NEG_COLORS.has(color) || Number(item?.toneMark) === -1) return 'negative';
+	if (color === '#32ff32' || color === '#039855' || Number(item?.toneMark) === 1) {
+		return 'positive';
+	}
+	return Number(item?.index) < 0 ? 'negative' : 'positive';
+};
+
+export function rankDynamicsPoints(secondGraph) {
+	return (secondGraph || [])
 		.map(item => {
 			const x = toMs(item.time);
 			const y = Number(item.index) || 0;
@@ -505,26 +530,56 @@ export function buildDynamics(secondGraph, maxBubbles = 320) {
 				name: item.name || 'Источник',
 				source: item.name || 'Источник',
 				url: item.url || '',
-				sign: y >= 0 ? 'positive' : 'negative',
+				sign: pointSign(item),
 				categoryName: mediaCategory(item),
 				duplicateCount: mediaDuplicates(item),
 			};
 		})
 		.filter(point => point.x > 1e11)
-		.sort((a, b) => a.x - b.x);
+		.sort(
+			(a, b) =>
+				Math.abs(b.y) - Math.abs(a.y) || b.x - a.x || a.source.localeCompare(b.source, 'ru'),
+		);
+}
 
-	const bySource = new Map();
+export function sliceDynamicsLevel(
+	ranked,
+	level,
+	pageSize = DYNAMICS_PAGE_SIZE,
+) {
+	const total = ranked.length;
+	const levels = Math.max(1, Math.ceil(total / pageSize) || 1);
+	const safe = Math.min(Math.max(0, Number(level) || 0), levels - 1);
+	const start = safe * pageSize;
+	const points = ranked.slice(start, start + pageSize);
+	return {
+		points,
+		level: safe,
+		levels,
+		from: total ? start + 1 : 0,
+		to: Math.min(start + pageSize, total),
+		total,
+	};
+}
+
+export function buildDynamics(secondGraph, maxBubbles = DYNAMICS_PAGE_SIZE, level = 0) {
+	const ranked = rankDynamicsPoints(secondGraph);
+	const page = sliceDynamicsLevel(ranked, level, maxBubbles);
+	const all = ranked;
+	const bubbles = page.points;
+
+	const bySourceAll = new Map();
 	all.forEach(point => {
-		const list = bySource.get(point.source) || [];
+		const list = bySourceAll.get(point.source) || [];
 		list.push(point);
-		bySource.set(point.source, list);
+		bySourceAll.set(point.source, list);
 	});
-	all.forEach(point => {
-		point.sourceCount = bySource.get(point.source)?.length || 1;
+	bubbles.forEach(point => {
+		point.sourceCount = bySourceAll.get(point.source)?.length || 1;
 	});
 
 	const byDay = new Map();
-	all.forEach(point => {
+	bubbles.forEach(point => {
 		const day = Math.floor(point.x / DAY) * DAY;
 		const slot = byDay.get(day) || { n: 0, sum: 0 };
 		slot.n += 1;
@@ -537,25 +592,35 @@ export function buildDynamics(secondGraph, maxBubbles = 320) {
 		Math.round(slot.sum / Math.max(slot.n, 1)),
 	]);
 
-	const ranked = [...all].sort(
-		(a, b) => Math.abs(b.y) - Math.abs(a.y) || b.z - a.z,
+	const notable = new Set(
+		[...bubbles]
+			.sort((a, b) => Math.abs(b.y) - Math.abs(a.y))
+			.slice(0, 12)
+			.map(point => `${point.x}-${point.url}`),
 	);
-	const notable = new Set(ranked.slice(0, 12).map(point => `${point.x}-${point.url}`));
-	const bubbles = ranked.slice(0, maxBubbles).map(point => ({
+	const marked = bubbles.map(point => ({
 		...point,
 		notable: notable.has(`${point.x}-${point.url}`),
 	}));
-	const positive = bubbles.filter(point => point.sign === 'positive');
-	const negative = bubbles.filter(point => point.sign === 'negative');
+	const positive = marked.filter(point => point.sign === 'positive');
+	const negative = marked.filter(point => point.sign === 'negative');
 
-	const trails = [...bySource.entries()]
+	const bySourcePage = new Map();
+	marked.forEach(point => {
+		const list = bySourcePage.get(point.source) || [];
+		list.push(point);
+		bySourcePage.set(point.source, list);
+	});
+	const trails = [...bySourcePage.entries()]
 		.filter(([, points]) => points.length >= 3)
 		.sort((a, b) => b[1].length - a[1].length)
 		.slice(0, 5)
 		.map(([source, points]) => ({
 			type: 'line',
 			name: source,
-			data: points.map(point => ({ x: point.x, y: point.y, source })),
+			data: [...points]
+				.sort((a, b) => a.x - b.x)
+				.map(point => ({ x: point.x, y: point.y, source })),
 			color: 'rgba(23,96,232,0.28)',
 			lineWidth: 1.2,
 			marker: { enabled: false },
@@ -572,8 +637,13 @@ export function buildDynamics(secondGraph, maxBubbles = 320) {
 
 	return {
 		allCount: all.length,
-		shownCount: bubbles.length,
-		truncated: Math.max(0, all.length - bubbles.length),
+		shownCount: marked.length,
+		truncated: Math.max(0, all.length - marked.length),
+		level: page.level,
+		levels: page.levels,
+		from: page.from,
+		to: page.to,
+		total: page.total,
 		positive,
 		negative,
 		average,
