@@ -174,6 +174,7 @@ const MediaRating = () => {
         },
         searchInTexts,
       };
+// http://localhost:5000/ai-question-media-rating
       const response = await fetch('/api/ai-question-media-rating', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -285,7 +286,10 @@ const MediaRating = () => {
     <Layout>
       {(isLoading || isLoading_media) && (<><BackgroundLoader /><Loader /></>)}
       {pathname !== '/home' && active_menu ? <LeftMenuActive /> : <LeftMenu />}
-      <Content>
+      <Content
+        alignStart={Boolean(isSuccess_media)}
+        style={isSuccess_media ? { overflow: 'auto' } : undefined}
+      >
         <div className={styles.block__pageName} style={isSuccess_media ? {} : { alignSelf: 'center' }}>
           {isSuccess_media
             ? <h3 className={styles.pageName__title}>Медиа рейтинг</h3>
@@ -337,20 +341,22 @@ const MediaRating = () => {
           </div>
         )}
         {isNoData && <NoDataRequest />}
-{!isNoData && isSuccess_media && (
-  <Suspense fallback={<Loader />}>
-    <MediaGraphs
-      tab={activeTab}
-      originalData={data_media}
-      filteredData={filteredData}
-      selectedIndexRange={sliderRange}
-    />
+        {!isNoData && isSuccess_media && (
+          <Suspense fallback={<Loader />}>
+            <div className={styles.results}>
+              <div
+                className={`${styles.graphSlot} ${showTable ? styles.graphCompact : ''}`}
+              >
+                <MediaGraphs
+                  tab={activeTab}
+                  originalData={data_media}
+                  filteredData={filteredData}
+                  selectedIndexRange={sliderRange}
+                />
+              </div>
 
-    {/* Добавьте обёртку */}
-    <div className={styles.scrollContainer}>
-      <div className={styles.scrollableResults}>
-
-              <AiAnalysisBlock
+              <div className={styles.belowGraph}>
+                <AiAnalysisBlock
                 visibleCount={
                   (filteredData?.filtered_first_graph?.positive_smi?.length || 0)
                   + (filteredData?.filtered_first_graph?.negative_smi?.length || 0)
@@ -537,9 +543,7 @@ const MediaRating = () => {
                   </div>
                 )}
               </div>
-              {/* ====== /Table Section ====== */}
-            </div>
-            {/* ====== /SCROLLABLE ====== */}
+              </div>
             </div>
           </Suspense>
         )}
