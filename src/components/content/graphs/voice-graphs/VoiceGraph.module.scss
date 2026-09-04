@@ -1,46 +1,43 @@
 @import '@st/mixins';
 
 .block__graph {
-  @include style-graph-page();
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  min-height: 480px; // Минимальная высота на случай пустого контента
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: min(56vh, 560px);
+	min-height: 420px;
+	max-height: 620px;
+	background: #fff;
+	border: 1px solid #eaecf0;
+	border-radius: 12px;
+	padding: 12px 14px 10px;
+	box-sizing: border-box;
+	overflow: hidden;
 }
 
 .block__title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex: 0 0 auto;
+	margin-bottom: 8px;
+	gap: 12px;
 }
 
-.container__graph {
-  flex: 1 1 auto; // Занимает все доступное пространство
-  width: 100%;
-  height: 100%;
-  min-height: 480px;
-  position: relative; // Для корректного позиционирования загрузчика
+.block__settings {
+	flex: 0 0 auto;
 }
 
-.chartContainer {
-  flex: 1 1 auto; // чтобы занимал всё свободное пространство родителя, если column-layout
-  min-height: 480px; // можно, например, как у тебя уже есть 
-  // или фиксируй, если нужно высоту (например, height: 500px)
-  height: 100%; // если весь компонент-родитель гарантировано ограничен по высоте
-}
-.wrapper_graf {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  min-height: 480px;
-  gap: adapt(20px, 1440px);
+.button__settings {
+	background: transparent;
+	border: 0;
+	cursor: pointer;
+	padding: 4px;
 }
 
-.chartContainer {
-  flex: 1 1 auto;
-  min-height: 480px;
-  height: 100%;  // Только если все родительские блоки тоже имеют высоту!
+.chartShell {
+	flex: 1 1 auto;
+	min-height: 0;
+	width: 100%;
+	overflow: hidden;
 }
