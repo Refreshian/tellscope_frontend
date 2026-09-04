@@ -28,6 +28,7 @@ import Input from '@/components/ui/fields/input/Input';
 import LeftMenu from '@/components/ui/left-menu/LeftMenu';
 import LeftMenuActive from '@/components/ui/left-menu/left-menu-active/LeftMenuActive';
 import NoDataRequest from '@/components/no-data-request/NoDataRequest';
+import AiAnalysisBlock from '@/components/ui/ai-analysis/AiAnalysisBlock';
 import QueryStringHelp from '@/components/ui/query-string-help/QueryStringHelp';
 
 import { useActions } from '@/hooks/useActions';
@@ -210,7 +211,13 @@ const Information = () => {
 
 			const requestData = {
 				question: aiQuery,
-				data: filteredData,
+				data: {
+					...filteredData,
+					num_messages: countTotalMessages(filteredData),
+					num_unique_authors: new Set(
+						(filteredData.values || []).map((item) => item?.author?.fullname || item?.author?.url)
+					).size,
+				},
 				index: dataForRequest.index,
 				min_date: dataForRequest.min_date,
 				max_date: dataForRequest.max_date,
@@ -219,6 +226,7 @@ const Information = () => {
 					repostsRange,
 					erRange,
 					viewsCountRange,
+					original_messages: countTotalMessages(data_information),
 				},
 				searchInTexts,
 			}; 
@@ -228,9 +236,9 @@ const Information = () => {
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(requestData),
 			});
+			const result = await response.json().catch(() => ({}));
 			if (!response.ok)
-				throw new Error(`Ошибка запроса: ${response.status}`);
-			const result = await response.json();
+				throw new Error(result.error || `Ошибка запроса: ${response.status}`);
 
 			if (result.content)
 				setAiAnalysis(result.content);
@@ -484,72 +492,38 @@ const Information = () => {
 							</Suspense>
 						</div>
 
-						{/* Блок ИИ-анализа */}
-						<div className={styles.aiAnalysisBlock}>
-							<button
-								className={styles.analyzeButton}
-								onClick={() => setShowAiInput((v) => !v)}
-							>
-								{showAiInput ? 'Скрыть анализ' : 'Проанализировать данные с помощью ИИ'}
-							</button>
-							{showAiInput && (
-								<div className={styles.aiInteractionWrapper}>
-									<div className={styles.aiInputContainer}>
-										<textarea
-											className={styles.aiTextarea}
-											placeholder={
-												"Примеры запросов:\n- Какие основные тенденции в данных?\n- Расскажи, как распространялась информация, приведи примеры и ссылки на важные сообщения.\n- Выяви самых активных авторов с высоким значением вовлеченности."
-											}
-											rows={4}
-											value={aiQuery}
-											onChange={(e) => setAiQuery(e.target.value)}
-										/>
-										<div className={styles.aiControls}>
-											<div className={styles.aiCheckboxContainer}>
-												<input
-													type="checkbox"
-													id="searchInTexts"
-													className={styles.aiCheckbox}
-													checked={searchInTexts}
-													onChange={(e) => setSearchInTexts(e.target.checked)}
-												/>
-												<label htmlFor="searchInTexts" className={styles.aiCheckboxLabel}>
-													Искать по текстам
-												</label>
-											</div>
-											<button
-												className={styles.sendButton}
-												onClick={handleAiSubmit}
-												disabled={isAiLoading}
-											>
-												{isAiLoading ? 'Анализируем...' : 'Отправить запрос'}
-											</button>
-										</div>
-									</div>
-									{isAiLoading && (
-										<div className={styles.aiLoading}>
-											<Loader size="small" />
-											<p>Анализируем данные. Это может занять некоторое время...</p>
-										</div>
-									)}
-									{aiError && (
-										<div className={styles.aiError}>
-											<p>Ошибка: {aiError}</p>
-										</div>
-									)}
-									{aiAnalysis && (
-										<div className={styles.aiResponse}>
-											<h4>Результаты анализа:</h4>
-											<div className={styles.aiResponseContent}>
-												<ReactMarkdown rehypePlugins={[rehypeHighlight]}>
-													{aiAnalysis}
-												</ReactMarkdown>
-											</div>
-										</div>
-									)}
+						<AiAnalysisBlock
+							visibleCount={countTotalMessages(filteredData) || 0}
+							totalCount={countTotalMessages(data_information) || 0}
+							suggestions={[
+								'Как распространялась информация и какие сообщения ключевые?',
+								'Кто авторы с высоким охватом и вовлечённостью?',
+								'Какие площадки доминируют в текущей выборке?',
+							]}
+							showInput={showAiInput}
+							onToggle={() => setShowAiInput((v) => !v)}
+							query={aiQuery}
+							onQueryChange={setAiQuery}
+							onSubmit={handleAiSubmit}
+							loading={isAiLoading}
+							error={aiError}
+							analysis={aiAnalysis}
+							loadingNode={<Loader size="small" />}
+							extraControls={(
+								<div className={styles.aiCheckboxContainer}>
+									<input
+										type="checkbox"
+										id="searchInTexts"
+										className={styles.aiCheckbox}
+										checked={searchInTexts}
+										onChange={(e) => setSearchInTexts(e.target.checked)}
+									/>
+									<label htmlFor="searchInTexts" className={styles.aiCheckboxLabel}>
+										Искать по текстам
+									</label>
 								</div>
 							)}
-						</div>
+						/>
 
 						{/* Таблица */}
 						<div className={styles.tableSection}>

@@ -20,6 +20,7 @@ import { useCheckAuth } from '@/hooks/useCheckAuth';
 import { useGetUserFoldersQuery, useGetUserIdQuery } from '@/services/other.service';
 
 import NoDataRequest from '../../no-data-request/NoDataRequest';
+import AiAnalysisBlock from '@/components/ui/ai-analysis/AiAnalysisBlock';
 
 import styles from './MediaRating.module.scss';
 import { useLazyMediaGraphQuery } from '@/services/getGraph.service';
@@ -155,7 +156,11 @@ const MediaRating = () => {
 
       const requestData = {
         question: aiQuery,
-        data: filteredData,
+        data: {
+          ...filteredData,
+          first_graph: filteredData.filtered_first_graph || filteredData.first_graph,
+          second_graph: filteredData.filtered_second_graph || filteredData.second_graph,
+        },
         index: dataForRequest.index,
         min_date: dataForRequest.min_date,
         max_date: dataForRequest.max_date,
@@ -164,20 +169,20 @@ const MediaRating = () => {
           repostsRange,
           erRange,
           viewsCountRange,
+          indexRange: appliedRange,
+          sliderRange: appliedRange,
         },
         searchInTexts,
       };
-// http://localhost:5000/ai-question-media-rating
       const response = await fetch('/api/ai-question-media-rating', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData),
       });
 
+      const result = await response.json().catch(() => ({}));
       if (!response.ok)
-        throw new Error(`Ошибка запроса: ${response.status}`);
- 
-      const result = await response.json();
+        throw new Error(result.error || `Ошибка запроса: ${response.status}`);
 
       if (result.content)
         setAiAnalysis(result.content);
@@ -345,72 +350,32 @@ const MediaRating = () => {
     <div className={styles.scrollContainer}>
       <div className={styles.scrollableResults}>
 
-              {/* ====== AI Блок анализа ====== */}
-              <div className={styles.aiAnalysisBlock}>
-                <button
-                  className={styles.analyzeButton}
-                  onClick={() => setShowAiInput((v) => !v)}
-                >
-                  {showAiInput ? 'Скрыть анализ' : 'Проанализировать данные с помощью ИИ'}
-                </button>
-                {showAiInput && (
-                  <div className={styles.aiInteractionWrapper}>
-                    <div className={styles.aiInputContainer}>
-                      <textarea
-                        className={styles.aiTextarea}
-                        placeholder={
-                          "Примеры запросов:\n- Какие основные тенденции в данных?\n- Расскажи, как распространялась информация, приведи примеры и ссылки на важные сообщения.\n- Выяви самых активных авторов с высоким значением вовлеченности."
-                        }
-                        rows={4}
-                        value={aiQuery}
-                        onChange={(e) => setAiQuery(e.target.value)}
-                      />
-                      <div className={styles.aiControls}>
-                        <div className={styles.aiCheckboxContainer}>
-                          <input
-                            type="checkbox"
-                            id="searchInTexts"
-                            className={styles.aiCheckbox}
-                            checked={searchInTexts}
-                            onChange={(e) => setSearchInTexts(e.target.checked)}
-                          />
-                          <label htmlFor="searchInTexts" className={styles.aiCheckboxLabel}>
-                            Искать по текстам
-                          </label>
-                        </div>
-                        <button
-                          className={styles.sendButton}
-                          onClick={handleAiSubmit}
-                          disabled={isAiLoading}
-                        >
-                          {isAiLoading ? 'Анализируем...' : 'Отправить запрос'}
-                        </button>
-                      </div>
-                    </div>
-                    {isAiLoading && (
-                      <div className={styles.aiLoading}>
-                        <Loader size="small" />
-                        <p>Анализируем данные. Это может занять некоторое время...</p>
-                      </div>
-                    )}
-                    {aiError && (
-                      <div className={styles.aiError}>
-                        <p>Ошибка: {aiError}</p>
-                      </div>
-                    )}
-                    {aiAnalysis && (
-                      <div className={styles.aiResponse}>
-                        <h4>Результаты анализа:</h4>
-                        <div className={styles.aiResponseContent}>
-                          <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
-                            {aiAnalysis}
-                          </ReactMarkdown>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <AiAnalysisBlock
+                visibleCount={
+                  (filteredData?.filtered_first_graph?.positive_smi?.length || 0)
+                  + (filteredData?.filtered_first_graph?.negative_smi?.length || 0)
+                }
+                totalCount={
+                  (data_media?.first_graph?.positive_smi?.length || 0)
+                  + (data_media?.first_graph?.negative_smi?.length || 0)
+                }
+                unit="ресурсов"
+                extraNote={`индекс ${appliedRange[0]}–${appliedRange[1]}`}
+                suggestions={[
+                  'Какие СМИ выделяются в негативе при текущем индексе?',
+                  'Кто лидирует в позитиве и насколько это устойчиво?',
+                  'Какие источники стоит смотреть в первую очередь?',
+                ]}
+                showInput={showAiInput}
+                onToggle={() => setShowAiInput((v) => !v)}
+                query={aiQuery}
+                onQueryChange={setAiQuery}
+                onSubmit={handleAiSubmit}
+                loading={isAiLoading}
+                error={aiError}
+                analysis={aiAnalysis}
+                loadingNode={<Loader size="small" />}
+              />
 
               {/* ====== Таблица ====== */}
               <div className={styles.tableSection}>

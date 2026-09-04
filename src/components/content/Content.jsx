@@ -4,7 +4,7 @@ import { useActions } from '@/hooks/useActions';
 
 import styles from './Content.module.scss';
 
-const Content = ({ children, graph, style }) => {
+const Content = ({ children, graph, style, alignStart }) => {
 	const { active_menu } = useSelector(store => store.booleanValues);
 	const { defaultActiveMenu } = useActions();
 
@@ -24,7 +24,7 @@ const Content = ({ children, graph, style }) => {
 
 	return (
 		<div
-			className={`${styles.wrapper_content}${isAiBotPath ? ` ${styles.fill}` : ''}${isWorkspacePath && !isAiBotPath ? ` ${styles.workspace}` : ''}`}
+			className={`${styles.wrapper_content}${isAiBotPath ? ` ${styles.fill}` : ''}${isWorkspacePath && !isAiBotPath ? ` ${styles.workspace}` : ''}${alignStart ? ` ${styles.start}` : ''}`}
 			style={styleCSS}
 			onClick={() => {
 				if (active_menu) defaultActiveMenu('');

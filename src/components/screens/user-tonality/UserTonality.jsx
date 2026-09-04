@@ -19,6 +19,7 @@ import LeftMenu from '@/components/ui/left-menu/LeftMenu';
 import LeftMenuActive from '@/components/ui/left-menu/left-menu-active/LeftMenuActive';
 import CustomCalendar from '@/components/ui/custom-calendar/CustomCalendar';
 import NoDataRequest from '@/components/no-data-request/NoDataRequest';
+import AiAnalysisBlock from '@/components/ui/ai-analysis/AiAnalysisBlock';
 
 import { useActions } from '@/hooks/useActions';
 import { useAddBaseAndDate } from '@/hooks/useAddBaseAndDate';
@@ -358,6 +359,24 @@ const UserTonality = () => {
         return dataCopy;
     }, [data_tonality, commentsRange, likesRange, viewsRange, audienceRange]);
 
+    const tonalitySuggestions = currentTab === 'Тональность авторов'
+        ? [
+            'Кто авторы с наибольшим охватом в негативе?',
+            'Чем авторы позитива отличаются от авторов негатива?',
+            'Какие площадки чаще встречаются у активных авторов?',
+        ]
+        : currentTab === 'Позитивные упоминания'
+            ? [
+                'Какие источники дают больше всего позитива и по охвату?',
+                'Где позитив выглядит устойчивым, а где разовым?',
+                'Какие площадки выделяются среди позитивных упоминаний?',
+            ]
+            : [
+                'Какие источники дают больше всего негатива и по охвату?',
+                'Где негатив выглядит системным, а где разовым?',
+                'Какие площадки стоит смотреть в первую очередь?',
+            ];
+
     const handleAiSubmit = async () => {
         if (!aiQuery.trim()) {
             setAiError('Пожалуйста, введите запрос для анализа');
@@ -373,13 +392,23 @@ const UserTonality = () => {
                 throw new Error('Нет отфильтрованных данных для анализа');
             }
 
+            const filteredMentions = (filteredData?.tonality_values?.positive_count || 0)
+                + (filteredData?.tonality_values?.negative_count || 0);
             const requestData = {
                 question: aiQuery,
                 data: filteredData,
                 index: baseData,
                 min_date: min_range_date,
                 max_date: max_range_date,
-                current_tab: currentTab
+                current_tab: currentTab,
+                filters: {
+                    commentsRange,
+                    likesRange,
+                    viewsRange,
+                    audienceRange,
+                    original_mentions: getTotalMentionsFromHubs(data_tonality),
+                    filtered_mentions: filteredMentions,
+                },
             };
 
             const response = await fetch('/api/ai-question-raw', {
@@ -390,15 +419,15 @@ const UserTonality = () => {
                 body: JSON.stringify(requestData)
             });
 
+            const result = await response.json().catch(() => ({}));
             if (!response.ok) {
-                throw new Error(`Ошибка запроса: ${response.status}`);
+                throw new Error(result.error || `Ошибка запроса: ${response.status}`);
             }
 
-            const result = await response.json();
-
-            // Изменения здесь - правильно извлекаем content из ответа
             if (result.content) {
                 setAiAnalysis(result.content);
+            } else if (result.answer) {
+                setAiAnalysis(result.answer);
             } else if (result.response?.content) {
                 setAiAnalysis(result.response.content);
             } else if (result.analysis) {
@@ -733,62 +762,21 @@ const UserTonality = () => {
                             />
                         </Suspense>
 
-                        {/* Блок ИИ-анализа (AI Analysis) */}
-                        <div className={styles.aiAnalysisBlock}>
-                            <button
-                                className={styles.analyzeButton}
-                                onClick={() => setShowAiInput(!showAiInput)}
-                            >
-                                {showAiInput ? 'Скрыть анализ' : 'Проанализировать данные через ИИ'}
-                            </button>
-
-                            {showAiInput && (
-                                <div className={styles.aiInteractionWrapper}>
-                                    <div className={styles.aiInputContainer}>
-                                        <textarea
-                                            className={styles.aiTextarea}
-                                            placeholder="Примеры запросов:
-- Какие основные темы в негативных упоминаниях?
-- Кто самые активные авторы негативных сообщений?
-- Какие тенденции наблюдаются в положительных отзывах?"
-                                            rows="4"
-                                            value={aiQuery}
-                                            onChange={(e) => setAiQuery(e.target.value)}
-                                        />
-                                        <div className={styles.aiControls}>
-                                            <button
-                                                className={styles.sendButton}
-                                                onClick={handleAiSubmit}
-                                                disabled={isAiLoading}
-                                            >
-                                                {isAiLoading ? 'Анализируем...' : 'Отправить запрос'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                    {isAiLoading && (
-                                        <div className={styles.aiLoading}>
-                                            <Loader size="small" />
-                                            <p>Анализируем данные. Это может занять некоторое время...</p>
-                                        </div>
-                                    )}
-                                    {aiError && (
-                                        <div className={styles.aiError}>
-                                            <p>Ошибка: {aiError}</p>
-                                        </div>
-                                    )}
-                                    {aiAnalysis && (
-                                        <div className={styles.aiResponse}>
-                                            <h4>Результаты анализа:</h4>
-                                            <div className={styles.aiResponseContent}>
-                                                <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
-                                                    {aiAnalysis}
-                                                </ReactMarkdown>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                        <AiAnalysisBlock
+                            visibleCount={(filteredData?.tonality_values?.positive_count || 0) + (filteredData?.tonality_values?.negative_count || 0)}
+                            totalCount={getTotalMentionsFromHubs(data_tonality)}
+                            extraNote={currentTab}
+                            suggestions={tonalitySuggestions}
+                            showInput={showAiInput}
+                            onToggle={() => setShowAiInput(!showAiInput)}
+                            query={aiQuery}
+                            onQueryChange={setAiQuery}
+                            onSubmit={handleAiSubmit}
+                            loading={isAiLoading}
+                            error={aiError}
+                            analysis={aiAnalysis}
+                            loadingNode={<Loader size="small" />}
+                        />
 
                         {/* Блок с таблицами */}
                         <div className={styles.tableSection}>
