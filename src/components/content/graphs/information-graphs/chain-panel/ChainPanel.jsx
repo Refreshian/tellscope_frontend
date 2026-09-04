@@ -87,7 +87,7 @@ const ChainPanel = ({ chain, yLabel = 'Аудитория цепочки' }) => 
 		return (
 			<aside className={styles.panel}>
 				<p className={styles.placeholder}>
-					Кликните цепочку из двух и более сообщений — справа появится, как
+					Кликните цепочку или одиночную публикацию — справа появится, как
 					она росла и о чём речь. Двойной клик открывает пост.
 				</p>
 			</aside>
@@ -100,7 +100,11 @@ const ChainPanel = ({ chain, yLabel = 'Аудитория цепочки' }) => 
 
 	return (
 		<aside className={styles.panel}>
-			<p className={styles.kicker}>Цепочка распространения</p>
+			<p className={styles.kicker}>
+				{(chain.posts?.length || 0) > 1
+					? 'Цепочка распространения'
+					: 'Одиночная публикация'}
+			</p>
 			<h4>{origin?.name || 'Без имени'}</h4>
 			<p className={styles.meta}>
 				{origin?.hub}

@@ -78,8 +78,11 @@ export function themeFileName(folders, themeIndex) {
 	return '';
 }
 
-export function buildChains(values, { minLen = 2, maxChains = 120 } = {}) {
-	const all = (values || [])
+export function buildChains(
+	values,
+	{ minLen = 2, maxChains = 120, maxSingles = 500 } = {},
+) {
+	const prepared = (values || [])
 		.map((item, index) => {
 			const origin = toPost(item.author, 'origin');
 			const posts = [
@@ -96,16 +99,29 @@ export function buildChains(values, { minLen = 2, maxChains = 120 } = {}) {
 				audience,
 			};
 		})
+		.filter(chain => chain.posts.length >= 1);
+
+	const linked = prepared
 		.filter(chain => chain.posts.length >= minLen)
 		.sort(
 			(a, b) =>
 				b.audience - a.audience || b.posts.length - a.posts.length,
 		);
+	const isolated = prepared
+		.filter(chain => chain.posts.length === 1)
+		.sort(
+			(a, b) =>
+				b.audience - a.audience ||
+				(a.origin?.time || 0) - (b.origin?.time || 0),
+		);
 
 	return {
-		chains: all.slice(0, maxChains),
-		all,
-		truncated: Math.max(0, all.length - maxChains),
+		chains: linked.slice(0, maxChains),
+		all: linked,
+		truncated: Math.max(0, linked.length - maxChains),
+		singles: isolated.slice(0, maxSingles),
+		singlesTotal: isolated.length,
+		truncatedSingles: Math.max(0, isolated.length - maxSingles),
 	};
 }
 

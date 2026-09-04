@@ -13,6 +13,7 @@ const InformationGraphs = ({ data }) => {
   const { pathname } = useLocation();
   const [isViewSource, setIsViewSource] = useState(true);
   const [activeButton, setActiveButton] = useState('Граф. распространения информации');
+  const [showSingles, setShowSingles] = useState(false);
 
   const handleDownloadImage = useSaveImageGraph();
 
@@ -51,9 +52,17 @@ const InformationGraphs = ({ data }) => {
           {activeButton === 'Граф. распространения информации' ? (
             <SpreadFlow data={data} />
           ) : activeButton === 'Динамика распространения' ? (
-            <BarInformation data={data} />
+            <BarInformation
+              data={data}
+              showSingles={showSingles}
+              onShowSingles={setShowSingles}
+            />
           ) : (
-            <ScatterChart data={data} />
+            <ScatterChart
+              data={data}
+              showSingles={showSingles}
+              onShowSingles={setShowSingles}
+            />
           )}
         </Suspense>
       </div>

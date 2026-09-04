@@ -18,6 +18,20 @@
 	flex-shrink: 0;
 }
 
+.toolbar {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	flex-shrink: 0;
+	padding-right: 4px;
+
+	.hint {
+		padding-bottom: 8px;
+		margin: 0;
+	}
+}
+
 .empty {
 	display: flex;
 	align-items: center;
@@ -42,5 +56,9 @@
 @media (max-width: 900px) {
 	.stage {
 		flex-direction: column;
+	}
+
+	.toolbar {
+		flex-wrap: wrap;
 	}
 }
