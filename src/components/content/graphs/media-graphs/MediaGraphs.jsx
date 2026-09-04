@@ -7,13 +7,22 @@ import BubbleChart from './bubble-chart/BubbleChart';
 import SplitBubble from './split-bubble/SplitBubble';
 import { mediaButtons } from '@/data/panel.data';
 
-const MediaGraphs = ({ filteredData }) => {
+const TAB_TO_BUTTON = {
+  rating: 'Рейтинг тональности в СМИ',
+  dynamics: 'Динамика в СМИ',
+};
+
+const MediaGraphs = ({ filteredData, tab = 'rating', onTabChange }) => {
   const handleDownloadImage = useSaveImageGraph();
-  const [activeButton, setActiveButton] = useState('Рейтинг тональности в СМИ');
+  const [localTab, setLocalTab] = useState(tab);
+  const activeTab = onTabChange ? tab : localTab;
+  const activeButton = TAB_TO_BUTTON[activeTab] || TAB_TO_BUTTON.rating;
 
   const handleClick = useCallback(button => {
-    setActiveButton(button);
-  }, []);
+    const next = button === 'Динамика в СМИ' ? 'dynamics' : 'rating';
+    if (onTabChange) onTabChange(next);
+    else setLocalTab(next);
+  }, [onTabChange]);
 
   return (
     <div className={styles.block__graph}>

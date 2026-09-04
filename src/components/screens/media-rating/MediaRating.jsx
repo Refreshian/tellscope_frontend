@@ -32,6 +32,67 @@ import rehypeHighlight from 'rehype-highlight';
 
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { formatTime } from '@/components/content/graphs/media-graphs/mediaView';
+
+const POS_COLOR = '#32ff32';
+const NEG_COLOR = '#FF3232';
+const NUMERIC_SORT_KEYS = new Set(['index', 'message_count', 'time', 'duplicateCount']);
+
+const pickSourceUrl = (items, name, sign, index) => {
+  const color = sign === 'positive' ? POS_COLOR : NEG_COLOR;
+  const sameTone = (items || []).filter(
+    item =>
+      item.name === name &&
+      String(item.color || '').toLowerCase() === color.toLowerCase() &&
+      item.url
+  );
+  const exact = sameTone.find(item => Number(item.index) === Number(index));
+  if (exact?.url) return exact.url;
+  if (sameTone[0]?.url) return sameTone[0].url;
+  const any = (items || []).find(
+    item => item.name === name && Number(item.index) === Number(index) && item.url
+  );
+  return any?.url || '';
+};
+
+const rowValue = (row, key) => {
+  if (key === 'sign') return row.sign === 'positive' ? 'позитив' : 'негатив';
+  if (key === 'categoryName') return row.categoryName || row.category_name || '';
+  if (key === 'duplicateCount') return row.duplicateCount ?? row.duplicate_count ?? 1;
+  return row[key];
+};
+
+const compareRows = (a, b, key, direction) => {
+  const dir = direction === 'asc' ? 1 : -1;
+  const va = rowValue(a, key);
+  const vb = rowValue(b, key);
+  if (NUMERIC_SORT_KEYS.has(key)) {
+    const na = Number(va);
+    const nb = Number(vb);
+    const da = Number.isFinite(na) ? na : 0;
+    const db = Number.isFinite(nb) ? nb : 0;
+    if (da !== db) return (da - db) * dir;
+  } else {
+    const sa = String(va ?? '').toLowerCase();
+    const sb = String(vb ?? '').toLowerCase();
+    if (sa !== sb) return sa.localeCompare(sb, 'ru') * dir;
+  }
+  const ia = Number(a.index) || 0;
+  const ib = Number(b.index) || 0;
+  if (ia !== ib) return ib - ia;
+  return String(a.name || '').localeCompare(String(b.name || ''), 'ru');
+};
+
+const SortableTh = ({ label, sortKey, sortConfig, onSort, styles }) => (
+  <th onClick={() => onSort(sortKey)} className={styles.sortableHeader}>
+    {label}
+    {sortConfig.key === sortKey && (
+      <span className={styles.sortIcon}>
+        {sortConfig.direction === 'desc' ? '↓' : '↑'}
+      </span>
+    )}
+  </th>
+);
 
 const MediaRating = () => {
   useCheckAuth();
@@ -90,19 +151,6 @@ const MediaRating = () => {
       return () => clearTimeout(t);
     }
   }, [isError_media]);
-
-  // ---------------- Новое: индексируем ссылки для rating ----------------
-  const urlMap = useMemo(() => {
-    // Ключ вида "${name}___${index}" => ссылка
-    if (!data_media?.second_graph) return {};
-    const map = {};
-    data_media.second_graph.forEach(item => {
-      const key = `${item.name}___${item.index}`;
-      map[key] = item.url;
-    });
-    return map;
-  }, [data_media?.second_graph]);
-  // ---------------------------------------------------------------------
 
   const filteredData = useMemo(() => {
     if (!data_media) return null;
@@ -210,29 +258,30 @@ const MediaRating = () => {
 
   const tableData = useMemo(() => {
     if (!filteredData) return [];
+    const messages = filteredData.filtered_second_graph || [];
     if (activeTab === 'rating') {
+      const toRow = (item, sign) => ({
+        ...item,
+        sign,
+        url: pickSourceUrl(messages, item.name, sign, item.index),
+      });
       return [
-        ...(filteredData.filtered_first_graph.positive_smi?.map(item => ({
-          ...item, sign: 'positive',
-        })) || []),
-        ...(filteredData.filtered_first_graph.negative_smi?.map(item => ({
-          ...item, sign: 'negative',
-        })) || []),
+        ...(filteredData.filtered_first_graph.positive_smi?.map(item =>
+          toRow(item, 'positive'),
+        ) || []),
+        ...(filteredData.filtered_first_graph.negative_smi?.map(item =>
+          toRow(item, 'negative'),
+        ) || []),
       ];
-    } else {
-      return filteredData.filtered_second_graph || [];
     }
+    return messages;
   }, [filteredData, activeTab]);
 
   const sortedTableData = useMemo(() => {
-    if (!tableData) return [];
-    if (!sortConfig.key) return tableData;
-    const sorted = [...tableData].sort((a, b) => {
-      if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
-      return 0;
-    });
-    return sorted;
+    if (!tableData.length) return [];
+    return [...tableData].sort((a, b) =>
+      compareRows(a, b, sortConfig.key, sortConfig.direction),
+    );
   }, [tableData, sortConfig]);
 
   const handleSort = (key) => {
@@ -244,6 +293,15 @@ const MediaRating = () => {
     });
   };
 
+  const handleGraphTab = (nextTab) => {
+    setActiveTab(nextTab);
+    setSortConfig(
+      nextTab === 'rating'
+        ? { key: 'index', direction: 'desc' }
+        : { key: 'time', direction: 'desc' },
+    );
+  };
+
   const exportTable = () => {
     if (!sortedTableData?.length) return;
 
@@ -251,14 +309,12 @@ const MediaRating = () => {
     if (activeTab === 'rating') {
       ws_data.push(['Ресурс', 'Индекс', 'Кол-во сообщений', 'Тональность', 'Ссылка на сообщение']);
       sortedTableData.forEach(row => {
-        const key = `${row.name}___${row.index}`;
-        const url = urlMap[key] || '';
         ws_data.push([
           row.name,
           row.index,
           row.message_count,
           row.sign === 'positive' ? 'Позитив' : 'Негатив',
-          url
+          row.url || ''
         ]);
       });
     } else {
@@ -349,6 +405,7 @@ const MediaRating = () => {
               >
                 <MediaGraphs
                   tab={activeTab}
+                  onTabChange={handleGraphTab}
                   originalData={data_media}
                   filteredData={filteredData}
                   selectedIndexRange={sliderRange}
@@ -424,68 +481,20 @@ const MediaRating = () => {
                           <tr>
                             {activeTab === 'rating' ? (
                               <>
-                                <th onClick={() => handleSort('name')} className={styles.sortableHeader}>Ресурс
-                                  {sortConfig.key === 'name' && (
-                                    <span className={styles.sortIcon}>
-                                      {sortConfig.direction === 'desc' ? '↓' : '↑'}
-                                    </span>
-                                  )}
-                                </th>
-                                <th onClick={() => handleSort('index')} className={styles.sortableHeader}>Индекс
-                                  {sortConfig.key === 'index' && (
-                                    <span className={styles.sortIcon}>
-                                      {sortConfig.direction === 'desc' ? '↓' : '↑'}
-                                    </span>
-                                  )}
-                                </th>
-                                <th onClick={() => handleSort('message_count')} className={styles.sortableHeader}>Кол-во сообщений
-                                  {sortConfig.key === 'message_count' && (
-                                    <span className={styles.sortIcon}>
-                                      {sortConfig.direction === 'desc' ? '↓' : '↑'}
-                                    </span>
-                                  )}
-                                </th>
-                                <th>Тональность</th>
-                                <th>Ссылка на сообщение</th>
+                                <SortableTh label="Ресурс" sortKey="name" sortConfig={sortConfig} onSort={handleSort} styles={styles} />
+                                <SortableTh label="Индекс" sortKey="index" sortConfig={sortConfig} onSort={handleSort} styles={styles} />
+                                <SortableTh label="Кол-во сообщений" sortKey="message_count" sortConfig={sortConfig} onSort={handleSort} styles={styles} />
+                                <SortableTh label="Тональность" sortKey="sign" sortConfig={sortConfig} onSort={handleSort} styles={styles} />
+                                <SortableTh label="Ссылка на сообщение" sortKey="url" sortConfig={sortConfig} onSort={handleSort} styles={styles} />
                               </>
                             ) : (
                               <>
-                                <th onClick={() => handleSort('name')} className={styles.sortableHeader}>Ресурс
-                                  {sortConfig.key === 'name' && (
-                                    <span className={styles.sortIcon}>
-                                      {sortConfig.direction === 'desc' ? '↓' : '↑'}
-                                    </span>
-                                  )}
-                                </th>
-                                <th onClick={() => handleSort('index')} className={styles.sortableHeader}>Индекс
-                                  {sortConfig.key === 'index' && (
-                                    <span className={styles.sortIcon}>
-                                      {sortConfig.direction === 'desc' ? '↓' : '↑'}
-                                    </span>
-                                  )}
-                                </th>
-                                <th onClick={() => handleSort('time')} className={styles.sortableHeader}>Время
-                                  {sortConfig.key === 'time' && (
-                                    <span className={styles.sortIcon}>
-                                      {sortConfig.direction === 'desc' ? '↓' : '↑'}
-                                    </span>
-                                  )}
-                                </th>
-                                <th onClick={() => handleSort('categoryName')} className={styles.sortableHeader}>Категория СМИ
-                                  {sortConfig.key === 'categoryName' && (
-                                    <span className={styles.sortIcon}>
-                                      {sortConfig.direction === 'desc' ? '↓' : '↑'}
-                                    </span>
-                                  )}
-                                </th>
-                                <th onClick={() => handleSort('duplicateCount')} className={styles.sortableHeader}>Число дубликатов
-                                  {sortConfig.key === 'duplicateCount' && (
-                                    <span className={styles.sortIcon}>
-                                      {sortConfig.direction === 'desc' ? '↓' : '↑'}
-                                    </span>
-                                  )}
-                                </th>
-                                <th>Ссылка на сообщение</th>
+                                <SortableTh label="Ресурс" sortKey="name" sortConfig={sortConfig} onSort={handleSort} styles={styles} />
+                                <SortableTh label="Индекс" sortKey="index" sortConfig={sortConfig} onSort={handleSort} styles={styles} />
+                                <SortableTh label="Время" sortKey="time" sortConfig={sortConfig} onSort={handleSort} styles={styles} />
+                                <SortableTh label="Категория СМИ" sortKey="categoryName" sortConfig={sortConfig} onSort={handleSort} styles={styles} />
+                                <SortableTh label="Число дубликатов" sortKey="duplicateCount" sortConfig={sortConfig} onSort={handleSort} styles={styles} />
+                                <SortableTh label="Ссылка на сообщение" sortKey="url" sortConfig={sortConfig} onSort={handleSort} styles={styles} />
                               </>
                             )}
                           </tr>
@@ -493,7 +502,7 @@ const MediaRating = () => {
                         <tbody>
                           {sortedTableData.map((item, idx) => (
                             activeTab === 'rating' ? (
-                              <tr key={item.name + item.index}>
+                              <tr key={`${item.sign}-${item.name}-${item.index}-${idx}`}>
                                 <td>{item.name}</td>
                                 <td>{item.index}</td>
                                 <td>{item.message_count}</td>
@@ -503,29 +512,22 @@ const MediaRating = () => {
                                     : <span style={{ color: '#f44336' }}>Негатив</span>}
                                 </td>
                                 <td className={styles.textCell}>
-                                  {
-                                    (() => {
-                                      const key = `${item.name}___${item.index}`;
-                                      const url = urlMap[key];
-                                      return url
-                                        ? <a href={url} target="_blank" rel="noopener noreferrer">{url}</a>
-                                        : <span style={{ color: '#aaa' }}>—</span>
-                                    })()
-                                  }
+                                  {item.url
+                                    ? <a href={item.url} target="_blank" rel="noopener noreferrer">{item.url}</a>
+                                    : <span style={{ color: '#aaa' }}>—</span>}
                                 </td>
                               </tr>
                             ) : (
-                              <tr key={item.url + idx}>
+                              <tr key={`${item.elastic_id || item.url || item.name}-${idx}`}>
                                 <td>{item.name}</td>
                                 <td>{item.index}</td>
-                                <td>{item.time}</td>
+                                <td>{formatTime(item.time)}</td>
                                 <td>{item.categoryName || item.category_name || '—'}</td>
                                 <td>{item.duplicateCount ?? item.duplicate_count ?? 1}</td>
                                 <td className={styles.textCell}>
                                   {item.url
                                     ? <a href={item.url} target="_blank" rel="noopener noreferrer">{item.url}</a>
-                                    : <span style={{ color: '#aaa' }}>—</span>
-                                  }
+                                    : <span style={{ color: '#aaa' }}>—</span>}
                                 </td>
                               </tr>
                             )

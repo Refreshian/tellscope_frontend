@@ -303,29 +303,62 @@ const Information = () => {
 	const dataCopy = [...flattenedTableData];
 	dataCopy.sort((a, b) => {
 		let valA, valB;
+		let numeric = false;
 		switch (sortConfig.key) {
 		case 'audience':
 			valA = Number(a.audienceCount) || 0;
 			valB = Number(b.audienceCount) || 0;
+			numeric = true;
 			break;
 		case 'reposts':
 			valA = Number(a.repostCount) || 0;
 			valB = Number(b.repostCount) || 0;
+			numeric = true;
 			break;
 		case 'er':
 			valA = Number(a.er) || 0;
 			valB = Number(b.er) || 0;
+			numeric = true;
 			break;
 		case 'viewsCount':
 			valA = Number(a.viewsCount) || 0;
 			valB = Number(b.viewsCount) || 0;
+			numeric = true;
+			break;
+		case 'fullname':
+			valA = a.fullname || '';
+			valB = b.fullname || '';
+			break;
+		case 'author_type':
+			valA = a.author_type || '';
+			valB = b.author_type || '';
+			break;
+		case 'hub':
+			valA = a.hub || '';
+			valB = b.hub || '';
+			break;
+		case 'sex':
+			valA = a.sex || '';
+			valB = b.sex || '';
+			break;
+		case 'age':
+			valA = a.age || '';
+			valB = b.age || '';
+			break;
+		case 'url':
+			valA = a.url || '';
+			valB = b.url || '';
 			break;
 		default:
 			return 0;
 		}
-		if (valA < valB) return sortConfig.direction === 'desc' ? 1 : -1;
-		if (valA > valB) return sortConfig.direction === 'desc' ? -1 : 1;
-		return 0;
+		if (numeric) {
+			if (valA < valB) return sortConfig.direction === 'desc' ? 1 : -1;
+			if (valA > valB) return sortConfig.direction === 'desc' ? -1 : 1;
+			return 0;
+		}
+		const cmp = String(valA).localeCompare(String(valB), 'ru', { numeric: true, sensitivity: 'base' });
+		return sortConfig.direction === 'desc' ? -cmp : cmp;
 	});
 	return dataCopy;
 	}, [flattenedTableData, sortConfig]);
@@ -565,11 +598,46 @@ const Information = () => {
 										<table className={styles.dataTable}>
 											<thead>
 												<tr>
-													<th>Имя</th>
-													<th>Тип профиля</th>
-													<th>Источник</th>
-													<th>Пол</th>
-													<th>Возраст</th>
+													<th onClick={() => handleSort('fullname')} className={styles.sortableHeader}>
+														Имя
+														{sortConfig.key === 'fullname' && (
+															<span className={styles.sortIcon}>
+																{sortConfig.direction === 'desc' ? '↓' : '↑'}
+															</span>
+														)}
+													</th>
+													<th onClick={() => handleSort('author_type')} className={styles.sortableHeader}>
+														Тип профиля
+														{sortConfig.key === 'author_type' && (
+															<span className={styles.sortIcon}>
+																{sortConfig.direction === 'desc' ? '↓' : '↑'}
+															</span>
+														)}
+													</th>
+													<th onClick={() => handleSort('hub')} className={styles.sortableHeader}>
+														Источник
+														{sortConfig.key === 'hub' && (
+															<span className={styles.sortIcon}>
+																{sortConfig.direction === 'desc' ? '↓' : '↑'}
+															</span>
+														)}
+													</th>
+													<th onClick={() => handleSort('sex')} className={styles.sortableHeader}>
+														Пол
+														{sortConfig.key === 'sex' && (
+															<span className={styles.sortIcon}>
+																{sortConfig.direction === 'desc' ? '↓' : '↑'}
+															</span>
+														)}
+													</th>
+													<th onClick={() => handleSort('age')} className={styles.sortableHeader}>
+														Возраст
+														{sortConfig.key === 'age' && (
+															<span className={styles.sortIcon}>
+																{sortConfig.direction === 'desc' ? '↓' : '↑'}
+															</span>
+														)}
+													</th>
 													<th onClick={() => handleSort('audience')} className={styles.sortableHeader}>
 														Аудитория
 														{sortConfig.key === 'audience' && (
@@ -602,7 +670,14 @@ const Information = () => {
 															</span>
 														)}
 													</th>
-													<th>URL</th>
+													<th onClick={() => handleSort('url')} className={styles.sortableHeader}>
+														URL
+														{sortConfig.key === 'url' && (
+															<span className={styles.sortIcon}>
+																{sortConfig.direction === 'desc' ? '↓' : '↑'}
+															</span>
+														)}
+													</th>
 												</tr>
 											</thead>
 												<tbody>

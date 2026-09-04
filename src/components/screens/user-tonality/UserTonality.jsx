@@ -359,6 +359,56 @@ const UserTonality = () => {
         return dataCopy;
     }, [data_tonality, commentsRange, likesRange, viewsRange, audienceRange]);
 
+    const sortedSources = useMemo(() => {
+        const rows = [
+            ...(filteredData?.tonality_hubs_values?.positive_hubs || []),
+            ...(filteredData?.tonality_hubs_values?.negative_hubs || []),
+        ];
+        if (!sortConfig.key) return rows;
+        const dir = sortConfig.direction === 'asc' ? 1 : -1;
+        return [...rows].sort((a, b) => {
+            if (sortConfig.key === 'name') {
+                return String(a.name || '').localeCompare(String(b.name || ''), 'ru') * dir;
+            }
+            const valueA = Number(a[`${sortConfig.key}_sum`]) || 0;
+            const valueB = Number(b[`${sortConfig.key}_sum`]) || 0;
+            return (valueA - valueB) * dir;
+        });
+    }, [filteredData, sortConfig]);
+
+    const sortedAuthors = useMemo(() => {
+        const rows = [
+            ...(filteredData?.positive_authors_values || []).flatMap(group =>
+                (group.author_data || []).map(author => ({ ...author, sign: 'positive' })),
+            ),
+            ...(filteredData?.negative_authors_values || []).flatMap(group =>
+                (group.author_data || []).map(author => ({ ...author, sign: 'negative' })),
+            ),
+        ];
+        const dir = authorsSortConfig.direction === 'asc' ? 1 : -1;
+        const key = authorsSortConfig.key;
+        return [...rows].sort((a, b) => {
+            if (key === 'audience') {
+                const valueA = parseInt(a.texts?.[0]?.audienceCount, 10) || 0;
+                const valueB = parseInt(b.texts?.[0]?.audienceCount, 10) || 0;
+                return (valueA - valueB) * dir;
+            }
+            let valueA = '';
+            let valueB = '';
+            if (key === 'tonality') {
+                valueA = a.sign === 'positive' ? 'положительная' : 'отрицательная';
+                valueB = b.sign === 'positive' ? 'положительная' : 'отрицательная';
+            } else if (key === 'region') {
+                valueA = a.texts?.[0]?.region || '';
+                valueB = b.texts?.[0]?.region || '';
+            } else {
+                valueA = a[key] ?? '';
+                valueB = b[key] ?? '';
+            }
+            return String(valueA).localeCompare(String(valueB), 'ru', { numeric: true, sensitivity: 'base' }) * dir;
+        });
+    }, [filteredData, authorsSortConfig]);
+
     const tonalitySuggestions = currentTab === 'Тональность авторов'
         ? [
             'Кто авторы с наибольшим охватом в негативе?',
@@ -678,9 +728,8 @@ const UserTonality = () => {
                         <CustomCalendar />
                         <Button
                             style={{
-                                flex: '1 1 180px',
-                                minWidth: 160,
-                                height: 56,
+                                width: 'calc(220/1440*100vw)',
+                                height: 'calc(56/1440*100vw)',
                             }}
                             onClick={getTonalityData}
                         >
@@ -845,7 +894,14 @@ const UserTonality = () => {
                                             <table className={styles.dataTable}>
                                                 <thead>
                                                     <tr>
-                                                        <th>Источник</th>
+                                                        <th className={styles.sortableHeader} onClick={() => handleSort('name')}>
+                                                            Источник
+                                                            {sortConfig.key === 'name' && (
+                                                                <span className={styles.sortIcon}>
+                                                                    {sortConfig.direction === 'desc' ? '↓' : '↑'}
+                                                                </span>
+                                                            )}
+                                                        </th>
                                                         <th className={styles.sortableHeader} onClick={() => handleSort('comments')}>
                                                             Комментарии
                                                             {sortConfig.key === 'comments' && (
@@ -881,22 +937,8 @@ const UserTonality = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {[...(filteredData?.tonality_hubs_values?.positive_hubs || []),
-                                                    ...(filteredData?.tonality_hubs_values?.negative_hubs || [])]
-                                                        .sort((a, b) => {
-                                                            if (!sortConfig.key) return 0;
-                                                            const valueA = a[`${sortConfig.key}_sum`];
-                                                            const valueB = b[`${sortConfig.key}_sum`];
-                                                            if (valueA < valueB) {
-                                                                return sortConfig.direction === 'desc' ? 1 : -1;
-                                                            }
-                                                            if (valueA > valueB) {
-                                                                return sortConfig.direction === 'desc' ? -1 : 1;
-                                                            }
-                                                            return 0;
-                                                        })
-                                                        .map((hub, index) => (
-                                                            <tr key={`${hub.tonality}-${index}`}>
+                                                    {sortedSources.map((hub, index) => (
+                                                            <tr key={`${hub.tonality || hub.name}-${index}`}>
                                                                 <td>{hub.name}</td>
                                                                 <td>{hub.comments_sum}</td>
                                                                 <td>{hub.likes_sum}</td>
@@ -910,12 +952,54 @@ const UserTonality = () => {
                                             <table className={styles.dataTable}>
                                                 <thead>
                                                     <tr>
-                                                        <th>Имя</th>
-                                                        <th>Тип</th>
-                                                        <th>Пол</th>
-                                                        <th>Возраст</th>
-                                                        <th>Регион</th>
-                                                        <th>Тональность</th>
+                                                        <th className={styles.sortableHeader} onClick={() => handleAuthorsSort('fullname')}>
+                                                            Имя
+                                                            {authorsSortConfig.key === 'fullname' && (
+                                                                <span className={styles.sortIcon}>
+                                                                    {authorsSortConfig.direction === 'desc' ? '↓' : '↑'}
+                                                                </span>
+                                                            )}
+                                                        </th>
+                                                        <th className={styles.sortableHeader} onClick={() => handleAuthorsSort('author_type')}>
+                                                            Тип
+                                                            {authorsSortConfig.key === 'author_type' && (
+                                                                <span className={styles.sortIcon}>
+                                                                    {authorsSortConfig.direction === 'desc' ? '↓' : '↑'}
+                                                                </span>
+                                                            )}
+                                                        </th>
+                                                        <th className={styles.sortableHeader} onClick={() => handleAuthorsSort('sex')}>
+                                                            Пол
+                                                            {authorsSortConfig.key === 'sex' && (
+                                                                <span className={styles.sortIcon}>
+                                                                    {authorsSortConfig.direction === 'desc' ? '↓' : '↑'}
+                                                                </span>
+                                                            )}
+                                                        </th>
+                                                        <th className={styles.sortableHeader} onClick={() => handleAuthorsSort('age')}>
+                                                            Возраст
+                                                            {authorsSortConfig.key === 'age' && (
+                                                                <span className={styles.sortIcon}>
+                                                                    {authorsSortConfig.direction === 'desc' ? '↓' : '↑'}
+                                                                </span>
+                                                            )}
+                                                        </th>
+                                                        <th className={styles.sortableHeader} onClick={() => handleAuthorsSort('region')}>
+                                                            Регион
+                                                            {authorsSortConfig.key === 'region' && (
+                                                                <span className={styles.sortIcon}>
+                                                                    {authorsSortConfig.direction === 'desc' ? '↓' : '↑'}
+                                                                </span>
+                                                            )}
+                                                        </th>
+                                                        <th className={styles.sortableHeader} onClick={() => handleAuthorsSort('tonality')}>
+                                                            Тональность
+                                                            {authorsSortConfig.key === 'tonality' && (
+                                                                <span className={styles.sortIcon}>
+                                                                    {authorsSortConfig.direction === 'desc' ? '↓' : '↑'}
+                                                                </span>
+                                                            )}
+                                                        </th>
                                                         <th
                                                             className={styles.sortableHeader}
                                                             onClick={() => handleAuthorsSort('audience')}
@@ -927,59 +1011,25 @@ const UserTonality = () => {
                                                                 </span>
                                                             )}
                                                         </th>
-                                                        <th>URL</th>
+                                                        <th className={styles.sortableHeader} onClick={() => handleAuthorsSort('url')}>
+                                                            URL
+                                                            {authorsSortConfig.key === 'url' && (
+                                                                <span className={styles.sortIcon}>
+                                                                    {authorsSortConfig.direction === 'desc' ? '↓' : '↑'}
+                                                                </span>
+                                                            )}
+                                                        </th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {/* Положительные авторы (с сортировкой) */}
-                                                    {filteredData?.positive_authors_values
-                                                        ?.flatMap(group => group.author_data)
-                                                        .sort((a, b) => {
-                                                            const audienceA = parseInt(a.texts[0]?.audienceCount) || 0;
-                                                            const audienceB = parseInt(b.texts[0]?.audienceCount) || 0;
-                                                            if (authorsSortConfig.direction === 'desc') {
-                                                                return audienceB - audienceA; // По убыванию
-                                                            } else {
-                                                                return audienceA - audienceB; // По возрастанию
-                                                            }
-                                                        })
-                                                        .map((author, index) => (
-                                                            <tr key={`positive-author-${index}`}>
+                                                    {sortedAuthors.map((author, index) => (
+                                                            <tr key={`${author.sign}-${author.url || author.fullname}-${index}`}>
                                                                 <td>{author.fullname}</td>
                                                                 <td>{author.author_type}</td>
                                                                 <td>{author.sex}</td>
                                                                 <td>{author.age}</td>
                                                                 <td>{author.texts[0]?.region || '-'}</td>
-                                                                <td>Положительная</td>
-                                                                <td>{author.texts[0]?.audienceCount || 0}</td>
-                                                                <td className={styles.textCell}>
-                                                                    <a href={author.url} target="_blank" rel="noopener noreferrer">
-                                                                        {author.url}
-                                                                    </a>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-
-                                                    {/* Отрицательные авторы (с сортировкой) */}
-                                                    {filteredData?.negative_authors_values
-                                                        ?.flatMap(group => group.author_data)
-                                                        .sort((a, b) => {
-                                                            const audienceA = parseInt(a.texts[0]?.audienceCount) || 0;
-                                                            const audienceB = parseInt(b.texts[0]?.audienceCount) || 0;
-                                                            if (authorsSortConfig.direction === 'desc') {
-                                                                return audienceB - audienceA; // По убыванию
-                                                            } else {
-                                                                return audienceA - audienceB; // По возрастанию
-                                                            }
-                                                        })
-                                                        .map((author, index) => (
-                                                            <tr key={`negative-author-${index}`}>
-                                                                <td>{author.fullname}</td>
-                                                                <td>{author.author_type}</td>
-                                                                <td>{author.sex}</td>
-                                                                <td>{author.age}</td>
-                                                                <td>{author.texts[0]?.region || '-'}</td>
-                                                                <td>Отрицательная</td>
+                                                                <td>{author.sign === 'positive' ? 'Положительная' : 'Отрицательная'}</td>
                                                                 <td>{author.texts[0]?.audienceCount || 0}</td>
                                                                 <td className={styles.textCell}>
                                                                     <a href={author.url} target="_blank" rel="noopener noreferrer">
