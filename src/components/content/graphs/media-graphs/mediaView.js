@@ -103,8 +103,66 @@ const toSplitPoints = (items, sign, bySource, maxPerSide) => {
 				b.value - a.value || b.message_count - a.message_count,
 		);
 
-	return points.slice(0, maxPerSide);
+	return Number.isFinite(maxPerSide)
+		? points.slice(0, maxPerSide)
+		: points;
 };
+
+export const SPLIT_PAGE_SIZE = 24;
+
+export function rankSplitSources(positive, negative, secondGraph) {
+	const bySource = groupMessagesBySource(secondGraph);
+	return {
+		positive: toSplitPoints(positive, 'positive', bySource),
+		negative: toSplitPoints(negative, 'negative', bySource),
+	};
+}
+
+const indexSpan = points => {
+	const values = (points || [])
+		.map(point => Number(point.value) || 0)
+		.filter(value => value > 0);
+	if (!values.length) return { min: 0, max: 0 };
+	return { min: Math.min(...values), max: Math.max(...values) };
+};
+
+export function sliceSplitLevel(
+	ranked,
+	level,
+	pageSize = SPLIT_PAGE_SIZE,
+) {
+	const total = Math.max(
+		ranked.positive.length,
+		ranked.negative.length,
+	);
+	const levels = Math.max(1, Math.ceil(total / pageSize) || 1);
+	const safe = Math.min(Math.max(0, Number(level) || 0), levels - 1);
+	const start = safe * pageSize;
+	const positive = ranked.positive.slice(start, start + pageSize);
+	const negative = ranked.negative.slice(start, start + pageSize);
+	const posSpan = indexSpan(positive);
+	const negSpan = indexSpan(negative);
+	const shown = [...positive, ...negative];
+	const allSpan = indexSpan(shown);
+	return {
+		positive,
+		negative,
+		level: safe,
+		levels,
+		from: total ? start + 1 : 0,
+		to: Math.min(start + pageSize, total),
+		total,
+		indexMin: allSpan.min,
+		indexMax: allSpan.max,
+		positiveSpan: posSpan,
+		negativeSpan: negSpan,
+		later: Math.max(
+			0,
+			ranked.positive.length - start - positive.length,
+			ranked.negative.length - start - negative.length,
+		),
+	};
+}
 
 export function buildSplitSeries(
 	positive,

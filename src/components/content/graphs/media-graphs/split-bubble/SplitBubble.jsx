@@ -5,13 +5,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import MessagePicker from '../message-picker/MessagePicker';
 import {
-	buildSplitSeries,
+	SPLIT_PAGE_SIZE,
 	esc,
 	formatCount,
 	formatTime,
 	openUrl,
 	placeSplitPackedNodes,
+	rankSplitSources,
 	ruCount,
+	sliceSplitLevel,
 	sortMessages,
 	syncSplitPackedChart,
 } from '../mediaView';
@@ -22,14 +24,13 @@ if (typeof Highcharts === 'object') {
 	packedbubble(Highcharts);
 }
 
-const MAX_PER_SIDE = 28;
-
 const SplitBubble = ({ filteredData }) => {
 	const rootRef = useRef(null);
 	const chartRef = useRef(null);
 	const hoverRef = useRef(null);
 	const [chartSize, setChartSize] = useState({ w: 0, h: 0 });
 	const [picker, setPicker] = useState(null);
+	const [level, setLevel] = useState(0);
 
 	const positive = filteredData?.filtered_first_graph?.positive_smi ?? [];
 	const negative = filteredData?.filtered_first_graph?.negative_smi ?? [];
@@ -45,22 +46,44 @@ const SplitBubble = ({ filteredData }) => {
 		return () => observer.disconnect();
 	}, []);
 
-	const seriesData = useMemo(
-		() => buildSplitSeries(positive, negative, secondGraph, MAX_PER_SIDE),
+	const ranked = useMemo(
+		() => rankSplitSources(positive, negative, secondGraph),
 		[positive, negative, secondGraph],
+	);
+	const page = useMemo(
+		() => sliceSplitLevel(ranked, level, SPLIT_PAGE_SIZE),
+		[ranked, level],
+	);
+
+	useEffect(() => {
+		setLevel(0);
+		setPicker(null);
+	}, [filteredData]);
+
+	useEffect(() => {
+		if (level > page.levels - 1) setLevel(Math.max(0, page.levels - 1));
+	}, [level, page.levels]);
+
+	const seriesData = useMemo(
+		() =>
+			[
+				{
+					name: 'Позитив',
+					color: '#039855',
+					data: page.positive,
+				},
+				{
+					name: 'Негатив',
+					color: '#D92D20',
+					data: page.negative,
+				},
+			].filter(series => series.data.length),
+		[page.positive, page.negative],
 	);
 	const pointCount = seriesData.reduce(
 		(sum, series) => sum + (series.data?.length || 0),
 		0,
 	);
-	const hidden =
-		positive.length +
-		negative.length -
-		seriesData.reduce(
-			(sum, series) =>
-				sum + (series.data || []).filter(point => !point.isOther).length,
-			0,
-		);
 	const zMax = Math.max(
 		1,
 		...seriesData.flatMap(series =>
@@ -112,7 +135,7 @@ const SplitBubble = ({ filteredData }) => {
 
 	useEffect(() => {
 		setPicker(null);
-	}, [filteredData]);
+	}, [level]);
 
 	const options = useMemo(
 		() => ({
@@ -250,18 +273,67 @@ const SplitBubble = ({ filteredData }) => {
 		);
 	}
 
+	const rangeHint = page.indexMax
+		? ` Индекс на уровне: ${formatCount(page.indexMin)}–${formatCount(page.indexMax)}.`
+		: '';
+
 	return (
 		<div className={styles.wrap} ref={rootRef}>
-			<p className={styles.hint}>
-				Два облака — позитив и негатив. Размер кружка — индекс источника,
-				наведение показывает детали, двойной клик открывает сообщения.
-				{hidden > 0 ? ` Показаны крупнейшие, скрыто: ${hidden}.` : ''}
-			</p>
+			<div className={styles.toolbar}>
+				<p className={styles.hint}>
+					Два облака — позитив и негатив. Размер кружка — индекс источника.
+					Переключайте уровень, чтобы увидеть следующие по индексу СМИ.
+					{page.levels > 1
+						? ` Уровень ${page.level + 1} из ${page.levels}: источники ${page.from}–${page.to} из ${page.total}.${rangeHint}`
+						: rangeHint}
+				</p>
+				{page.levels > 1 ? (
+					<div className={styles.pager}>
+						<button
+							type="button"
+							className={styles.pagerBtn}
+							disabled={page.level <= 0}
+							onClick={() => setLevel(page.level - 1)}
+							aria-label="Более крупные источники"
+						>
+							‹
+						</button>
+						{page.levels <= 8
+							? Array.from({ length: page.levels }, (_, index) => (
+									<button
+										key={index}
+										type="button"
+										className={`${styles.pagerStep} ${
+											index === page.level ? styles.pagerActive : ''
+										}`}
+										onClick={() => setLevel(index)}
+									>
+										{index + 1}
+									</button>
+								))
+							: (
+									<span className={styles.pagerLabel}>
+										{page.level + 1} / {page.levels}
+									</span>
+								)}
+						<button
+							type="button"
+							className={styles.pagerBtn}
+							disabled={page.level >= page.levels - 1}
+							onClick={() => setLevel(page.level + 1)}
+							aria-label="Следующие по индексу источники"
+						>
+							›
+						</button>
+					</div>
+				) : null}
+			</div>
 			<div className={styles.chart} ref={chartRef}>
 				<HighchartsReact
 					highcharts={Highcharts}
 					options={options}
 					immutable
+					key={`split-level-${page.level}-${pointCount}`}
 					containerProps={{ style: { width: '100%', height: '100%' } }}
 				/>
 			</div>
