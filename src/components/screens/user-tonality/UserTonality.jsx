@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
-import rehypeHighlight from 'rehype-highlight';
-import 'highlight.js/styles/github.css';
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 
@@ -29,6 +26,115 @@ import { useLazyUserTonalityQuery } from '@/services/getGraph.service';
 
 import styles from './UserTonality.module.scss';
 import * as XLSX from 'xlsx';
+import { applyGraphSlice, mentionCount } from '@/components/content/graphs/tonality-graphs/tonalityView';
+
+const TonalityAiAnalysis = ({
+    analysisData,
+    visibleMentions,
+    totalMentions,
+    currentTab,
+    suggestions,
+    index,
+    minDate,
+    maxDate,
+    commentsRange,
+    likesRange,
+    viewsRange,
+    audienceRange,
+    graphSlice,
+}) => {
+    const [showAiInput, setShowAiInput] = useState(false);
+    const [aiQuery, setAiQuery] = useState('');
+    const [isAiLoading, setIsAiLoading] = useState(false);
+    const [aiAnalysis, setAiAnalysis] = useState(null);
+    const [aiError, setAiError] = useState(null);
+
+    const handleAiSubmit = async () => {
+        if (!aiQuery.trim()) {
+            setAiError('Пожалуйста, введите запрос для анализа');
+            return;
+        }
+
+        setIsAiLoading(true);
+        setAiAnalysis(null);
+        setAiError(null);
+
+        try {
+            if (!analysisData) {
+                throw new Error('Нет отфильтрованных данных для анализа');
+            }
+
+            const filteredMentions = mentionCount(analysisData);
+            const requestData = {
+                question: aiQuery,
+                data: analysisData,
+                index,
+                min_date: minDate,
+                max_date: maxDate,
+                current_tab: currentTab,
+                filters: {
+                    commentsRange,
+                    likesRange,
+                    viewsRange,
+                    audienceRange,
+                    original_mentions: totalMentions,
+                    filtered_mentions: filteredMentions,
+                    graph_root: graphSlice?.rootId || graphSlice?.side || null,
+                },
+            };
+
+            const response = await fetch('/api/ai-question-raw', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData),
+            });
+
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(result.error || `Ошибка запроса: ${response.status}`);
+            }
+
+            if (result.content) {
+                setAiAnalysis(result.content);
+            } else if (result.answer) {
+                setAiAnalysis(result.answer);
+            } else if (result.response?.content) {
+                setAiAnalysis(result.response.content);
+            } else if (result.analysis) {
+                setAiAnalysis(result.analysis);
+            } else if (typeof result === 'string') {
+                setAiAnalysis(result);
+            } else {
+                setAiAnalysis(JSON.stringify(result, null, 2));
+            }
+        } catch (error) {
+            console.error('Ошибка при запросе к ИИ:', error);
+            setAiError(error.message || 'Произошла ошибка при выполнении анализа. Пожалуйста, попробуйте позже.');
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
+    return (
+        <AiAnalysisBlock
+            visibleCount={visibleMentions}
+            totalCount={totalMentions}
+            extraNote={currentTab}
+            suggestions={suggestions}
+            showInput={showAiInput}
+            onToggle={() => setShowAiInput(value => !value)}
+            query={aiQuery}
+            onQueryChange={setAiQuery}
+            onSubmit={handleAiSubmit}
+            loading={isAiLoading}
+            error={aiError}
+            analysis={aiAnalysis}
+            loadingNode={<Loader size="small" />}
+        />
+    );
+};
 
 const UserTonality = () => {
     useCheckAuth();
@@ -104,14 +210,20 @@ const UserTonality = () => {
     const [likesRange, setLikesRange] = useState([0, 1000]);
     const [viewsRange, setViewsRange] = useState([0, 10000]);
     const [audienceRange, setAudienceRange] = useState([0, 50000]);
+    const [sliderMax, setSliderMax] = useState({
+        comments: 1000,
+        likes: 1000,
+        views: 10000,
+        audience: 50000,
+    });
+    const [graphSlice, setGraphSlice] = useState(null);
 
     useEffect(() => {
         if (data_tonality) {
-            // Найти максимальные значения для каждого показателя
-            let maxComments = 1000;
-            let maxLikes = 1000;
-            let maxViews = 10000;
-            let maxAudience = 50000;
+            let maxComments = 0;
+            let maxLikes = 0;
+            let maxViews = 0;
+            let maxAudience = 0;
 
             const allHubs = [
                 ...(data_tonality.tonality_hubs_values?.positive_hubs || []),
@@ -119,26 +231,27 @@ const UserTonality = () => {
             ];
 
             allHubs.forEach(hub => {
-                maxComments = Math.max(maxComments, hub.comments_sum);
-                maxLikes = Math.max(maxLikes, hub.likes_sum);
-                maxViews = Math.max(maxViews, hub.views_sum);
-                maxAudience = Math.max(maxAudience, hub.audience_sum);
+                maxComments = Math.max(maxComments, Number(hub.comments_sum) || 0);
+                maxLikes = Math.max(maxLikes, Number(hub.likes_sum) || 0);
+                maxViews = Math.max(maxViews, Number(hub.views_sum) || 0);
+                maxAudience = Math.max(maxAudience, Number(hub.audience_sum) || 0);
             });
 
-            // Установить значения фильтров с запасом
-            setCommentsRange([0, Math.ceil(maxComments * 1.1)]);
-            setLikesRange([0, Math.ceil(maxLikes * 1.1)]);
-            setViewsRange([0, Math.ceil(maxViews * 1.1)]);
-            setAudienceRange([0, Math.ceil(maxAudience * 1.1)]);
+            const nextMax = {
+                comments: Math.max(1, Math.ceil(maxComments)),
+                likes: Math.max(1, Math.ceil(maxLikes)),
+                views: Math.max(1, Math.ceil(maxViews)),
+                audience: Math.max(1, Math.ceil(maxAudience)),
+            };
+            setSliderMax(nextMax);
+            setCommentsRange([0, nextMax.comments]);
+            setLikesRange([0, nextMax.likes]);
+            setViewsRange([0, nextMax.views]);
+            setAudienceRange([0, nextMax.audience]);
+            setGraphSlice(null);
         }
     }, [data_tonality]);
 
-    // Состояния для ИИ-анализа
-    const [showAiInput, setShowAiInput] = useState(false);
-    const [aiQuery, setAiQuery] = useState('');
-    const [isAiLoading, setIsAiLoading] = useState(false);
-    const [aiAnalysis, setAiAnalysis] = useState(null);
-    const [aiError, setAiError] = useState(null);
     const [isNoData, setIsNoData] = useState(false);
 
     // Хуки и эффекты
@@ -181,6 +294,7 @@ const UserTonality = () => {
 
     const handleTabChange = (tab) => {
         setCurrentTab(tab);
+        setGraphSlice(null);
     };
 
     // Вычисляем реальное общее количество упоминаний из хабов
@@ -259,14 +373,6 @@ const UserTonality = () => {
                                     const likesCount = parseInt(text.likesCount) || 0;
                                     const viewsCount = parseInt(text.viewsCount) || 0;
                                     const audienceCount = parseInt(text.audienceCount) || 0;
-
-                                    // Добавьте логирование для отладки
-                                    if (author.fullname === 'vc.ru' || author.fullname.includes('vc.ru')) {
-                                        console.log('Filtering vc.ru text:', {
-                                            commentsCount, likesCount, viewsCount, audienceCount,
-                                            ranges: { commentsRange, likesRange, viewsRange, audienceRange }
-                                        });
-                                    }
 
                                     return (
                                         commentsCount >= commentsRange[0] &&
@@ -359,6 +465,16 @@ const UserTonality = () => {
         return dataCopy;
     }, [data_tonality, commentsRange, likesRange, viewsRange, audienceRange]);
 
+    const analysisData = useMemo(
+        () => applyGraphSlice(filteredData, graphSlice),
+        [filteredData, graphSlice],
+    );
+    const visibleMentions = mentionCount(analysisData);
+    const totalMentions = getTotalMentionsFromHubs(data_tonality);
+    const handleGraphSlice = useCallback(slice => {
+        setGraphSlice(slice);
+    }, []);
+
     const sortedSources = useMemo(() => {
         const rows = [
             ...(filteredData?.tonality_hubs_values?.positive_hubs || []),
@@ -426,75 +542,6 @@ const UserTonality = () => {
                 'Где негатив выглядит системным, а где разовым?',
                 'Какие площадки стоит смотреть в первую очередь?',
             ];
-
-    const handleAiSubmit = async () => {
-        if (!aiQuery.trim()) {
-            setAiError('Пожалуйста, введите запрос для анализа');
-            return;
-        }
-
-        setIsAiLoading(true);
-        setAiAnalysis(null);
-        setAiError(null);
-
-        try {
-            if (!filteredData) {
-                throw new Error('Нет отфильтрованных данных для анализа');
-            }
-
-            const filteredMentions = (filteredData?.tonality_values?.positive_count || 0)
-                + (filteredData?.tonality_values?.negative_count || 0);
-            const requestData = {
-                question: aiQuery,
-                data: filteredData,
-                index: baseData,
-                min_date: min_range_date,
-                max_date: max_range_date,
-                current_tab: currentTab,
-                filters: {
-                    commentsRange,
-                    likesRange,
-                    viewsRange,
-                    audienceRange,
-                    original_mentions: getTotalMentionsFromHubs(data_tonality),
-                    filtered_mentions: filteredMentions,
-                },
-            };
-
-            const response = await fetch('/api/ai-question-raw', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestData)
-            });
-
-            const result = await response.json().catch(() => ({}));
-            if (!response.ok) {
-                throw new Error(result.error || `Ошибка запроса: ${response.status}`);
-            }
-
-            if (result.content) {
-                setAiAnalysis(result.content);
-            } else if (result.answer) {
-                setAiAnalysis(result.answer);
-            } else if (result.response?.content) {
-                setAiAnalysis(result.response.content);
-            } else if (result.analysis) {
-                setAiAnalysis(result.analysis);
-            } else if (typeof result === 'string') {
-                setAiAnalysis(result);
-            } else {
-                setAiAnalysis(JSON.stringify(result, null, 2));
-            }
-
-        } catch (error) {
-            console.error('Ошибка при запросе к ИИ:', error);
-            setAiError(error.message || 'Произошла ошибка при выполнении анализа. Пожалуйста, попробуйте позже.');
-        } finally {
-            setIsAiLoading(false);
-        }
-    };
 
     // Функция для экспорта текущей таблицы
     const exportCurrentTable = () => {
@@ -749,8 +796,8 @@ const UserTonality = () => {
                                 <Slider
                                     range
                                     min={0}
-                                    max={1000}
-                                    defaultValue={commentsRange}
+                                    max={sliderMax.comments}
+                                    value={commentsRange}
                                     onChange={handleSliderChange(setCommentsRange)}
                                 />
                                 <div className={styles.sliderValues}>
@@ -762,8 +809,8 @@ const UserTonality = () => {
                                 <Slider
                                     range
                                     min={0}
-                                    max={1000}
-                                    defaultValue={likesRange}
+                                    max={sliderMax.likes}
+                                    value={likesRange}
                                     onChange={handleSliderChange(setLikesRange)}
                                 />
                                 <div className={styles.sliderValues}>
@@ -775,8 +822,8 @@ const UserTonality = () => {
                                 <Slider
                                     range
                                     min={0}
-                                    max={10000}
-                                    defaultValue={viewsRange}
+                                    max={sliderMax.views}
+                                    value={viewsRange}
                                     onChange={handleSliderChange(setViewsRange)}
                                 />
                                 <div className={styles.sliderValues}>
@@ -788,8 +835,8 @@ const UserTonality = () => {
                                 <Slider
                                     range
                                     min={0}
-                                    max={50000}
-                                    defaultValue={audienceRange}
+                                    max={sliderMax.audience}
+                                    value={audienceRange}
                                     onChange={handleSliderChange(setAudienceRange)}
                                 />
                                 <div className={styles.sliderValues}>
@@ -799,8 +846,8 @@ const UserTonality = () => {
                         </div>
 
                         <div className={styles.filterInfo}>
-                            Текущие фильтры содержат <b>{(filteredData?.tonality_values?.positive_count || 0) + (filteredData?.tonality_values?.negative_count || 0)}</b>
-                            &nbsp;упоминаний из <b>{getTotalMentionsFromHubs(data_tonality)}</b>
+                            Текущие фильтры содержат <b>{visibleMentions}</b>
+                            &nbsp;упоминаний из <b>{totalMentions}</b>
                         </div>
 
                         {/* Граф */}
@@ -808,23 +855,24 @@ const UserTonality = () => {
                             <TonalityGraphs
                                 data={filteredData}
                                 onTabChange={handleTabChange}
+                                onVisibleSlice={handleGraphSlice}
                             />
                         </Suspense>
 
-                        <AiAnalysisBlock
-                            visibleCount={(filteredData?.tonality_values?.positive_count || 0) + (filteredData?.tonality_values?.negative_count || 0)}
-                            totalCount={getTotalMentionsFromHubs(data_tonality)}
-                            extraNote={currentTab}
+                        <TonalityAiAnalysis
+                            analysisData={analysisData}
+                            visibleMentions={visibleMentions}
+                            totalMentions={totalMentions}
+                            currentTab={currentTab}
                             suggestions={tonalitySuggestions}
-                            showInput={showAiInput}
-                            onToggle={() => setShowAiInput(!showAiInput)}
-                            query={aiQuery}
-                            onQueryChange={setAiQuery}
-                            onSubmit={handleAiSubmit}
-                            loading={isAiLoading}
-                            error={aiError}
-                            analysis={aiAnalysis}
-                            loadingNode={<Loader size="small" />}
+                            index={baseData}
+                            minDate={min_range_date}
+                            maxDate={max_range_date}
+                            commentsRange={commentsRange}
+                            likesRange={likesRange}
+                            viewsRange={viewsRange}
+                            audienceRange={audienceRange}
+                            graphSlice={graphSlice}
                         />
 
                         {/* Блок с таблицами */}

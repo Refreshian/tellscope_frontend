@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 
 import Loader from '@/components/loading/loader/Loader';
@@ -13,17 +13,15 @@ import AuthorsGraph from './authors-graph/AuthorsGraph';
 import Mentions from './mentions/Mentions';
 import { tonalityButtons } from '@/data/panel.data';
 
-const TonalityGraphs = ({ data: filteredData, onTabChange }) => {
+const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice }) => {
   // Получаем данные из Redux (полные данные)
   const tonalityData = useSelector(state => state.tonalityData);
   
   // Определяем, какие данные использовать: отфильтрованные или из Redux
   const cashingData = useMemo(() => {
     if (filteredData && Object.keys(filteredData).length > 0) {
-      console.log("Используем отфильтрованные данные:", filteredData);
       return filteredData;
     }
-    console.log("Используем данные из Redux:", tonalityData);
     return tonalityData;
   }, [filteredData, tonalityData]);
   
@@ -50,12 +48,9 @@ const TonalityGraphs = ({ data: filteredData, onTabChange }) => {
   // Обновляем данные при изменении активной кнопки или входных данных
   useEffect(() => {
     if (!cashingData || !cashingData.tonality_hubs_values) {
-      console.log("Нет данных для отображения");
       return;
     }
 
-    console.log("Обновляем данные графика. Активная кнопка:", activeButton);
-    
     if (activeButton === 'Негативные упоминания') {
       const newData = funksTonality.convertValuesToValue(
         funksTonality.addColor(
@@ -63,7 +58,6 @@ const TonalityGraphs = ({ data: filteredData, onTabChange }) => {
           'red',
         ),
       );
-      console.log("Новые данные для негативных упоминаний:", newData);
       setData(newData);
     } else if (activeButton === 'Позитивные упоминания') {
       const newData = funksTonality.convertValuesToValue(
@@ -72,7 +66,6 @@ const TonalityGraphs = ({ data: filteredData, onTabChange }) => {
           'green',
         ),
       );
-      console.log("Новые данные для позитивных упоминаний:", newData);
       setData(newData);
     }
   }, [activeButton, cashingData]);
@@ -114,6 +107,7 @@ const TonalityGraphs = ({ data: filteredData, onTabChange }) => {
             <AuthorsGraph
               cashingData={cashingData}
               isViewSource={isViewSource}
+              onVisibleChange={onVisibleSlice}
             />
           </Suspense>
         ) : (
@@ -123,6 +117,7 @@ const TonalityGraphs = ({ data: filteredData, onTabChange }) => {
               data={data}
               setData={setData}
               activeButton={activeButton}
+              onVisibleChange={onVisibleSlice}
             />
           </Suspense>
         )}
@@ -136,4 +131,4 @@ TonalityGraphs.defaultProps = {
   data: null
 };
 
-export default TonalityGraphs;
+export default memo(TonalityGraphs);

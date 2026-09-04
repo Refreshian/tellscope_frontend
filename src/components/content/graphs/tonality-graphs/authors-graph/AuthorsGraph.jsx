@@ -1,10 +1,11 @@
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import sunburst from 'highcharts/modules/sunburst';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { funksTonality } from '@/utils/editData';
 import { capSunburstPoints } from '@/utils/chartPerf';
+import { visibleAuthorSlice } from '../tonalityView';
 
 import styles from './AuthorsGraph.module.scss';
 
@@ -49,7 +50,7 @@ const openUrl = url => {
 	if (url) window.open(url, '_blank', 'noopener,noreferrer');
 };
 
-const AuthorsGraph = ({ cashingData, isViewSource }) => {
+const AuthorsGraph = ({ cashingData, isViewSource, onVisibleChange }) => {
 	const wrapRef = useRef(null);
 	const hoverRef = useRef(null);
 	const [side, setSide] = useState(0);
@@ -112,6 +113,17 @@ const AuthorsGraph = ({ cashingData, isViewSource }) => {
 	}, [negative, positive, childrenNegative, childrenPositive]);
 
 	const busy = cashingTransformAuthorsData.length > 120;
+
+	const reportVisible = useCallback(
+		rootId => {
+			onVisibleChange?.(visibleAuthorSlice(cashingTransformAuthorsData, rootId || 'root'));
+		},
+		[cashingTransformAuthorsData, onVisibleChange],
+	);
+
+	useEffect(() => {
+		reportVisible('root');
+	}, [reportVisible]);
 
 	const openAuthorPoint = useCallback(point => {
 		const opts = point?.options || {};
@@ -206,6 +218,11 @@ const AuthorsGraph = ({ cashingData, isViewSource }) => {
 					borderRadius: 3,
 					cursor: 'pointer',
 					turboThreshold: 0,
+					events: {
+						setRootNode(event) {
+							reportVisible(event?.newRootId || event?.id || this.rootNode || 'root');
+						},
+					},
 					dataLabels: {
 						format: '{point.name}',
 						filter: { property: 'innerArcLength', operator: '>', value: 22 },
@@ -242,6 +259,12 @@ const AuthorsGraph = ({ cashingData, isViewSource }) => {
 							},
 							mouseOut() {
 								if (hoverRef.current === this) hoverRef.current = null;
+							},
+							click() {
+								window.setTimeout(
+									() => reportVisible(this.series?.rootNode || 'root'),
+									0,
+								);
 							},
 						},
 					},
@@ -281,7 +304,7 @@ const AuthorsGraph = ({ cashingData, isViewSource }) => {
 				},
 			},
 		}),
-		[cashingTransformAuthorsData, side, busy],
+		[cashingTransformAuthorsData, side, busy, reportVisible],
 	);
 
 	return (
@@ -362,4 +385,4 @@ const AuthorsGraph = ({ cashingData, isViewSource }) => {
 	);
 };
 
-export default AuthorsGraph;
+export default memo(AuthorsGraph);
