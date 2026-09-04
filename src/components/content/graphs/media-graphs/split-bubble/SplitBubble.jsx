@@ -273,21 +273,19 @@ const SplitBubble = ({ filteredData }) => {
 		);
 	}
 
-	const rangeHint = page.indexMax
-		? ` Индекс на уровне: ${formatCount(page.indexMin)}–${formatCount(page.indexMax)}.`
-		: '';
-
 	return (
 		<div className={styles.wrap} ref={rootRef}>
-			<div className={styles.toolbar}>
-				<p className={styles.hint}>
-					Два облака — позитив и негатив. Размер кружка — индекс источника.
-					Переключайте уровень, чтобы увидеть следующие по индексу СМИ.
-					{page.levels > 1
-						? ` Уровень ${page.level + 1} из ${page.levels}: источники ${page.from}–${page.to} из ${page.total}.${rangeHint}`
-						: rangeHint}
-				</p>
-				{page.levels > 1 ? (
+			<div className={styles.chart} ref={chartRef}>
+				<HighchartsReact
+					highcharts={Highcharts}
+					options={options}
+					immutable
+					key={`split-level-${page.level}-${pointCount}`}
+					containerProps={{ style: { width: '100%', height: '100%' } }}
+				/>
+			</div>
+			{page.levels > 1 ? (
+				<div className={styles.pagerBar}>
 					<div className={styles.pager}>
 						<button
 							type="button"
@@ -298,24 +296,9 @@ const SplitBubble = ({ filteredData }) => {
 						>
 							‹
 						</button>
-						{page.levels <= 8
-							? Array.from({ length: page.levels }, (_, index) => (
-									<button
-										key={index}
-										type="button"
-										className={`${styles.pagerStep} ${
-											index === page.level ? styles.pagerActive : ''
-										}`}
-										onClick={() => setLevel(index)}
-									>
-										{index + 1}
-									</button>
-								))
-							: (
-									<span className={styles.pagerLabel}>
-										{page.level + 1} / {page.levels}
-									</span>
-								)}
+						<span className={styles.pagerLabel}>
+							Уровень {page.level + 1} из {page.levels}
+						</span>
 						<button
 							type="button"
 							className={styles.pagerBtn}
@@ -326,17 +309,8 @@ const SplitBubble = ({ filteredData }) => {
 							›
 						</button>
 					</div>
-				) : null}
-			</div>
-			<div className={styles.chart} ref={chartRef}>
-				<HighchartsReact
-					highcharts={Highcharts}
-					options={options}
-					immutable
-					key={`split-level-${page.level}-${pointCount}`}
-					containerProps={{ style: { width: '100%', height: '100%' } }}
-				/>
-			</div>
+				</div>
+			) : null}
 			<MessagePicker
 				title={picker?.title}
 				meta={picker?.meta}

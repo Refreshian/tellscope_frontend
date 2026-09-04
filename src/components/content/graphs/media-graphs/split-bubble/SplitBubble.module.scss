@@ -10,7 +10,6 @@
 	min-width: 0;
 }
 
-.hint,
 .empty {
 	font-size: 0.78rem;
 	line-height: 1.4;
@@ -19,18 +18,12 @@
 	flex-shrink: 0;
 }
 
-.toolbar {
+.pagerBar {
 	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: 12px;
+	justify-content: center;
+	align-items: center;
 	flex-shrink: 0;
-	padding-right: 4px;
-
-	.hint {
-		padding-bottom: 8px;
-		margin: 0;
-	}
+	padding: 2px 0 6px;
 }
 
 .pager {
@@ -40,12 +33,11 @@
 	flex-shrink: 0;
 	border: 1px solid rgba($color_black, 0.12);
 	border-radius: 999px;
-	padding: 3px 5px;
+	padding: 3px 8px 3px 5px;
 	background: $color_white;
 }
 
-.pagerBtn,
-.pagerStep {
+.pagerBtn {
 	min-width: 26px;
 	height: 24px;
 	border: none;
@@ -66,21 +58,13 @@
 	}
 }
 
-.pagerActive {
-	background: $color_blue;
-	color: $color_white;
-
-	&:hover:not(:disabled) {
-		background: $color_blue;
-		color: $color_white;
-	}
-}
-
 .pagerLabel {
-	min-width: 48px;
+	min-width: 110px;
 	text-align: center;
-	font-size: 0.75rem;
+	font-size: 0.78rem;
 	color: rgba($color_black, 0.72);
+	white-space: nowrap;
+	padding: 0 4px;
 }
 
 .empty {
@@ -97,7 +81,7 @@
 }
 
 @media (max-width: 900px) {
-	.toolbar {
-		flex-wrap: wrap;
+	.pagerBar {
+		padding-bottom: 8px;
 	}
 }
