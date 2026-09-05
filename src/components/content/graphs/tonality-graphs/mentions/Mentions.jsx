@@ -145,7 +145,30 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 				<svg ref={svgRef}></svg>
 			</div>
 			{deletedData.length > 0 && (
-				<div className={styles.block__sources}>
+				<div
+					className={styles.block__sources}
+					style={
+						activeButton === 'Негативные упоминания'
+							? {
+									background: 'rgba(217, 45, 32, 0.07)',
+									borderColor: 'rgba(217, 45, 32, 0.35)',
+								}
+							: activeButton === 'Позитивные упоминания'
+								? {
+										background: 'rgba(3, 152, 85, 0.07)',
+										borderColor: 'rgba(3, 152, 85, 0.35)',
+									}
+								: undefined
+					}
+				>
+					<div className={styles.bandHead}>
+						<span className={styles.cellName}>Источник</span>
+						<span className={styles.cell}>Всего</span>
+						<span className={styles.cell}>Позитив</span>
+						<span className={styles.cell}>Негатив</span>
+						<span className={styles.cell}>Нейтрал</span>
+						<span className={styles.cell}>Аудитория</span>
+					</div>
 					{deletedData.map((entry, index) => {
 						const s = hubStats?.[entry.name];
 						const neg = s?.neg || 0;
@@ -157,64 +180,27 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 							<button
 								type='button'
 								key={`deleted-${index}`}
-								className={styles.restoreChip}
+								className={styles.bandRow}
 								onClick={() => handleRestoreClick(index)}
 								title='Клик — вернуть источник на график'
 							>
-								<span className={styles.chipHead}>
+								<span className={styles.cellName}>
 									<span
 										className={styles.restoreDot}
 										style={{ background: entry.color }}
 									/>
 									<span className={styles.restoreName}>{entry.name}</span>
-									<span className={styles.chipTotal}>
-										{formatCount(total)} сообщений
-									</span>
 								</span>
-								<span className={styles.chipMetrics}>
-									{pos > 0 && (
-										<span className={styles.chipRow}>
-											<span className={`${styles.mLabel} ${styles.labPos}`}>
-												Позитив
-											</span>
-											<span className={`${styles.mValue} ${styles.valPos}`}>
-												{formatCount(pos)}
-											</span>
-										</span>
-									)}
-									{neg > 0 && (
-										<span className={styles.chipRow}>
-											<span className={`${styles.mLabel} ${styles.labNeg}`}>
-												Негатив
-											</span>
-											<span className={`${styles.mValue} ${styles.valNeg}`}>
-												{formatCount(neg)}
-											</span>
-										</span>
-									)}
-									{neu > 0 && (
-										<span className={styles.chipRow}>
-											<span className={`${styles.mLabel} ${styles.labNeu}`}>
-												Нейтрал
-											</span>
-											<span className={`${styles.mValue} ${styles.valNeu}`}>
-												{formatCount(neu)}
-											</span>
-										</span>
-									)}
-									{aud > 0 && (
-										<span className={styles.chipRow}>
-											<span className={styles.mLabel}>Аудитория</span>
-											<span className={styles.mValue}>{formatCount(aud)}</span>
-										</span>
-									)}
-								</span>
+								<span className={styles.cell}>{formatCount(total)}</span>
+								<span className={`${styles.cell} ${styles.vPos}`}>{formatCount(pos)}</span>
+								<span className={`${styles.cell} ${styles.vNeg}`}>{formatCount(neg)}</span>
+								<span className={`${styles.cell} ${styles.vNeu}`}>{formatCount(neu)}</span>
+								<span className={`${styles.cell} ${styles.vAud}`}>{formatCount(aud)}</span>
 							</button>
 						);
 					})}
 				</div>
 			)}
-		</div>
 	);
 };
 
