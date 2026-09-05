@@ -72,7 +72,7 @@ const DataForSearch = ({
                   : truncateMiddle(showHtmlFiles ? option['html-file'] : option.file, 30)}
               </p>
               {hasFileMeta(option) ? (
-                <div style={{ color: '#98a2b3', fontSize: 11, marginTop: 2, whiteSpace: 'nowrap' }}>
+                <div style={{ color: '#98a2b3', fontSize: 11, marginTop: 2, maxWidth: '100%', overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.35 }}>
                   {fileMeta(option)}
                 </div>
               ) : null}
