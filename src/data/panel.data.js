@@ -85,11 +85,6 @@ export const dataSetButtons = [
 		title: 'Файлы данных',
 	},
 	{
-		id: 1,
-		isCount: false,
-		title: 'Файлы кластеризации авторов',
-	},
-	{
 		id: 2,
 		isCount: false,
 		title: 'Статус расчета данных',
