@@ -553,6 +553,49 @@ const DataSetPage = () => {
                         {baErr && <div style={{ fontSize: 13, color: '#c53030' }}>{baErr}</div>}
                     </div>
                 )}
+                {pathname === '/data-set' && (
+                    <div
+                        style={{
+                            width: '100%',
+                            margin: '6px 0',
+                            padding: '10px 14px',
+                            border: '1px solid rgba(16,24,40,.1)',
+                            borderRadius: 10,
+                            background: '#fbfcfe',
+                        }}
+                    >
+                        <b style={{ fontSize: 13 }}>Brand Analytics — доступные темы</b>
+                        {baThemes.length === 0 && (
+                            <div style={{ fontSize: 12, color: '#667085', marginTop: 4 }}>
+                                Загружаю список тем…
+                            </div>
+                        )}
+                        {baThemes.map(th => {
+                            const li = th.last_import;
+                            return (
+                                <div
+                                    key={th.theme_id}
+                                    style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        gap: 12,
+                                        padding: '6px 0',
+                                        borderBottom: '1px dashed #e6eaf0',
+                                        fontSize: 13,
+                                    }}
+                                >
+                                    <span>{th.title}</span>
+                                    <span style={{ color: '#667085', fontSize: 12 }}>
+                                        {li ? 'последний импорт: ' + (li.file || '') : 'импорта не было'}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                        <p style={{ fontSize: 12, color: '#667085', margin: '8px 0 0' }}>
+                            Откройте папку темы — внутри будет кнопка «Загрузить из Brand Analytics» с выбором периода.
+                        </p>
+                    </div>
+                )}
                 {convertError && <div className={styles.error} style={{ color: 'red', marginTop: 10 }}>{convertError}</div>}
                 {convertResult && <div className={styles.success} style={{ color: 'green', marginTop: 10 }}>{convertResult}</div>}
 
