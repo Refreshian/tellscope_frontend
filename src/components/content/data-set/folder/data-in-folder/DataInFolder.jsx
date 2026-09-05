@@ -292,15 +292,7 @@ const DataInFolder = () => {
                           />
                         </button>
 
-                        <button
-                          className={styles.button__edit}
-                          onClick={() => onClick(file, 'edit')}
-                        >
-                          <img
-                            src='/images/icons/setting/edit.svg'
-                            alt='edit'
-                          />
-                        </button>
+
                         <button
                           className={styles.button__delete}
                           onClick={() => onClick(file, 'delete')}
