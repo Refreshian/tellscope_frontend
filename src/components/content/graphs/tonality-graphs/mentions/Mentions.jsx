@@ -151,7 +151,7 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 						const neg = s?.neg || 0;
 						const pos = s?.pos || 0;
 						const neu = s?.neu || 0;
-						const aud = s?.aud ?? Number(entry.audience_sum) || 0;
+						const aud = s?.aud ?? (Number(entry.audience_sum) || 0);
 						return (
 							<button
 								type='button'
