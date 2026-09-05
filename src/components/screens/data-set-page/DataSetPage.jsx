@@ -443,7 +443,7 @@ const DataSetPage = () => {
         const fromSec = Math.floor(new Date(baFrom + 'T00:00:00').getTime() / 1000);
         const toSec = Math.floor(new Date(baTo + 'T23:59:59').getTime() / 1000);
         setBaErr('');
-        setBaStatus({ status: 'queued', message: 'Запуск…' });
+        setBaStatus({ status: 'queued', message: 'Экспорт данных', progress: '0' });
         try {
             const r = await fetch('/api/ba/import', {
                 method: 'POST',
@@ -608,8 +608,8 @@ const DataSetPage = () => {
                                 </button>
                                 {baStatus && (
                                     <div style={{ fontSize: 13, color: baStatus.status === 'error' ? '#c53030' : '#1760e8' }}>
-                                        {baStatus.status} · {baStatus.message || ''}
-                                        {baStatus.progress ? ` (${baStatus.progress}%)` : ''}
+                                        {baStatus.message || ''}
+                                        {baStatus.progress ? ` — ${baStatus.progress}%` : ''}
                                     </div>
                                 )}
                                 {baErr && <div style={{ fontSize: 13, color: '#c53030' }}>{baErr}</div>}
