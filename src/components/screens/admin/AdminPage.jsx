@@ -38,7 +38,8 @@ const btn = {
 };
 const miniBtn = {
 	display: 'block',
-	width: '100%',
+	width: '152px',
+	flex: '0 0 152px',
 	boxSizing: 'border-box',
 	border: '1px solid #d0d7e2',
 	borderLeft: '4px solid #1760e8',
@@ -53,7 +54,8 @@ const miniBtn = {
 };
 const redBtn = {
 	display: 'block',
-	width: '100%',
+	width: '152px',
+	flex: '0 0 152px',
 	boxSizing: 'border-box',
 	border: '1px solid #fecdca',
 	borderLeft: '4px solid #c53030',
@@ -223,7 +225,7 @@ const AdminPage = () => {
 								<td style={td}>{u.is_superuser ? 'да' : ''}</td>
 								<td style={td}>{u.is_active ? 'да' : 'нет'}</td>
 							<td style={td}>
-							<div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 240, alignItems: 'stretch' }}>
+							<div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-start' }}>
 							{u.id !== meId && (u.is_superuser ? (
 								<button style={miniBtn} onClick={() => patchUser(u.id, { is_superuser: false })}>снять админа</button>
 							) : (
