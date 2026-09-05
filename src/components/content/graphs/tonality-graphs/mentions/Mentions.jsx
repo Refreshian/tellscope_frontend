@@ -101,6 +101,21 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 			.attr('dy', '37px')
 			.style('font-size', '10.5px')
 			.style('fill', '#8a94a6');
+		textGroup
+			.append('text')
+			.attr('class', 'center-pct')
+			.attr('text-anchor', 'middle')
+			.attr('dy', '55px')
+			.style('font-size', '13px')
+			.style('font-weight', '600')
+			.style('fill', '#101828');
+		textGroup
+			.append('text')
+			.attr('class', 'center-pct-label')
+			.attr('text-anchor', 'middle')
+			.attr('dy', '67px')
+			.style('font-size', '10.5px')
+			.style('fill', '#8a94a6');
 
 		const toneNoun =
 			activeButton === 'Негативные упоминания'
@@ -117,17 +132,28 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 			return sum + (Number(item.value) || 0);
 		}, 0);
 
+		const pctShare = totalRemaining > 0 ? (toneRemaining / totalRemaining) * 100 : 0;
+		const pctText = `${pctShare.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} %`;
+		const pctLabel =
+			activeButton === 'Негативные упоминания'
+				? 'Негативных от общего'
+				: 'Позитивных от общего';
+
 		const setCenterDefault = () => {
 			textGroup.select('.center-tone').text(formatCount(toneRemaining));
 			textGroup.select('.center-tone-label').text(toneNoun);
 			textGroup.select('.center-total').text(formatCount(totalRemaining));
 			textGroup.select('.center-total-label').text('Всего сообщений');
+			textGroup.select('.center-pct').text(pctText);
+			textGroup.select('.center-pct-label').text(pctLabel);
 		};
 		const setCenterHover = (name, count) => {
 			textGroup.select('.center-tone').text(name || '');
 			textGroup.select('.center-tone-label').text('');
 			textGroup.select('.center-total').text(formatCount(count));
 			textGroup.select('.center-total-label').text('сообщений');
+			textGroup.select('.center-pct').text('');
+			textGroup.select('.center-pct-label').text('');
 		};
 		setCenterDefault();
 
