@@ -375,10 +375,18 @@ const DataSetPage = () => {
             .catch(() => {});
     };
 
-    const refreshBaThemes = () => {
+    const refreshBaThemes = async () => {
         setBaRefreshing(true);
-        loadBaThemes(data_getUserId);
-        window.setTimeout(() => setBaRefreshing(false), 800);
+        try {
+            const r = await fetch('/api/ba/themes?user_id=' + encodeURIComponent(data_getUserId || '1') + '&refresh=1', { headers: authHeaders() });
+            const d = await r.json();
+            if (d && Array.isArray(d.themes)) setBaThemes(d.themes);
+            if (d && d.refresh_error && window.console) console.warn('BA refresh:', d.refresh_error);
+        } catch (e) {
+            if (window.console) console.warn('BA refresh error', e);
+        } finally {
+            setBaRefreshing(false);
+        }
     };
 
     const baSaveAccount = async () => {
