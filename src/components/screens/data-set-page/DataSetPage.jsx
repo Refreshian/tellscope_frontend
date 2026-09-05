@@ -332,6 +332,86 @@ const DataSetPage = () => {
         }
     }, [pathname, data_getUserId, refetch]); // Добавьте refetch в зависимости
 
+
+    // --- Brand Analytics import (P1 UI) ---
+    const folderSeg =
+        pathname.startsWith('/data-set/') && pathname !== '/data-set'
+            ? decodeURIComponent(pathname.split('/')[2] || '')
+            : '';
+    const isInsideFolder = Boolean(folderSeg) && folderSeg !== 'processed';
+
+    const [baOpen, setBaOpen] = useState(false);
+    const [baThemes, setBaThemes] = useState([]);
+    const [baTheme, setBaTheme] = useState('');
+    const [baFrom, setBaFrom] = useState('');
+    const [baTo, setBaTo] = useState('');
+    const [baErr, setBaErr] = useState('');
+    const [baStatus, setBaStatus] = useState(null);
+    const baLoadedRef = useRef(false);
+    const baPollRef = useRef(null);
+
+    useEffect(() => {
+        if (!baLoadedRef.current) {
+            baLoadedRef.current = true;
+            fetch('/api/ba/themes')
+                .then(r => r.json())
+                .then(d => setBaThemes(d.themes || []))
+                .catch(() => {});
+        }
+        return () => {
+            if (baPollRef.current) clearInterval(baPollRef.current);
+        };
+    }, []);
+
+    const baRun = async () => {
+        if (!baTheme || !baFrom || !baTo) {
+            setBaErr('Выберите тему Brand Analytics и период');
+            return;
+        }
+        const fromSec = Math.floor(new Date(baFrom + 'T00:00:00').getTime() / 1000);
+        const toSec = Math.floor(new Date(baTo + 'T23:59:59').getTime() / 1000);
+        setBaErr('');
+        setBaStatus({ status: 'queued', message: 'Запуск…' });
+        try {
+            const r = await fetch('/api/ba/import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    theme_id: baTheme,
+                    folder: folderSeg,
+                    date_from: String(fromSec),
+                    date_to: String(toSec),
+                }),
+            });
+            const d = await r.json();
+            if (!r.ok) {
+                setBaStatus(null);
+                setBaErr(d.detail || 'Ошибка запуска импорта');
+                return;
+            }
+            const jobId = d.job_id;
+            const poll = async () => {
+                try {
+                    const rr = await fetch('/api/ba/jobs/' + jobId);
+                    const dd = await rr.json();
+                    setBaStatus(dd);
+                    if (dd.status === 'done' || dd.status === 'error') {
+                        if (baPollRef.current) clearInterval(baPollRef.current);
+                        baPollRef.current = null;
+                        if (dd.status === 'done') {
+                            refetch();
+                            setBaOpen(false);
+                        }
+                    }
+                } catch (e) {}
+            };
+            poll();
+            baPollRef.current = setInterval(poll, 2500);
+        } catch (e) {
+            setBaErr(String((e && e.message) || e));
+        }
+    };
+
     return (
         <Layout>
             {isPopupInFolder && <PopupInFolder />}
@@ -411,8 +491,68 @@ const DataSetPage = () => {
                                 </div>
                             )}
                         </div>
+                        {isInsideFolder && (
+                            <button
+                                type='button'
+                                className={`${styles.button__title} ${styles.download}`}
+                                style={{ marginLeft: 12 }}
+                                onClick={() => setBaOpen(v => !v)}
+                            >
+                                Загрузить из Brand Analytics
+                            </button>
+                        )}
                     </div>
                 </div>
+                {baOpen && isInsideFolder && (
+                    <div
+                        style={{
+                            width: '100%',
+                            margin: '10px 0 4px',
+                            padding: '12px 14px',
+                            border: '1px solid rgba(23,96,232,.25)',
+                            borderRadius: 10,
+                            background: '#f6f9ff',
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: 10,
+                            alignItems: 'flex-end',
+                        }}
+                    >
+                        <label style={{ fontSize: 12, color: '#344054' }}>
+                            Тема Brand Analytics
+                            <select
+                                style={{ display: 'block', marginTop: 4, minWidth: 220, padding: '7px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }}
+                                value={baTheme}
+                                onChange={e => setBaTheme(e.target.value)}
+                            >
+                                <option value=''>— выберите тему —</option>
+                                {baThemes.map(th => (
+                                    <option key={th.theme_id} value={th.theme_id}>
+                                        {th.title}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <label style={{ fontSize: 12, color: '#344054' }}>
+                            С даты
+                            <input type='date' style={{ display: 'block', marginTop: 4, padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }} value={baFrom} onChange={e => setBaFrom(e.target.value)} />
+                        </label>
+                        <label style={{ fontSize: 12, color: '#344054' }}>
+                            По дату
+                            <input type='date' style={{ display: 'block', marginTop: 4, padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }} value={baTo} onChange={e => setBaTo(e.target.value)} />
+                        </label>
+                        <button type='button' className={styles.button__title} onClick={baRun}>
+                            Получить данные
+                        </button>
+                        {baStatus && (
+                            <div style={{ fontSize: 13, color: baStatus.status === 'error' ? '#c53030' : '#1760e8' }}>
+                                {baStatus.status} · {baStatus.message || ''}
+                                {baStatus.progress ? ` (${baStatus.progress}%)` : ''}
+                            </div>
+                        )}
+                        {baErr && <div style={{ fontSize: 13, color: '#c53030' }}>{baErr}</div>}
+                    </div>
+                )}
                 {convertError && <div className={styles.error} style={{ color: 'red', marginTop: 10 }}>{convertError}</div>}
                 {convertResult && <div className={styles.success} style={{ color: 'green', marginTop: 10 }}>{convertResult}</div>}
 
