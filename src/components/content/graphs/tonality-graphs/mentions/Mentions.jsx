@@ -163,6 +163,26 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 					return next;
 				});
 			});
+
+		arcs
+			.append('text')
+			.attr('text-anchor', 'middle')
+			.attr('transform', d => {
+				const [x, y] = arc.centroid(d);
+				return `translate(${x}, ${y})`;
+			})
+			.attr('pointer-events', 'none')
+			.attr('paint-order', 'stroke')
+			.attr('stroke', 'rgba(0, 0, 0, 0.6)')
+			.attr('stroke-width', 2)
+			.attr('fill', '#ffffff')
+			.style('font-size', '11px')
+			.style('font-weight', '600')
+			.text(d => {
+				const share = toneRemaining > 0 ? (Number(d.data.value) || 0) / toneRemaining : 0;
+				if (share < 0.04 || d.data.isOther) return '';
+				return `${(share * 100).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`;
+			});
 	}, [chartData, dimensions, setData]);
 
 	const handleRestoreClick = useCallback(
