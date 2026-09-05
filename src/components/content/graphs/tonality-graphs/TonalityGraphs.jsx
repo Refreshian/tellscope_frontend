@@ -72,6 +72,24 @@ const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice, rootL
     positive: cashingData?.tonality_values?.positive_count || 0,
   }), [cashingData]);
 
+  // Сводка по источникам: негатив / позитив / нейтрал и суммарная аудитория
+  const hubStats = useMemo(() => {
+    const stats = {};
+    const hvs = cashingData?.tonality_hubs_values || {};
+    const add = (list, key) => {
+      (list || []).forEach(item => {
+        if (!item || !item.name) return;
+        stats[item.name] = stats[item.name] || { neg: 0, pos: 0, neu: 0, aud: 0 };
+        stats[item.name][key] += Number(item.values) || 0;
+        stats[item.name].aud += Number(item.audience_sum) || 0;
+      });
+    };
+    add(hvs.negative_hubs, 'neg');
+    add(hvs.positive_hubs, 'pos');
+    add(hvs.neutral_hubs, 'neu');
+    return stats;
+  }, [cashingData]);
+
   return (
     <div className={styles.block__graph}>
       <div className={styles.block__title}>
@@ -97,6 +115,7 @@ const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice, rootL
               data={data}
               setData={setData}
               activeButton={activeButton}
+              hubStats={hubStats}
               onVisibleChange={onVisibleSlice}
             />
           </Suspense>

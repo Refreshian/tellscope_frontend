@@ -87,3 +87,45 @@
 	border-radius: 50%;
 	flex: 0 0 10px;
 }
+
+
+.restoreChip {
+	gap: 8px;
+	align-items: center;
+}
+
+.restoreName {
+	font-weight: 600;
+	color: #101828;
+	max-width: 200px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.restoreTones {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	font-variant-numeric: tabular-nums;
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.toneNeg {
+	color: #d92d20;
+}
+
+.tonePos {
+	color: #039855;
+}
+
+.toneNeu {
+	color: #98a2b3;
+}
+
+.toneAud {
+	color: #667085;
+	font-size: 12px;
+	font-weight: 500;
+}

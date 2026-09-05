@@ -5,11 +5,14 @@ import { topNWithOther, TOP_PIE_SLICES } from '@/utils/chartPerf';
 
 import styles from './Mentions.module.scss';
 
-const Mentions = ({ isViewSource, data, setData, activeButton, onVisibleChange }) => {
+const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) => {
 	const svgRef = useRef(null);
 	const containerRef = useRef(null);
 	const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 	const [deletedData, setDeletedData] = useState([]);
+
+	const formatCount = value => Number(value || 0).toLocaleString('ru-RU');
+
 
 	useEffect(() => setDeletedData([]), [activeButton]);
 
@@ -73,16 +76,26 @@ const Mentions = ({ isViewSource, data, setData, activeButton, onVisibleChange }
 			.attr('class', 'center-name')
 			.attr('text-anchor', 'middle')
 			.attr('dy', '-0.5em')
-			.style('font-size', '16px')
+			.style('font-size', '18px')
 			.style('font-weight', 'bold')
-			.style('fill', '#333');
+			.style('fill', '#101828');
 		textGroup
 			.append('text')
 			.attr('class', 'center-value')
 			.attr('text-anchor', 'middle')
-			.attr('dy', '1em')
-			.style('font-size', '14px')
-			.style('fill', '#666');
+			.attr('dy', '1.1em')
+			.style('font-size', '13px')
+			.style('fill', '#98a2b3');
+
+		const remainingTotal = (data || []).reduce(
+			(sum, item) => sum + (Number(item.value) || 0),
+			0,
+		);
+		const setCenter = (name, value) => {
+			textGroup.select('.center-name').text(name);
+			textGroup.select('.center-value').text(value);
+		};
+		setCenter(formatCount(remainingTotal), 'сообщений');
 
 		const arcs = g.selectAll('.arc').data(pie(chartData)).enter().append('g').attr('class', 'arc');
 
@@ -95,13 +108,11 @@ const Mentions = ({ isViewSource, data, setData, activeButton, onVisibleChange }
 			.style('cursor', 'pointer')
 			.on('mouseenter', function (event, d) {
 				d3.select(this).attr('d', arcHover);
-				textGroup.select('.center-name').text(d.data.name || '');
-				textGroup.select('.center-value').text(d.data.value ?? '');
+				setCenter(d.data.name || '', d.data.value ?? '');
 			})
 			.on('mouseleave', function () {
 				d3.select(this).attr('d', arc);
-				textGroup.select('.center-name').text('');
-				textGroup.select('.center-value').text('');
+				setCenter(formatCount(remainingTotal), 'сообщений');
 			})
 			.on('click', function (event, d) {
 				if (d.data.isOther) return;
@@ -135,20 +146,48 @@ const Mentions = ({ isViewSource, data, setData, activeButton, onVisibleChange }
 			</div>
 			{deletedData.length > 0 && (
 				<div className={styles.block__sources}>
-					{deletedData.map((entry, index) => (
-						<button
-							type='button'
-							key={`deleted-${index}`}
-							className={styles.restoreChip}
-							onClick={() => handleRestoreClick(index)}
-						>
-							<span
-								className={styles.restoreDot}
-								style={{ background: entry.color }}
-							/>
-							{entry.name}
-						</button>
-					))}
+					{deletedData.map((entry, index) => {
+						const s = hubStats?.[entry.name];
+						const neg = s?.neg || 0;
+						const pos = s?.pos || 0;
+						const neu = s?.neu || 0;
+						const aud = s?.aud ?? Number(entry.audience_sum) || 0;
+						return (
+							<button
+								type='button'
+								key={`deleted-${index}`}
+								className={styles.restoreChip}
+								onClick={() => handleRestoreClick(index)}
+								title='Клик — вернуть источник на график'
+							>
+								<span
+									className={styles.restoreDot}
+									style={{ background: entry.color }}
+								/>
+								<span className={styles.restoreName}>{entry.name}</span>
+								<span className={styles.restoreTones}>
+									{neg > 0 && (
+										<span className={styles.toneNeg} title='Негативных сообщений'>
+											{formatCount(neg)}
+										</span>
+									)}
+									{pos > 0 && (
+										<span className={styles.tonePos} title='Позитивных сообщений'>
+											{formatCount(pos)}
+										</span>
+									)}
+									{neu > 0 && (
+										<span className={styles.toneNeu} title='Нейтральных сообщений'>
+											{formatCount(neu)}
+										</span>
+									)}
+									{aud > 0 && (
+										<span className={styles.toneAud}>({formatCount(aud)})</span>
+									)}
+								</span>
+							</button>
+						);
+					})}
 				</div>
 			)}
 		</div>
