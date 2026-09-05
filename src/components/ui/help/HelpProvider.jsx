@@ -11,6 +11,7 @@ import { useLocation } from 'react-router-dom';
 import { getDocForPath } from '@/data/docs.data';
 
 import HelpDrawer from './HelpDrawer';
+import PageHelpButton from './PageHelpButton';
 
 const HelpContext = createContext(null);
 
@@ -54,6 +55,7 @@ const HelpProvider = ({ children }) => {
 		<HelpContext.Provider value={value}>
 			{children}
 			<HelpDrawer doc={doc} onClose={close} />
+			<PageHelpButton />
 		</HelpContext.Provider>
 	);
 };

@@ -7,27 +7,21 @@ import { useHelp } from './HelpProvider';
 import styles from './PageHelpButton.module.scss';
 
 /**
- * Кнопка «?» — открывает справку по текущему разделу.
- * - по умолчанию встраивается рядом с контентом (inline);
- * - с prop `floating` позиционируется плавающей в правом верхнем углу рабочей
- *   области (используется в <Content/> на страницах, где шапка не занята).
- * Показывается только на страницах, для которых есть статья справки.
+ * Плавающая кнопка «?» в правом нижнем углу экрана.
+ * Показывается на всех страницах, для которых есть статья справки
+ * (справка открывается по текущему маршруту).
  */
-const PageHelpButton = ({ floating = false }) => {
+const PageHelpButton = () => {
 	const { pathname } = useLocation();
 	const { open } = useHelp();
 
 	const doc = getDocForPath(pathname);
 	if (!doc) return null;
 
-	const className = floating
-		? `${styles.button} ${styles.floating}`
-		: styles.button;
-
 	return (
 		<button
 			type='button'
-			className={className}
+			className={styles.button}
 			title={`Справка: ${doc.title}`}
 			aria-label={`Справка по разделу «${doc.title}»`}
 			onClick={() => open(doc, 'page')}

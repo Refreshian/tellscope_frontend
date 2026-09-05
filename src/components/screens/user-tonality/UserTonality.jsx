@@ -6,7 +6,6 @@ import 'rc-slider/assets/index.css';
 
 import Content from '@/components/content/Content';
 import BeforeSearch from '@/components/content/before-search/BeforeSearch';
-import PageHelpButton from '@/components/ui/help/PageHelpButton';
 import TonalityGraphs from '@/components/content/graphs/tonality-graphs/TonalityGraphs';
 import Layout from '@/components/layout/Layout';
 import BackgroundLoader from '@/components/loading/background-loader/BackgroundLoader';
@@ -758,9 +757,6 @@ const UserTonality = () => {
                                 <p>
                                     {getTotalMentionsFromHubs(data_tonality)} упоминаний
                                 </p>
-                                <div style={{ marginLeft: 'auto', display: 'flex' }}>
-                                    <PageHelpButton />
-                                </div>
                             </>
                         ) : (
                             <BeforeSearch

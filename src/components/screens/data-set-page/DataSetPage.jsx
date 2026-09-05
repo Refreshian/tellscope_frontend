@@ -3,7 +3,6 @@ import { useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import Content from '@/components/content/Content';
-import PageHelpButton from '../../../components/ui/help/PageHelpButton';
 import Layout from '@/components/layout/Layout';
 import BackgroundLoader from '@/components/loading/background-loader/BackgroundLoader';
 import Loader from '@/components/loading/loader/Loader';
@@ -411,9 +410,6 @@ const DataSetPage = () => {
                                     Конвертация XLSX/XLS файлов из Медиалогии для загрузки в сервис
                                 </div>
                             )}
-                        </div>
-                        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
-                            <PageHelpButton />
                         </div>
                     </div>
                 </div>

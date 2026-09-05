@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 
-import PageHelpButton from '@/components/ui/help/PageHelpButton';
 
 import styles from './BeforeSearch.module.scss';
 
@@ -13,9 +12,6 @@ const BeforeSearch = ({ title, link }) => {
 					Для отображения данных выберите необходимые параметры и нажмите кнопку
 					«Запуск»
 				</p>
-				<div style={{ marginTop: 10, display: 'flex' }}>
-					<PageHelpButton />
-				</div>
 				{/* <Link
 					to={link ? link : '/faq'}
 					target='_blank'

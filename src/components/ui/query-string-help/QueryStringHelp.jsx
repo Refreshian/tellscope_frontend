@@ -11,8 +11,8 @@ const QueryStringHelp = () => {
 	return (
 		<div
 			className={styles.block__queryStr}
-			// onMouseEnter={onMouse}
-			// onMouseLeave={offMouse}
+			onMouseEnter={onMouse}
+			onMouseLeave={offMouse}
 		>
 			<h1 onMouseEnter={onMouse}>Примеры запросов</h1>
 			{isHelp && (

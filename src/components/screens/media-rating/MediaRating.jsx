@@ -4,7 +4,6 @@ import { useLocation } from 'react-router-dom';
 
 import Content from '@/components/content/Content';
 import BeforeSearch from '@/components/content/before-search/BeforeSearch';
-import PageHelpButton from '@/components/ui/help/PageHelpButton';
 import MediaGraphs from '@/components/content/graphs/media-graphs/MediaGraphs';
 import Layout from '@/components/layout/Layout';
 import BackgroundLoader from '@/components/loading/background-loader/BackgroundLoader';
@@ -372,9 +371,7 @@ const MediaRating = () => {
           {isSuccess_media
             ? <>
                 <h3 className={styles.pageName__title}>Медиа рейтинг</h3>
-                <div style={{ marginLeft: 'auto', display: 'flex' }}>
-                  <PageHelpButton />
-                </div>
+
               </>
             : <BeforeSearch title='Медиа рейтинг' link='https://tsdoc.headsmade.com/en/media-rating' />
           }

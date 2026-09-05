@@ -1,18 +1,21 @@
 .button {
-	display: inline-flex;
+	position: fixed;
+	right: 24px;
+	bottom: 24px;
+	z-index: 990;
+	width: 46px;
+	height: 46px;
+	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 32px;
-	height: 32px;
-	flex: 0 0 32px;
 	border: 1px solid #d7dee8;
 	border-radius: 50%;
 	background: #ffffff;
 	color: #1760e8;
-	font-size: 17px;
+	font-size: 22px;
 	font-weight: 700;
 	line-height: 1;
-	box-shadow: 0 2px 8px rgba(16, 24, 40, 0.08);
+	box-shadow: 0 4px 14px rgba(16, 24, 40, 0.16);
 	cursor: pointer;
 	transition:
 		transform 0.15s ease,
@@ -21,26 +24,19 @@
 
 	&:hover {
 		background: #eef4ff;
-		box-shadow: 0 4px 12px rgba(23, 96, 232, 0.22);
+		transform: translateY(-2px);
+		box-shadow: 0 6px 18px rgba(23, 96, 232, 0.28);
 	}
 
 	&:active {
 		transform: translateY(0);
 	}
-}
-
-.floating {
-	position: absolute;
-	top: 14px;
-	right: 20px;
-	z-index: 40;
 
 	@media (max-width: 900px) {
-		top: 8px;
-		right: 10px;
-		width: 30px;
-		height: 30px;
-		flex-basis: 30px;
-		font-size: 15px;
+		right: 14px;
+		bottom: calc(14px + env(safe-area-inset-bottom));
+		width: 42px;
+		height: 42px;
+		font-size: 20px;
 	}
 }
