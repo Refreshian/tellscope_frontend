@@ -75,31 +75,31 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 			.append('text')
 			.attr('class', 'center-tone')
 			.attr('text-anchor', 'middle')
-			.attr('dy', '-0.65em')
-			.style('font-size', '22px')
+			.attr('dy', '-34px')
+			.style('font-size', '20px')
 			.style('font-weight', 'bold')
 			.style('fill', '#101828');
 		textGroup
 			.append('text')
 			.attr('class', 'center-tone-label')
 			.attr('text-anchor', 'middle')
-			.attr('dy', '-0.15em')
-			.style('font-size', '11px')
+			.attr('dy', '-16px')
+			.style('font-size', '10.5px')
 			.style('fill', '#8a94a6');
 		textGroup
 			.append('text')
 			.attr('class', 'center-total')
 			.attr('text-anchor', 'middle')
-			.attr('dy', '1.05em')
-			.style('font-size', '15px')
+			.attr('dy', '24px')
+			.style('font-size', '13.5px')
 			.style('font-weight', '600')
 			.style('fill', '#101828');
 		textGroup
 			.append('text')
 			.attr('class', 'center-total-label')
 			.attr('text-anchor', 'middle')
-			.attr('dy', '1.5em')
-			.style('font-size', '11px')
+			.attr('dy', '37px')
+			.style('font-size', '10.5px')
 			.style('fill', '#8a94a6');
 
 		const toneNoun =
