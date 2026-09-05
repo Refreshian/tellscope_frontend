@@ -508,120 +508,12 @@ const DataSetPage = () => {
                                 Создать папку
                             </button>
                         )}
-                        <button className={`${styles.button__title} ${styles.download}`}>
-                            <input
-                                type='file'
-                                className={styles.file}
-                                onChange={handleFileUpload}
-                                multiple
-                            />
-                            <img
-                                src='/images/icons/upload_white.svg'
-                                alt='upload'
-                                className={styles.upload}
-                            />
-                            Загрузить файл
-                        </button>
 
-                        <div style={{ position: 'relative', display: 'inline-block' }}>
-                            <button
-                                className={`${styles.button__title} ${styles.download}`}
-                                type="button"
-                                style={{ marginLeft: 12 }}
-                                onClick={onClickConvertBtn}
-                                disabled={convertLoading}
-                                onMouseEnter={() => setShowTooltip(true)}
-                                onMouseLeave={() => setShowTooltip(false)}
-                            >
-                                <input
-                                    type="file"
-                                    accept=".xlsx,.xls,.csv"
-                                    style={{ display: "none" }}
-                                    ref={convertInputRef}
-                                    onChange={handleConvertFileChange}
-                                    disabled={convertLoading}
-                                />
-                                <img
-                                    src='/images/icons/upload_white.svg'
-                                    alt='convert'
-                                    className={styles.upload}
-                                />
-                                Конвертировать данные
-                                {convertLoading && (
-                                    <span style={{ marginLeft: 5, fontSize: '14px' }}>…</span>
-                                )}
-                            </button>
-                            {showTooltip && (
-                                <div className={`${styles.tooltip} ${showTooltip ? styles.visible : ''}`}>
-                                    Конвертация XLSX/XLS файлов из Медиалогии для загрузки в сервис
-                                </div>
-                            )}
-                        </div>
-                        {isInsideFolder && (
-                            <button
-                                type='button'
-                                className={`${styles.button__title} ${styles.download}`}
-                                style={{ marginLeft: 12 }}
-                                onClick={() => setBaOpen(v => !v)}
-                            >
-                                Загрузить из Brand Analytics
-                            </button>
-                        )}
                     </div>
                 </div>
                 {isInsideFolder && (
                     <div style={{ fontSize: 13, color: '#667085', margin: '2px 0 0' }}>
                         Текущая папка: <b style={{ color: '#101828' }}>{folderSeg}</b>
-                    </div>
-                )}
-                {baOpen && isInsideFolder && (
-                    <div
-                        style={{
-                            width: '100%',
-                            margin: '10px 0 4px',
-                            padding: '12px 14px',
-                            border: '1px solid rgba(23,96,232,.25)',
-                            borderRadius: 10,
-                            background: '#f6f9ff',
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: 10,
-                            alignItems: 'flex-end',
-                        }}
-                    >
-                        <label style={{ fontSize: 12, color: '#344054' }}>
-                            Тема Brand Analytics
-                            <select
-                                style={{ display: 'block', marginTop: 4, minWidth: 220, padding: '7px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }}
-                                value={baTheme}
-                                onChange={e => setBaTheme(e.target.value)}
-                            >
-                                <option value=''>— выберите тему —</option>
-                                {baThemes.map(th => (
-                                    <option key={th.theme_id} value={th.theme_id}>
-                                        {th.title}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                        <label style={{ fontSize: 12, color: '#344054' }}>
-                            С даты
-                            <input type='date' style={{ display: 'block', marginTop: 4, padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }} value={baFrom} onChange={e => setBaFrom(e.target.value)} />
-                        </label>
-                        <label style={{ fontSize: 12, color: '#344054' }}>
-                            По дату
-                            <input type='date' style={{ display: 'block', marginTop: 4, padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }} value={baTo} onChange={e => setBaTo(e.target.value)} />
-                        </label>
-                        <button type='button' className={styles.button__title} onClick={baRun}>
-                            Получить данные
-                        </button>
-                        {baStatus && (
-                            <div style={{ fontSize: 13, color: baStatus.status === 'error' ? '#c53030' : '#1760e8' }}>
-                                {baStatus.status} · {baStatus.message || ''}
-                                {baStatus.progress ? ` (${baStatus.progress}%)` : ''}
-                            </div>
-                        )}
-                        {baErr && <div style={{ fontSize: 13, color: '#c53030' }}>{baErr}</div>}
                     </div>
                 )}
                 {pathname === '/data-set' && (
@@ -632,8 +524,8 @@ const DataSetPage = () => {
                         <div style={{ padding: '6px 10px', border: '1px solid rgba(16,24,40,.08)', borderRadius: 8, marginTop: 6, background: '#fbfcfe' }}>
                             <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Ваш аккаунт Brand Analytics</div>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                                <input placeholder='Логин BA (email)' value={baLogin} onChange={e => setBaLogin(e.target.value)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2', minWidth: 220 }} />
-                                <input type='password' placeholder='Пароль BA' value={baPass} onChange={e => setBaPass(e.target.value)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }} />
+                                <input placeholder='Логин BA (email)' autoComplete='off' value={baLogin} onChange={e => setBaLogin(e.target.value)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2', minWidth: 220 }} />
+                                <input type='password' placeholder='Пароль BA' autoComplete='new-password' value={baPass} onChange={e => setBaPass(e.target.value)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }} />
                                 <button type='button' className={styles.button__title} onClick={baSaveAccount}>
                                     Сохранить и создать папки
                                 </button>
@@ -652,7 +544,7 @@ const DataSetPage = () => {
                                 );
                             })}
                             <p style={{ color: '#98a2b3', margin: '6px 0 0' }}>
-                                Откройте папку темы — внутри будет кнопка «Загрузить из Brand Analytics».
+                                Откройте папку темы — наверху появится кнопка «Загрузить из Brand Analytics».
                             </p>
                         </div>
                     </details>
@@ -670,8 +562,55 @@ const DataSetPage = () => {
                         ))}
                     </div>
                 )}
-<div className={styles.error} style={{ color: 'red', marginTop: 10 }}>{convertError}</div>}
-                {convertResult && <div className={styles.success} style={{ color: 'green', marginTop: 10 }}>{convertResult}</div>}
+
+
+
+                {isInsideFolder && (
+                    <div style={{ border: '1px solid rgba(16,24,40,.12)', borderRadius: 10, padding: '12px 14px', margin: '8px 0 4px', background: '#fff', fontSize: 13 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                            <b style={{ fontSize: 14 }}>Загрузка данных в папку «{folderSeg}»</b>
+                            <button
+                                type='button'
+                                className={`${styles.button__title} ${styles.download}`}
+                                style={{ marginLeft: 'auto' }}
+                                onClick={() => setBaOpen(v => !v)}
+                            >
+                                Загрузить из Brand Analytics
+                            </button>
+                        </div>
+                        {baOpen && (
+                            <div style={{ marginTop: 10, padding: 12, border: '1px solid rgba(23,96,232,.25)', borderRadius: 10, background: '#f6f9ff', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
+                                <label style={{ fontSize: 12, color: '#344054' }}>
+                                    Тема Brand Analytics
+                                    <select style={{ display: 'block', marginTop: 4, minWidth: 220, padding: '7px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }} value={baTheme} onChange={e => setBaTheme(e.target.value)}>
+                                        <option value=''>— выберите тему —</option>
+                                        {baThemes.map(th => (
+                                            <option key={th.theme_id} value={th.theme_id}>{th.title}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <label style={{ fontSize: 12, color: '#344054' }}>
+                                    С даты
+                                    <input type='date' style={{ display: 'block', marginTop: 4, padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }} value={baFrom} onChange={e => setBaFrom(e.target.value)} />
+                                </label>
+                                <label style={{ fontSize: 12, color: '#344054' }}>
+                                    По дату
+                                    <input type='date' style={{ display: 'block', marginTop: 4, padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }} value={baTo} onChange={e => setBaTo(e.target.value)} />
+                                </label>
+                                <button type='button' className={styles.button__title} onClick={baRun}>
+                                    Получить данные
+                                </button>
+                                {baStatus && (
+                                    <div style={{ fontSize: 13, color: baStatus.status === 'error' ? '#c53030' : '#1760e8' }}>
+                                        {baStatus.status} · {baStatus.message || ''}
+                                        {baStatus.progress ? ` (${baStatus.progress}%)` : ''}
+                                    </div>
+                                )}
+                                {baErr && <div style={{ fontSize: 13, color: '#c53030' }}>{baErr}</div>}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {pathname === '/data-set' ? <DataSet /> : <DataInFolder />}
                 {isPopupDelete && <PopupDelete />}
