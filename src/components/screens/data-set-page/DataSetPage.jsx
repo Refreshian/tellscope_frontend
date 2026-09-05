@@ -656,7 +656,10 @@ const DataSetPage = () => {
                             </p>
                         </div>
                     </details>
-                {myShared.length > 0 && (
+
+                )}
+ 
+                {pathname === '/data-set' && myShared.length > 0 && (
                     <div style={{ width: '100%', margin: '6px 0', padding: '10px 14px', border: '1px solid rgba(3,152,85,.3)', borderRadius: 10, background: '#f2fbf6', fontSize: 13 }}>
                         <div style={{ fontWeight: 600, marginBottom: 4 }}>Доступные мне (по решению администратора)</div>
                         {myShared.map((s, i) => (
@@ -667,8 +670,7 @@ const DataSetPage = () => {
                         ))}
                     </div>
                 )}
-                )}
- <div className={styles.error} style={{ color: 'red', marginTop: 10 }}>{convertError}</div>}
+<div className={styles.error} style={{ color: 'red', marginTop: 10 }}>{convertError}</div>}
                 {convertResult && <div className={styles.success} style={{ color: 'green', marginTop: 10 }}>{convertResult}</div>}
 
                 {pathname === '/data-set' ? <DataSet /> : <DataInFolder />}
