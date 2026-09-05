@@ -194,9 +194,12 @@ const AdminPage = () => {
 	return (
 		<Layout>
 			<LeftMenu />
-			<Content>
-		<div style={{ maxWidth: 1080, margin: '0 auto', padding: 20, fontFamily: 'inherit' }}>
-			<h2 style={{ margin: '0 0 6px' }}>Пользователи и доступ</h2>
+			<Content alignStart style={{ width: '100%', overflowY: 'auto', alignItems: 'flex-start', justifyContent: 'flex-start', paddingBottom: 28 }}>
+		<div style={{ width: '100%', maxWidth: 1500, margin: '0 auto', padding: '18px 28px', fontFamily: 'inherit', boxSizing: 'border-box' }}>
+			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
+				<h2 style={{ margin: 0 }}>Пользователи и доступ</h2>
+				<span style={{ color: '#98a2b3', fontSize: 12 }}>Управление пользователями, доступом к наборам данных и аккаунтами Brand Analytics</span>
+			</div>
 			{err && <div style={{ color: '#c53030', marginBottom: 8 }}>{err}</div>}
 
 			<div style={card}>
