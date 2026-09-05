@@ -73,29 +73,63 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 		const textGroup = g.append('g').attr('class', 'center-text');
 		textGroup
 			.append('text')
-			.attr('class', 'center-name')
+			.attr('class', 'center-tone')
 			.attr('text-anchor', 'middle')
-			.attr('dy', '-0.5em')
-			.style('font-size', '18px')
+			.attr('dy', '-0.65em')
+			.style('font-size', '22px')
 			.style('font-weight', 'bold')
 			.style('fill', '#101828');
 		textGroup
 			.append('text')
-			.attr('class', 'center-value')
+			.attr('class', 'center-tone-label')
 			.attr('text-anchor', 'middle')
-			.attr('dy', '1.1em')
-			.style('font-size', '13px')
-			.style('fill', '#98a2b3');
+			.attr('dy', '-0.15em')
+			.style('font-size', '11px')
+			.style('fill', '#8a94a6');
+		textGroup
+			.append('text')
+			.attr('class', 'center-total')
+			.attr('text-anchor', 'middle')
+			.attr('dy', '1.05em')
+			.style('font-size', '15px')
+			.style('font-weight', '600')
+			.style('fill', '#101828');
+		textGroup
+			.append('text')
+			.attr('class', 'center-total-label')
+			.attr('text-anchor', 'middle')
+			.attr('dy', '1.5em')
+			.style('font-size', '11px')
+			.style('fill', '#8a94a6');
 
-		const remainingTotal = (data || []).reduce(
+		const toneNoun =
+			activeButton === 'Негативные упоминания'
+				? 'Негативных сообщений'
+				: 'Позитивных сообщений';
+
+		const toneRemaining = (data || []).reduce(
 			(sum, item) => sum + (Number(item.value) || 0),
 			0,
 		);
-		const setCenter = (name, value) => {
-			textGroup.select('.center-name').text(name);
-			textGroup.select('.center-value').text(value);
+		const totalRemaining = (data || []).reduce((sum, item) => {
+			const st = hubStats?.[item.name];
+			if (st) return sum + st.neg + st.pos + st.neu;
+			return sum + (Number(item.value) || 0);
+		}, 0);
+
+		const setCenterDefault = () => {
+			textGroup.select('.center-tone').text(formatCount(toneRemaining));
+			textGroup.select('.center-tone-label').text(toneNoun);
+			textGroup.select('.center-total').text(formatCount(totalRemaining));
+			textGroup.select('.center-total-label').text('Всего сообщений');
 		};
-		setCenter(formatCount(remainingTotal), 'сообщений');
+		const setCenterHover = (name, count) => {
+			textGroup.select('.center-tone').text(name || '');
+			textGroup.select('.center-tone-label').text('');
+			textGroup.select('.center-total').text(formatCount(count));
+			textGroup.select('.center-total-label').text('сообщений');
+		};
+		setCenterDefault();
 
 		const arcs = g.selectAll('.arc').data(pie(chartData)).enter().append('g').attr('class', 'arc');
 
@@ -108,11 +142,11 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 			.style('cursor', 'pointer')
 			.on('mouseenter', function (event, d) {
 				d3.select(this).attr('d', arcHover);
-				setCenter(d.data.name || '', d.data.value ?? '');
+				setCenterHover(d.data.name || '', d.data.value ?? '');
 			})
 			.on('mouseleave', function () {
 				d3.select(this).attr('d', arc);
-				setCenter(formatCount(remainingTotal), 'сообщений');
+				setCenterDefault();
 			})
 			.on('click', function (event, d) {
 				if (d.data.isOther) return;
