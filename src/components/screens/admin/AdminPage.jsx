@@ -33,6 +33,16 @@ const btn = {
 	cursor: 'pointer',
 	fontSize: 13,
 };
+const miniBtn = {
+	border: '1px solid #d0d7e2',
+	background: '#fff',
+	borderRadius: 6,
+	padding: '3px 8px',
+	margin: '2px 4px 2px 0',
+	cursor: 'pointer',
+	fontSize: 12,
+	color: '#344054',
+};
 const card = {
 	border: '1px solid rgba(16,24,40,.1)',
 	borderRadius: 10,
@@ -47,6 +57,7 @@ const AdminPage = () => {
 	const [shares, setShares] = useState([]);
 	const [owners, setOwners] = useState([]);
 	const [err, setErr] = useState('');
+	const [meId, setMeId] = useState(null);
 
 	// user create form
 	const [uEmail, setUEmail] = useState('');
@@ -71,6 +82,8 @@ const AdminPage = () => {
 	useEffect(() => {
 		(async () => {
 			try {
+				const me = await api('/me');
+				setMeId(me.id);
 				await reload();
 				setOk(true);
 			} catch (e) {
@@ -129,6 +142,17 @@ const AdminPage = () => {
 		} catch (e) { setErr(String((e && e.message) || e)); }
 	};
 
+	const patchUser = async (id, payload) => {
+		setErr('');
+		try {
+			await api('/admin/users/' + id, {
+				method: 'PATCH',
+				body: JSON.stringify(payload),
+			});
+			await reload();
+		} catch (e) { setErr(String((e && e.message) || e)); }
+	};
+
 	if (ok === null) return <div style={{ padding: 24 }}>Проверка прав…</div>;
 	if (ok === false) return <div style={{ padding: 24 }}>Раздел доступен только администратору.</div>;
 
@@ -153,7 +177,7 @@ const AdminPage = () => {
 			<div style={card}>
 				<b>Пользователи</b>
 				<table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 6, fontSize: 13 }}>
-					<thead><tr><th style={th}>ID</th><th style={th}>Email</th><th style={th}>Имя</th><th style={th}>Админ</th><th style={th}>Активен</th></tr></thead>
+					<thead><tr><th style={th}>ID</th><th style={th}>Email</th><th style={th}>Имя</th><th style={th}>Админ</th><th style={th}>Активен<th style={th}>Действия</th></th></tr></thead>
 					<tbody>
 						{users.map(u => (
 							<tr key={u.id}>
@@ -162,7 +186,24 @@ const AdminPage = () => {
 								<td style={td}>{u.username}</td>
 								<td style={td}>{u.is_superuser ? 'да' : ''}</td>
 								<td style={td}>{u.is_active ? 'да' : 'нет'}</td>
-							</tr>
+							<td style={td}>
+							{u.id !== meId && (u.is_superuser ? (
+								<button style={miniBtn} onClick={() => patchUser(u.id, { is_superuser: false })}>снять админа</button>
+							) : (
+								<button style={miniBtn} onClick={() => patchUser(u.id, { is_superuser: true })}>сделать админом</button>
+							))}
+							{u.id !== meId && (u.is_active ? (
+								<button style={miniBtn} onClick={() => patchUser(u.id, { is_active: false })}>деактивировать</button>
+							) : (
+								<button style={miniBtn} onClick={() => patchUser(u.id, { is_active: true })}>активировать</button>
+							))}
+							<button style={miniBtn} onClick={async () => {
+								const p = window.prompt('Новый пароль для ' + u.email + ' (мин. 6 символов)');
+								if (!p) return;
+								await patchUser(u.id, { password: p });
+							}}>сбросить пароль</button>
+						</td>
+					</tr>
 						))}
 					</tbody>
 				</table>
