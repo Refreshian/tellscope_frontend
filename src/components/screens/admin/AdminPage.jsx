@@ -1,11 +1,16 @@
 
 import { useEffect, useState } from 'react';
 
+const getToken = () => {
+	const m = document.cookie.split('; ').find(x => x.startsWith('token='));
+	return m ? decodeURIComponent(m.slice('token='.length)) : '';
+};
+
 const api = async (url, opts) => {
-	const r = await fetch('/api' + url, {
-		headers: { 'Content-Type': 'application/json' },
-		...opts,
-	});
+	const headers = { 'Content-Type': 'application/json' };
+	const tok = getToken();
+	if (tok) headers['Authorization'] = 'Bearer ' + tok;
+	const r = await fetch('/api' + url, { headers, ...opts });
 	let data = null;
 	try { data = await r.json(); } catch (e) {}
 	if (!r.ok) throw new Error((data && data.detail) || r.statusText);
