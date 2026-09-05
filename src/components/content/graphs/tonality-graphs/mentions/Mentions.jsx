@@ -10,17 +10,31 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 	const containerRef = useRef(null);
 	const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 	const [deletedData, setDeletedData] = useState([]);
+	const [topCount, setTopCount] = useState(0);
+
+	// ТОП-N первых источников (0 = показать все). Хвосты отсекаются для наглядности.
+	const visibleTop = useMemo(() => {
+		const maxN = (data || []).length;
+		if (!maxN || !topCount || topCount >= maxN) return data || [];
+		const sorted = [...data].sort(
+			(a, b) => Number(b.value || 0) - Number(a.value || 0),
+		);
+		return sorted.slice(0, topCount);
+	}, [data, topCount]);
 
 	const formatCount = value => Number(value || 0).toLocaleString('ru-RU');
 
 
-	useEffect(() => setDeletedData([]), [activeButton]);
+	useEffect(() => {
+		setDeletedData([]);
+		setTopCount(0);
+	}, [activeButton]);
 
 	useEffect(() => {
 		onVisibleChange?.({
 			type: 'mentions',
 			side: activeButton,
-			hubNames: (data || []).map(item => item.name).filter(Boolean),
+			hubNames: (visibleTop || []).map(item => item.name).filter(Boolean),
 		});
 	}, [data, activeButton, onVisibleChange]);
 
@@ -46,7 +60,7 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 		};
 	}, []);
 
-	const chartData = useMemo(() => topNWithOther(data, TOP_PIE_SLICES), [data]);
+	const chartData = useMemo(() => topNWithOther(visibleTop, TOP_PIE_SLICES), [visibleTop]);
 
 	useEffect(() => {
 		if (!svgRef.current || !dimensions.width || !dimensions.height || !chartData.length)
@@ -107,11 +121,11 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 				? 'Негативных сообщений'
 				: 'Позитивных сообщений';
 
-		const toneRemaining = (data || []).reduce(
+		const toneRemaining = (visibleTop || []).reduce(
 			(sum, item) => sum + (Number(item.value) || 0),
 			0,
 		);
-		const totalRemaining = (data || []).reduce((sum, item) => {
+		const totalRemaining = (visibleTop || []).reduce((sum, item) => {
 			const st = hubStats?.[item.name];
 			if (st) return sum + st.neg + st.pos + st.neu;
 			return sum + (Number(item.value) || 0);
@@ -200,6 +214,27 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 		<div className={styles.mentionsWrap}>
 			<div ref={containerRef} className={styles.mentionsContainer}>
 				<svg ref={svgRef}></svg>
+			</div>
+			<div className={styles.topFilter}>
+				<span className={styles.topFilterLabel}>ТОП</span>
+				<input
+					type='range'
+					className={styles.topFilterRange}
+					min={1}
+					max={Math.max((data || []).length, 1)}
+					value={
+						topCount > 0
+							? Math.min(topCount, (data || []).length || 1)
+							: Math.max((data || []).length, 1)
+					}
+					onChange={event => setTopCount(Number(event.target.value))}
+					title='Сколько первых (ТОП) источников показать на графике'
+				/>
+				<span className={styles.topFilterValue}>
+					{topCount > 0
+						? Math.min(topCount, (data || []).length || 1)
+						: Math.max((data || []).length, 1)}
+				</span>
 			</div>
 			{deletedData.length > 0 && (
 				<div

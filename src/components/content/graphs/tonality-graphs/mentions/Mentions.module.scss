@@ -141,3 +141,48 @@
 .vAud {
 	color: #101828;
 }
+
+/* ===== Tellscope: вертикальный слайдер ТОП-источников ===== */
+.mentionsWrap {
+	position: relative;
+}
+
+.topFilter {
+	position: absolute;
+	left: 8px;
+	top: 50%;
+	transform: translateY(-50%);
+	z-index: 3;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 5px;
+	border: 1px solid rgba(16, 24, 40, 0.1);
+	border-radius: 10px;
+	background: rgba(255, 255, 255, 0.85);
+	box-shadow: 0 2px 8px rgba(16, 24, 40, 0.06);
+}
+
+.topFilterLabel {
+	font-size: 9px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	color: #98a2b3;
+}
+
+.topFilterRange {
+	writing-mode: vertical-lr;
+	direction: rtl;
+	width: 18px;
+	height: 210px;
+	accent-color: #1760e8;
+	cursor: pointer;
+}
+
+.topFilterValue {
+	font-size: 10px;
+	font-weight: 700;
+	color: #344054;
+	font-variant-numeric: tabular-nums;
+}
