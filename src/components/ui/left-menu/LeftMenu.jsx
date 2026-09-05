@@ -224,7 +224,7 @@ const LeftMenu = () => {
 										}}
 										title='Администрирование'
 									>
-										<img src='/images/icons/settings_for_download_graph.svg' alt='Администрирование' />
+										<img src='/images/icons/admin.svg' alt='Администрирование' />
 										<span className={styles.menu__label}>Администрирование</span>
 									</li>
 								)}

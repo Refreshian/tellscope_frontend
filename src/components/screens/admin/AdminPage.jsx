@@ -34,14 +34,34 @@ const btn = {
 	fontSize: 13,
 };
 const miniBtn = {
+	display: 'block',
+	width: '100%',
+	boxSizing: 'border-box',
 	border: '1px solid #d0d7e2',
+	borderLeft: '4px solid #1760e8',
 	background: '#fff',
 	borderRadius: 6,
-	padding: '3px 8px',
-	margin: '2px 4px 2px 0',
+	padding: '6px 10px',
+	margin: 0,
 	cursor: 'pointer',
 	fontSize: 12,
 	color: '#344054',
+	textAlign: 'left',
+};
+const redBtn = {
+	display: 'block',
+	width: '100%',
+	boxSizing: 'border-box',
+	border: '1px solid #fecdca',
+	borderLeft: '4px solid #c53030',
+	background: '#fff',
+	borderRadius: 6,
+	padding: '6px 10px',
+	margin: 0,
+	cursor: 'pointer',
+	fontSize: 12,
+	color: '#c53030',
+	textAlign: 'left',
 };
 const card = {
 	border: '1px solid rgba(16,24,40,.1)',
@@ -153,6 +173,16 @@ const AdminPage = () => {
 		} catch (e) { setErr(String((e && e.message) || e)); }
 	};
 
+	const delUser = async u => {
+		if (!window.confirm('Удалить аккаунт «' + u.email + '»?\nБудут удалены сам пользователь, все его доступы и данные наборов. Это действие необратимо.')) return;
+		if (!window.confirm('Вы уверены? Удалить окончательно?')) return;
+		setErr('');
+		try {
+			await api('/admin/users/' + u.id, { method: 'DELETE' });
+			await reload();
+		} catch (e) { setErr(String((e && e.message) || e)); }
+	};
+
 	if (ok === null) return <div style={{ padding: 24 }}>Проверка прав…</div>;
 	if (ok === false) return <div style={{ padding: 24 }}>Раздел доступен только администратору.</div>;
 
@@ -177,7 +207,7 @@ const AdminPage = () => {
 			<div style={card}>
 				<b>Пользователи</b>
 				<table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 6, fontSize: 13 }}>
-					<thead><tr><th style={th}>ID</th><th style={th}>Email</th><th style={th}>Имя</th><th style={th}>Админ</th><th style={th}>Активен<th style={th}>Действия</th></th></tr></thead>
+					<thead><tr><th style={th}>ID</th><th style={th}>Email</th><th style={th}>Имя</th><th style={th}>Админ</th><th style={th}>Активен</th><th style={th}>Действия</th></tr></thead>
 					<tbody>
 						{users.map(u => (
 							<tr key={u.id}>
@@ -187,6 +217,7 @@ const AdminPage = () => {
 								<td style={td}>{u.is_superuser ? 'да' : ''}</td>
 								<td style={td}>{u.is_active ? 'да' : 'нет'}</td>
 							<td style={td}>
+							<div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 240, alignItems: 'stretch' }}>
 							{u.id !== meId && (u.is_superuser ? (
 								<button style={miniBtn} onClick={() => patchUser(u.id, { is_superuser: false })}>снять админа</button>
 							) : (
@@ -202,7 +233,11 @@ const AdminPage = () => {
 								if (!p) return;
 								await patchUser(u.id, { password: p });
 							}}>сбросить пароль</button>
-						</td>
+						
+						{u.id !== meId && (
+							<button style={redBtn} onClick={() => delUser(u)}>удалить аккаунт</button>
+						)}
+						</div></td>
 					</tr>
 						))}
 					</tbody>
