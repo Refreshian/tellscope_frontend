@@ -156,53 +156,52 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 							<button
 								type='button'
 								key={`deleted-${index}`}
-								className={styles.restoreCard}
+								className={styles.restoreChip}
 								onClick={() => handleRestoreClick(index)}
 								title='Клик — вернуть источник на график'
 							>
-								<span className={styles.restoreCardHead}>
+								<span className={styles.chipHead}>
 									<span
 										className={styles.restoreDot}
 										style={{ background: entry.color }}
 									/>
 									<span className={styles.restoreName}>{entry.name}</span>
-									<span className={styles.restoreAction}>↩ вернуть</span>
 								</span>
-								<span className={styles.restoreCardBody}>
+								<span className={styles.chipMetrics}>
 									{neg > 0 && (
-										<span className={styles.restoreRow}>
-											<span className={`${styles.restoreLabel} ${styles.labNeg}`}>
+										<span className={styles.chipRow}>
+											<span className={`${styles.mLabel} ${styles.labNeg}`}>
 												Негатив
 											</span>
-											<span className={`${styles.restoreValue} ${styles.valNeg}`}>
+											<span className={`${styles.mValue} ${styles.valNeg}`}>
 												{formatCount(neg)}
 											</span>
 										</span>
 									)}
 									{pos > 0 && (
-										<span className={styles.restoreRow}>
-											<span className={`${styles.restoreLabel} ${styles.labPos}`}>
+										<span className={styles.chipRow}>
+											<span className={`${styles.mLabel} ${styles.labPos}`}>
 												Позитив
 											</span>
-											<span className={`${styles.restoreValue} ${styles.valPos}`}>
+											<span className={`${styles.mValue} ${styles.valPos}`}>
 												{formatCount(pos)}
 											</span>
 										</span>
 									)}
 									{neu > 0 && (
-										<span className={styles.restoreRow}>
-											<span className={`${styles.restoreLabel} ${styles.labNeu}`}>
+										<span className={styles.chipRow}>
+											<span className={`${styles.mLabel} ${styles.labNeu}`}>
 												Нейтрал
 											</span>
-											<span className={`${styles.restoreValue} ${styles.valNeu}`}>
+											<span className={`${styles.mValue} ${styles.valNeu}`}>
 												{formatCount(neu)}
 											</span>
 										</span>
 									)}
 									{aud > 0 && (
-										<span className={styles.restoreAud}>
-											<span className={styles.restoreAudLabel}>Аудитория</span>
-											<span className={styles.restoreAudValue}>{formatCount(aud)}</span>
+										<span className={styles.chipRow}>
+											<span className={styles.mLabel}>Аудитория</span>
+											<span className={styles.mValue}>{formatCount(aud)}</span>
 										</span>
 									)}
 								</span>
