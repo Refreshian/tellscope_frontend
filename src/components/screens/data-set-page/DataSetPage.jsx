@@ -341,6 +341,7 @@ const DataSetPage = () => {
     const isInsideFolder = Boolean(folderSeg) && folderSeg !== 'processed';
 
     const [baOpen, setBaOpen] = useState(false);
+    const [baRefreshing, setBaRefreshing] = useState(false);
     const [baThemes, setBaThemes] = useState([]);
     const [baTheme, setBaTheme] = useState('');
     const [baFrom, setBaFrom] = useState('');
@@ -372,6 +373,12 @@ const DataSetPage = () => {
             .then(r => r.json())
             .then(d => setBaThemes(d.themes || []))
             .catch(() => {});
+    };
+
+    const refreshBaThemes = () => {
+        setBaRefreshing(true);
+        loadBaThemes(data_getUserId);
+        window.setTimeout(() => setBaRefreshing(false), 800);
     };
 
     const baSaveAccount = async () => {
@@ -525,7 +532,20 @@ const DataSetPage = () => {
                 {pathname === '/data-set' && (
                     <details style={{ width: '100%', margin: '6px 0', fontSize: 12 }}>
                         <summary style={{ cursor: 'pointer', color: '#667085' }}>
-                            Brand Analytics: {baThemes.length > 0 ? 'доступно тем: ' + baThemes.length : '…'}
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                                <span>Brand Analytics: доступно тем: {baThemes.length}</span>
+                                <button
+                                    type='button'
+                                    title='Обновить список тем из Brand Analytics'
+                                    onClick={e => {
+                                        e.preventDefault();
+                                        refreshBaThemes();
+                                    }}
+                                    style={{ background: 'none', border: '1px solid #d0d7e2', borderRadius: 6, cursor: 'pointer', padding: '2px 8px', fontSize: 13, lineHeight: 1.2, color: '#1760e8' }}
+                                >
+                                    {baRefreshing ? '…' : '⟳ Обновить'}
+                                </button>
+                            </span>
                         </summary>
                         <div style={{ padding: '6px 10px', border: '1px solid rgba(16,24,40,.08)', borderRadius: 8, marginTop: 6, background: '#fbfcfe' }}>
                             <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Ваш аккаунт Brand Analytics</div>
@@ -538,17 +558,18 @@ const DataSetPage = () => {
                             </div>
                             {baAccMsg && <div style={{ color: '#047857', marginTop: 4 }}>{baAccMsg}</div>}
                             {baAccErr && <div style={{ color: '#c53030', marginTop: 4 }}>{baAccErr}</div>}
-                            {baThemes.map(th => {
-                                const li = th.last_import;
-                                return (
-                                    <div key={th.theme_id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '5px 0', borderBottom: '1px dashed #e6eaf0' }}>
-                                        <span>{th.title}</span>
-                                        <span style={{ color: '#98a2b3', fontSize: 11 }}>
-                                            {li ? 'импорт: ' + (li.file || '') : 'нет импорта'}
-                                        </span>
-                                    </div>
-                                );
-                            })}
+                            {baThemes.length === 0 ? (
+                                <div style={{ color: '#98a2b3', padding: '6px 0', fontSize: 12 }}>Темы не найдены — нажмите «Обновить» или сохраните аккаунт BA.</div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    {baThemes.map(th => (
+                                        <div key={th.theme_id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px dashed #e6eaf0', fontSize: 13 }}>
+                                            <span style={{ width: 8, height: 8, borderRadius: 4, background: '#1760e8', flex: '0 0 auto' }} />
+                                            <span>{th.title}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                             <p style={{ color: '#98a2b3', margin: '6px 0 0' }}>
                                 Откройте папку темы — наверху появится кнопка «Загрузить из Brand Analytics».
                             </p>
