@@ -349,6 +349,12 @@ const DataSetPage = () => {
     const [baStatus, setBaStatus] = useState(null);
     const baLoadedRef = useRef(false);
     const baPollRef = useRef(null);
+    const [myShared, setMyShared] = useState([]);
+
+    const getToken = () => {
+        const m = document.cookie.split('; ').find(x => x.startsWith('token='));
+        return m ? decodeURIComponent(m.slice('token='.length)) : '';
+    };
 
     const [baLogin, setBaLogin] = useState('');
     const [baPass, setBaPass] = useState('');
@@ -405,6 +411,22 @@ const DataSetPage = () => {
         return () => {
             if (baPollRef.current) clearInterval(baPollRef.current);
         };
+    }, []);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const h = { 'Content-Type': 'application/json' };
+                const tok = getToken();
+                if (tok) h.Authorization = 'Bearer ' + tok;
+                const r = await fetch('/api/my-datasets', { headers: h });
+                if (r.ok) {
+                    const d = await r.json();
+                    setMyShared(d.shared || []);
+                }
+            } catch (e) {}
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const baRun = async () => {
@@ -634,6 +656,17 @@ const DataSetPage = () => {
                             </p>
                         </div>
                     </details>
+                {myShared.length > 0 && (
+                    <div style={{ width: '100%', margin: '6px 0', padding: '10px 14px', border: '1px solid rgba(3,152,85,.3)', borderRadius: 10, background: '#f2fbf6', fontSize: 13 }}>
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>Доступные мне (по решению администратора)</div>
+                        {myShared.map((s, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '4px 0', borderBottom: '1px dashed #cdeedc' }}>
+                                <span>владелец #{s.owner_user_id} · папка «{s.folder}»</span>
+                                <span style={{ color: '#067647' }}>{s.access === 'read' ? 'только чтение' : 'чтение и запись'}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
                 )}
  <div className={styles.error} style={{ color: 'red', marginTop: 10 }}>{convertError}</div>}
                 {convertResult && <div className={styles.success} style={{ color: 'green', marginTop: 10 }}>{convertResult}</div>}
