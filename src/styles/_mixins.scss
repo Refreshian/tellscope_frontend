@@ -36,6 +36,14 @@
 		width: adapt(18px, 1440px);
 		height: adapt(18px, 1440px);
 	}
+
+	@media (max-width: 900px) {
+		width: 100%;
+		height: 48px;
+		min-height: 48px;
+		padding: 8px 12px;
+		border-radius: 8px;
+	}
 }
 
 @mixin menu-item() {
@@ -50,21 +58,36 @@
 	&:hover {
 		cursor: pointer;
 	}
+
+	@media (max-width: 900px) {
+		padding: 12px;
+		min-height: 44px;
+
+		> img {
+			width: 22px;
+			height: 22px;
+		}
+	}
 }
 
 @mixin style-graph-page() {
-	height: 81%;
+	height: calc(100vh - 210px);
+	min-height: 520px;
 	width: 100%;
-	margin-top: adapt(16px, 1440px);
-	margin-bottom: adapt(40px, 1440px);
-	padding: adapt(16px, 1440px);
+	margin-top: 8px;
+	margin-bottom: 0;
+	padding: 12px;
 	background-color: $color_white;
 	display: flex;
 	flex-direction: column;
+	flex: 1 1 auto;
 
 	> .block__title {
 		display: flex;
-		justify-content: space-between;
+		justify-content: center;
+		align-items: center;
+		position: relative;
+		flex-shrink: 0;
 
 		> .block__buttons {
 			height: adapt(42px, 1440px);
@@ -93,6 +116,9 @@
 			height: adapt(33px, 1440px);
 			display: flex;
 			gap: 8px;
+			position: absolute;
+			right: 0;
+			top: 0;
 
 			> button {
 				&:hover {
@@ -118,11 +144,58 @@
 	}
 
 	> .container__graph {
-		align-self: center;
+		align-self: stretch;
 		width: 100%;
-		height: 98%;
+		flex: 1 1 auto;
+		min-height: 420px;
+		height: 100%;
 		display: flex;
 		position: relative;
+
+		> * {
+			width: 100%;
+			height: 100%;
+			min-height: 0;
+		}
+	}
+
+	@media (max-width: 900px) {
+		height: auto;
+		min-height: 320px;
+		margin-top: 12px;
+		margin-bottom: 16px;
+		padding: 12px;
+
+		> .block__title {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 10px;
+
+			> .block__buttons {
+				width: 100%;
+				height: auto;
+				overflow-x: auto;
+				display: flex;
+				flex-wrap: nowrap;
+			}
+
+			> .block__settings {
+				width: 100%;
+				height: auto;
+				flex-wrap: wrap;
+
+				> .button__description {
+					width: 100%;
+					height: 36px;
+				}
+			}
+		}
+
+		> .container__graph {
+			flex-direction: column;
+			height: auto;
+			min-height: 280px;
+		}
 	}
 }
 
@@ -134,7 +207,7 @@
 	border: 1px solid rgba($color: $color_black, $alpha: 0.12);
 	background-color: $color_white;
 	display: flex;
-	gap: adapt(8px, 1440px);
+	gap: adapt(14px, 1440px);
 	align-items: center;
 
 	> input {
@@ -155,6 +228,11 @@
 	> img {
 		width: adapt(12px, 1440px);
 		height: adapt(14px, 1440px);
+	}
+
+	@media (max-width: 900px) {
+		width: 100%;
+		height: 44px;
 	}
 }
 
@@ -187,23 +265,49 @@
 	> p {
 		font-size: 0.87rem;
 	}
+
+	@media (max-width: 900px) {
+		position: relative;
+		width: 100%;
+		height: auto;
+		max-height: 240px;
+		margin-right: 0;
+		top: auto;
+		right: auto;
+	}
 }
 
 @mixin pages__styles() {
 	.block__configureSearch {
 		display: flex;
+		flex-direction: row;
+		flex-wrap: nowrap;
+		align-items: center;
+		justify-content: center;
 		gap: adapt(8px, 1440px);
-		margin-top: adapt(24px, 1440px);
-		align-self: flex-start;
+		margin-top: adapt(16px, 1440px);
+		align-self: center;
+		width: auto;
+		max-width: 100%;
 		position: relative;
 		z-index: 3;
+
+		> * {
+			flex: 0 0 auto;
+			width: auto;
+			max-width: none;
+			align-self: center;
+		}
 	}
 
 	.block__pageName {
 		display: flex;
 		align-items: flex-end;
+		justify-content: center;
 		gap: adapt(16px, 1440px);
-		align-self: flex-start;
+		align-self: center;
+		width: auto;
+		max-width: 100%;
 
 		> .pageName__title {
 			font-size: 1.12rem;
@@ -214,6 +318,32 @@
 			font-size: 0.75rem;
 			line-height: 1.4;
 			color: rgba($color: $color_black, $alpha: 0.6);
+		}
+	}
+
+	@media (max-width: 900px) {
+		.block__configureSearch {
+			flex-wrap: wrap;
+			width: 100%;
+			max-width: 100%;
+			gap: 10px;
+			margin-top: 12px;
+
+			> * {
+				min-width: 0;
+				flex: 1 1 100%;
+			}
+		}
+
+		.block__pageName {
+			flex-wrap: wrap;
+			width: 100%;
+			gap: 8px;
+			align-items: flex-start;
+
+			> .pageName__title {
+				font-size: 1.15rem;
+			}
 		}
 	}
 }

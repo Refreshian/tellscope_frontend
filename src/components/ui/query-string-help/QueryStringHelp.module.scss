@@ -28,3 +28,19 @@
 	overflow: auto;
 	@include scrollbar();
 }
+
+
+/* ===== Tellscope polish: query examples hint ===== */
+.block__queryStr {
+	> h1 {
+		margin: 0;
+		font-size: 0.8rem;
+		font-weight: 500;
+		color: #98a2b3;
+		cursor: pointer;
+
+		&:hover {
+			color: #1760e8;
+		}
+	}
+}

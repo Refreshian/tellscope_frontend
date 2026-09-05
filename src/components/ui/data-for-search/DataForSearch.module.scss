@@ -1,69 +1,349 @@
+@use "sass:color";
+@import '@st/mixins';
 @import '@st/variables';
 @import '@st/functions';
-@import '@st/mixins';
 
 .wrapper_data {
-	width: adapt(285px, 1440px);
-	position: relative;
+  position: relative;
+  width: adapt(217px, 1440px);
+  flex: 0 0 auto;
 }
 
 .block__data {
-	@include settings-for-search(100%);
+  @include settings-for-search(adapt(217px, 1440px)); // ← добавьте эту строку первой!
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: adapt(12px, 1440px) adapt(16px, 1440px);
+  border: 1px solid rgba($color: $color_black, $alpha: 0.1);
+  border-radius: adapt(8px, 1440px);
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  &:hover {
+    border-color: rgba($color: $color_black, $alpha: 0.3);
+  }
 }
+
+
 
 .block__options {
-	width: 100%;
-	box-shadow: 0px 4px 10px rgba($color: $color_full_black, $alpha: 0.1);
-	border: 1px solid rgba($color: $color_black, $alpha: 0.08);
-	border-radius: adapt(8px, 1440px);
-	padding: adapt(16px, 1440px);
-	display: flex;
-	flex-direction: column;
-	gap: adapt(18px, 1440px);
-	position: absolute;
-	top: 115%;
-	background-color: $color_white;
-	z-index: 9000;
-	max-height: adapt(300px, 1440px);
-	overflow-y: auto;
-	overflow-x: hidden;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 340px;
+  max-width: 50vw;
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: $color_white;
+  border: 1px solid rgba($color: $color_black, $alpha: 0.1);
+  border-radius: adapt(8px, 1440px);
+  box-shadow: 0 2px 8px rgba($color: $color_black, $alpha: 0.1);
+  z-index: 10;
+  margin-top: adapt(4px, 1440px);
+  padding: adapt(8px, 1440px) 0;
+  transform-origin: top;
+  animation: fadeIn 0.2s ease-out;
 
-	-ms-overflow-style: none; /* Internet Explorer и Edge */
-	scrollbar-width: none; /* Полностью скрыть скроллбар */
-	&::-webkit-scrollbar {
-		display: none; /* Скрыть скроллбар */
-	}
-}
-
-.group {
-	display: flex;
-	flex-direction: column;
-	gap: adapt(8px, 1440px);
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 .groupTitle {
-	font-weight: 500;
-	font-size: 0.87rem;
-	color: $color_black;
-	text-transform: capitalize;
+  font-size: 0.77rem;
+  color: rgba($color: $color_black, $alpha: 0.6);
+  padding: adapt(8px, 1440px) adapt(16px, 1440px);
+  margin: 0;
 }
 
 .option {
-	font-size: 0.87rem;
-	line-height: 1.2;
-	color: rgba($color: $color_black, $alpha: 0.6);
-	position: relative;
-	display: flex;
-	align-items: center;
-	gap: adapt(10px, 1440px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: adapt(8px, 1440px) adapt(16px, 1440px);
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: rgba($color: $color_primary, $alpha: 0.1);
+  }
+
+  &.active {
+    background-color: rgba($color: $color_primary, $alpha: 0.2);
+  }
+
+  .option__icon {
+    width: adapt(16px, 1440px);
+    height: adapt(16px, 1440px);
+    margin-right: adapt(8px, 1440px);
+  }
+
+  .option__text {
+    font-size: 0.87rem;
+    color: $color_black;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80%;
+  }
+
+  .option__meta {
+    font-size: 0.77rem;
+    color: rgba($color: $color_black, $alpha: 0.6);
+    margin-left: auto;
+    padding-left: adapt(8px, 1440px);
+  }
+}
+
+.block__data.active {
+  border-color: $color_primary;
+  
+  .data__arrow {
+    transform: rotate(180deg);
+  }
+}
+
+.divider {
+  height: 1px;
+  background-color: rgba($color: $color_black, $alpha: 0.1);
+  margin: adapt(8px, 1440px) 0;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: adapt(16px, 1440px);
+  
+  .spinner {
+    width: adapt(20px, 1440px);
+    height: adapt(20px, 1440px);
+    border: 2px solid rgba($color: $color_primary, $alpha: 0.2);
+    border-top-color: $color_primary;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  }
+}
+
+.empty {
+  padding: adapt(16px, 1440px);
+  text-align: center;
+  color: rgba($color: $color_black, $alpha: 0.6);
+  font-size: 0.87rem;
+}
+
+@media (max-width: 768px) {
+  .wrapper_data {
+    width: 100%;
+  }
+
+  .block__data {
+    padding: adapt(16px, 768px) adapt(16px, 768px);
+    min-height: adapt(58px, 768px);
+  }
+
+  .block__options {
+    width: 100%;
+    max-height: 250px;
+  }
+}
+
+@media (max-width: 375px) {
+  .block__data {
+    padding: adapt(12px, 375px) adapt(16px, 375px);
+  }
+
+  .block__description {
+    > h2 {
+      font-size: 0.72rem;
+    }
+
+    > p {
+      font-size: 0.82rem;
+    }
+  }
+
+  // Добавьте эти стили
+.deleteButton {
+  background: none;
+  border: none;
+  padding: adapt(4px, 1440px);
+  cursor: pointer;
+  margin-left: adapt(8px, 1440px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  > img {
+    width: adapt(16px, 1440px);
+    height: adapt(16px, 1440px);
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+
+  &:hover > img {
+    opacity: 1;
+  }
+}
+
+// Измените ширину выпадающего меню
+.block__options {
+  width: 100%; // Изменено с 400px на 100%
+  min-width: 340px;
+  max-width: 50vw;
+  // остальные стили...
+}
+
+// Добавьте стили для контейнера опции
+.optionContent {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+
+.option {
+  align-items: center;
+  justify-content: space-between;
+  padding: adapt(8px, 1440px) adapt(16px, 1440px);
+  cursor: pointer;
+  transition: background-color 0.2s;
+  gap: adapt(8px, 1440px);
+
+  &:hover {
+    background-color: rgba($color: $color_primary, $alpha: 0.1);
+  }
+
+  &.active {
+    background-color: rgba($color: $color_primary, $alpha: 0.2);
+  }
+}}
+
+.block__description {
+  > h2 {
+    font-weight: 500;
+    font-size: 0.87rem;
+    color: $color_black;
+    margin-bottom: adapt(4px, 1440px);
+  }
+
+  > p {
+    font-size: 0.87rem;
+    line-height: 1.2;
+    color: rgba($color: $color_black, $alpha: 0.6);
+  }
+}
+
+.block__options__static {
+  position: static !important;
+  top: unset !important;
+  left: unset !important;
+  right: unset !important;
+  animation: none !important;
+  /* Добавьте при необходимости ещё сброс других стилей dropdown */
+}
+
+.selectedOption {
+  font-size: 16px;
+  color: #000;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 2000px;
+}
+
+// В вашем SCSS файле для DataForSearch
+.block__options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+@media (max-width: 900px) {
+  .block__data {
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 12px;
+  }
+
+  .block__options {
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    left: 0;
+    right: 0;
+  }
+
+  .selectedOption {
+    max-width: 100%;
+    font-size: 0.95rem;
+  }
+
+  .option__text {
+    white-space: normal;
+    max-width: 100%;
+  }
+}
+
+/* ===== Tellscope polish: dropdown trigger ===== */
+.block__data {
+	border-radius: 12px;
+	border-color: rgba(16, 24, 40, 0.1);
+	padding: 8px 14px 8px 16px;
+	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+	transition:
+		border-color 0.15s ease,
+		box-shadow 0.15s ease,
+		background-color 0.15s ease;
 
 	&:hover {
-		cursor: pointer;
+		border-color: rgba(23, 96, 232, 0.35);
 	}
+}
 
-	> input {
-		&:hover {
-			cursor: pointer;
-		}
+.block__description {
+	flex: 1 1 auto;
+	min-width: 0;
+	gap: 0 !important;
+
+	> h2 {
+		margin: 0;
+		font-size: 14px;
+		font-weight: 400;
+		color: #98a2b3;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
+}
+
+.selectedOption {
+	font-size: 14px !important;
+	font-weight: 600;
+	color: #101828;
+}
+
+.data__arrow {
+	flex: 0 0 18px;
+	transition: transform 0.15s ease;
 }

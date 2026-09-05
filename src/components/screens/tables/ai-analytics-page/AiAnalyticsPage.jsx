@@ -30,6 +30,8 @@ import QueryStringHelp from '../../../ui/query-string-help/QueryStringHelp';
 import styles from './AiAnalyticsPage.module.scss';
 
 const AiAnalyticsPage = () => {
+
+
 	const nav = useNavigate();
 	const { pathname } = useLocation();
 	const { active_menu } = useSelector(store => store.booleanValues);
@@ -54,14 +56,17 @@ const AiAnalyticsPage = () => {
 		setIsOpenSaveData,
 	} = useActions();
 
+	const { data: data_getUserId, isSuccess: isSuccess_getUserId } = useGetUserIdQuery();
 	const {
-		data: data_getUserId,
-		isError: isError_getUserId,
-		error: error_getUserId,
-		isLoading: isLoading_getUserId,
-	} = useGetUserIdQuery();
-	const { data, isError, error, isLoading, isSuccess } =
-		useGetUserFoldersQuery(data_getUserId);
+		data,
+		refetch: refetchUserFolders,
+		isFetching: isFetchingUserFolders,
+		isSuccess,
+	} = useGetUserFoldersQuery(data_getUserId, { skip: !data_getUserId });
+
+	useEffect(() => {
+		if (isSuccess_getUserId) refetchUserFolders();
+	}, [data_getUserId, isSuccess_getUserId, refetchUserFolders]);
 
 	useAddBaseAndDate(
 		dataUser,
@@ -107,15 +112,17 @@ const AiAnalyticsPage = () => {
 		}
 	}, [isError_aiAnalyticsGET]);
 
-	if (statusBarStart) {
-		nav('/ai-analytics/analysis-of-themes');
-	}
+    useEffect(() => {
+        if (statusBarStart) {
+            nav('/ai-analytics/analysis-of-themes');
+        }
+    }, [statusBarStart, nav]);
 
 	{console.log('data_aiAnalyticsGET:', data_aiAnalyticsGET)}
 
 	return (
 		<Layout>
-			{(isLoading || isLoading_aiAnalyticsGET) && (
+			{isLoading_aiAnalyticsGET && (
 				<>
 					<BackgroundLoader />
 					<Loader />
@@ -150,21 +157,37 @@ const AiAnalyticsPage = () => {
 						/>
 					)}
 				</div>
-				{!statusBarStart && (
-					<div className={styles.info__message}>
-						<span className={styles.info__icon}>ℹ️</span>
-						<span className={styles.info__text}>
-							Доступны ранее проанализированные данные:
-						</span>
-						<Link
-							to='/ai-analytics/analysis-of-themes'
-							onClick={() => setIsOpenSaveData(true)}
-							className={styles.info__link}
-						>
-							Открыть готовые
-						</Link>
-					</div>
-				)}
+{!statusBarStart && (
+    <div className={styles.info__container}>
+        <div className={styles.info__message}>
+            <span className={styles.info__icon}>ℹ️</span>
+            <span className={styles.info__text}>
+                Доступны ранее проанализированные данные:
+            </span>
+            <Link
+                to='/ai-analytics/analysis-of-themes'
+                onClick={() => setIsOpenSaveData(true)}
+                className={styles.info__link}
+            >
+                Открыть готовые
+            </Link>
+        </div>
+        {!isNoData && isSuccess_aiAnalyticsGET && data_aiAnalyticsGET?.total_rows > 10000 && (
+            <div className={styles.dataLimitWarning}>
+                <span>
+                    ⚠️ Всего записей: {data_aiAnalyticsGET.total_rows.toLocaleString()}, 
+                    показаны первые 10 000
+                </span>
+            </div>
+        )}
+    </div>
+)}
+			{/* Кнопка обновления */}
+			{/* <div style={{ textAlign: 'right', margin: '10px 0' }}>
+			<Button onClick={refetchUserFolders} disabled={isFetchingUserFolders}>
+				{isFetchingUserFolders ? "Обновляем..." : "Обновить данные"}
+			</Button>
+			</div> */}
 				<div
 					className={styles.block__configureSearch}
 					style={isSuccess_aiAnalyticsGET ? {} : { alignSelf: 'center' }}
@@ -181,8 +204,8 @@ const AiAnalyticsPage = () => {
 						placeholder='Поиск по тексту'
 						styleInput={{
 							width: 'calc(281/1440*100vw)',
-							height: 'calc(55.9/1440*100vw)',
-							borderRadius: 'calc(8/1440*100vw)',
+							height: 'calc(56/1440*100vw)',
+							borderRadius: 'calc(12/1440*100vw)',
 						}}
 						styleLabel={{ display: 'none' }}
 						onChange={onChange}
@@ -204,8 +227,11 @@ const AiAnalyticsPage = () => {
 					</Button>
 				</div>
 				{isNoData && <NoDataRequest />}
+
 				{!isNoData && isSuccess_aiAnalyticsGET && !statusBarStart && (
-					<AiAnalytics />
+					<>
+						<AiAnalytics />
+					</>
 				)}
 			</Content>
 		</Layout>

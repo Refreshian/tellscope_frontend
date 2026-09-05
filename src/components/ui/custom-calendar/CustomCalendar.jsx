@@ -28,7 +28,7 @@ const CustomCalendar = ({ multi }) => {
 					<p>
 						{min_range_date && max_range_date
 							? `${convertDateFormat(convertFromTimestampToRegular(min_range_date))} - ${convertDateFormat(convertFromTimestampToRegular(max_range_date))}`
-							: 'нету данных'}
+							: 'Период не выбран'}
 					</p>
 				</div>
 				<img

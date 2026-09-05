@@ -1,14 +1,22 @@
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import Slider from 'rc-slider';
-import ReactMarkdown from 'react-markdown';
-import rehypeHighlight from 'rehype-highlight';
-import Sankey from "@/components/content/graphs/voice-graphs/sankey/Sankey";
+import 'rc-slider/assets/index.css';
+import * as XLSX from 'xlsx';
 
 import Content from '@/components/content/Content';
 import BeforeSearch from '@/components/content/before-search/BeforeSearch';
 import VoiceGraph from '@/components/content/graphs/voice-graphs/VoiceGraph';
+import {
+	applyVoiceFilters,
+	emptyVoiceFilters,
+	mentionCount,
+	selectedList,
+	sliderBounds,
+	toggleVoiceFilter,
+	voiceFacets,
+} from '@/components/content/graphs/voice-graphs/voiceView';
 import Layout from '@/components/layout/Layout';
 import BackgroundLoader from '@/components/loading/background-loader/BackgroundLoader';
 import Loader from '@/components/loading/loader/Loader';
@@ -18,766 +26,603 @@ import DataForSearch from '@/components/ui/data-for-search/DataForSearch';
 import Input from '@/components/ui/fields/input/Input';
 import LeftMenu from '@/components/ui/left-menu/LeftMenu';
 import LeftMenuActive from '@/components/ui/left-menu/left-menu-active/LeftMenuActive';
+import AiAnalysisBlock from '@/components/ui/ai-analysis/AiAnalysisBlock';
 import { useActions } from '@/hooks/useActions';
 import { useAddBaseAndDate } from '@/hooks/useAddBaseAndDate';
+import { useLazyVoiceGraphQuery } from '@/services/getGraph.service';
+import { useGetUserFoldersQuery, useGetUserIdQuery } from '../../../services/other.service';
 import { useCheckAuth } from '../../../hooks/useCheckAuth';
-import {
-  useGetUserFoldersQuery,
-  useGetUserIdQuery,
-} from '../../../services/other.service';
 import NoDataRequest from '../../no-data-request/NoDataRequest';
-import QueryStringHelp from '../../ui/query-string-help/QueryStringHelp';
-import * as XLSX from 'xlsx';
 
 import styles from './VoiceOfCustomer.module.scss';
-import voiceStyles from './VoiceOfCustomer.module.scss';
-import { useLazyVoiceGraphQuery } from '@/services/getGraph.service';
+
+const DIM_TO_FILTER = { q: 'search', t: 'type', h: 'hub', s: 'tonality' };
+const FILTER_TO_DIM = { search: 'q', type: 't', hub: 'h', tonality: 's' };
+
+const facetSummary = selected => {
+	const chosen = selectedList(selected);
+	if (!chosen.length) return 'Все';
+	if (chosen.length === 1) return chosen[0];
+	return `Выбрано: ${chosen.length}`;
+};
+
+const VoiceAiAnalysis = ({
+	filteredData,
+	visibleMentions,
+	totalMentions,
+	dataForRequest,
+	filters,
+	ranges,
+	currentNote,
+}) => {
+	const [showAiInput, setShowAiInput] = useState(false);
+	const [aiQuery, setAiQuery] = useState('');
+	const [aiAnalysis, setAiAnalysis] = useState(null);
+	const [isAiLoading, setIsAiLoading] = useState(false);
+	const [aiError, setAiError] = useState(null);
+
+	const handleAiSubmit = async () => {
+		if (!aiQuery.trim()) {
+			setAiError('Пожалуйста, введите запрос для анализа');
+			return;
+		}
+		setIsAiLoading(true);
+		setAiAnalysis(null);
+		setAiError(null);
+		try {
+			if (!filteredData) throw new Error('Нет отфильтрованных данных для анализа');
+			const response = await fetch('/api/ai-question-voice', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					question: aiQuery,
+					data: { values: filteredData },
+					index: dataForRequest.index,
+					min_date: dataForRequest.min_date,
+					max_date: dataForRequest.max_date,
+					current_tab: currentNote,
+					filters: { ...filters, ...ranges, filtered_mentions: visibleMentions, original_mentions: totalMentions },
+				}),
+			});
+			const result = await response.json().catch(() => ({}));
+			if (!response.ok) throw new Error(result.error || `Ошибка запроса: ${response.status}`);
+			if (result.content) setAiAnalysis(result.content);
+			else if (result.response?.content) setAiAnalysis(result.response.content);
+			else if (result.analysis) setAiAnalysis(result.analysis);
+			else if (typeof result === 'string') setAiAnalysis(result);
+			else setAiAnalysis(JSON.stringify(result, null, 2));
+		} catch (error) {
+			setAiError(error.message || 'Произошла ошибка при выполнении анализа.');
+		} finally {
+			setIsAiLoading(false);
+		}
+	};
+
+	return (
+		<AiAnalysisBlock
+			visibleCount={visibleMentions}
+			totalCount={totalMentions}
+			extraNote={currentNote}
+			suggestions={[
+				'Какие источники дают больше всего негатива при текущем срезе?',
+				'Как тип сообщения связан с тональностью?',
+				'Какой путь от запроса к источнику самый объёмный?',
+			]}
+			showInput={showAiInput}
+			onToggle={() => setShowAiInput(value => !value)}
+			query={aiQuery}
+			onQueryChange={setAiQuery}
+			onSubmit={handleAiSubmit}
+			loading={isAiLoading}
+			error={aiError}
+			analysis={aiAnalysis}
+			loadingNode={<Loader size="small" />}
+		/>
+	);
+};
 
 const VoiceOfCustomer = () => {
-  useCheckAuth();
+	useCheckAuth();
+	const { pathname } = useLocation();
+	const { addData, addMinDate, addMaxDate, addIndex, addQueryStr } = useActions();
+	const { active_menu } = useSelector(store => store.booleanValues);
+	const dataForRequest = useSelector(state => state.dataForRequest);
+	const { json_files_directory: dataUser } = useSelector(store => store.dataUsersSlice);
 
-  const { pathname } = useLocation();
-  const { addData, addMinDate, addMaxDate, addIndex, addQueryStr } = useActions();
-  const { active_menu } = useSelector(store => store.booleanValues);
-  const dataForRequest = useSelector(state => state.dataForRequest);
-  const { json_files_directory: dataUser } = useSelector(
-    store => store.dataUsersSlice,
-  );
+	const { data: data_getUserId, isLoading: isLoading_getUserId } = useGetUserIdQuery();
+	const { data, isLoading, isSuccess } = useGetUserFoldersQuery(data_getUserId);
 
-  const {
-    data: data_getUserId,
-    isError: isError_getUserId,
-    error: error_getUserId,
-    isLoading: isLoading_getUserId,
-  } = useGetUserIdQuery();
-  const { data, isError, error, isLoading, isSuccess } = useGetUserFoldersQuery(data_getUserId);
+	useAddBaseAndDate(
+		dataUser,
+		data,
+		isSuccess,
+		dataForRequest.index,
+		addData,
+		addMinDate,
+		addMaxDate,
+		addIndex,
+	);
 
-  useAddBaseAndDate(
-    dataUser,
-    data,
-    isSuccess,
-    dataForRequest.index,
-    addData,
-    addMinDate,
-    addMaxDate,
-    addIndex,
-  );
+	const [trigger, { data: data_voice, isLoading: isLoading_voice, isSuccess: isSuccess_voice, isError: isError_voice }] =
+		useLazyVoiceGraphQuery();
 
-  const onChange = e => {
-    addQueryStr(e.target.value);
-  };
+	const getVoiceData = useCallback(() => {
+		trigger({
+			...dataForRequest,
+			query_str: dataForRequest.query_str || 'all',
+		});
+	}, [dataForRequest, trigger]);
 
-  const [
-    trigger,
-    {
-      data: data_voice,
-      isLoading: isLoading_voice,
-      isSuccess: isSuccess_voice,
-      isError: isError_voice,
-      error: error_voice,
-    }
-  ] = useLazyVoiceGraphQuery();
+	const [isNoData, setIsNoData] = useState(false);
+	useEffect(() => {
+		if (!isError_voice) return undefined;
+		setIsNoData(true);
+		const timer = setTimeout(() => setIsNoData(false), 5000);
+		return () => clearTimeout(timer);
+	}, [isError_voice]);
 
-  const getVoiceData = useCallback(() => {
-    trigger(dataForRequest);
-  }, [dataForRequest, trigger]);
+	const [audienceRange, setAudienceRange] = useState([0, 1]);
+	const [commentsRange, setCommentsRange] = useState([0, 1]);
+	const [viewsRange, setViewsRange] = useState([0, 1]);
+	const [repostsRange, setRepostsRange] = useState([0, 1]);
+	const [likesRange, setLikesRange] = useState([0, 1]);
+	const [sliderMax, setSliderMax] = useState({
+		audience: 1,
+		comments: 1,
+		views: 1,
+		reposts: 1,
+		likes: 1,
+	});
+	const [filters, setFilters] = useState(emptyVoiceFilters());
+	const [highlightId, setHighlightId] = useState(null);
 
-  const [isNoData, setIsNoData] = useState(false);
-  useEffect(() => {
-    if (isError_voice) {
-      setIsNoData(true);
-      const timer = setTimeout(() => setIsNoData(false), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [isError_voice]);
+	useEffect(() => {
+		if (!data_voice?.values) return;
+		const bounds = sliderBounds(data_voice.values);
+		setSliderMax(bounds);
+		setAudienceRange([0, bounds.audience]);
+		setCommentsRange([0, bounds.comments]);
+		setViewsRange([0, bounds.views]);
+		setRepostsRange([0, bounds.reposts]);
+		setLikesRange([0, bounds.likes]);
+		setFilters(emptyVoiceFilters());
+		setHighlightId(null);
+	}, [data_voice]);
 
-  // Состояния для фильтров
-  const [audienceRange, setAudienceRange] = useState([0, 0]);
-  const [commentsRange, setCommentsRange] = useState([0, 0]);
-  const [viewsRange, setViewsRange] = useState([0, 0]);
-  const [repostsRange, setRepostsRange] = useState([0, 0]);
-  const [filteredData, setFilteredData] = useState(null);
+	const ranges = useMemo(
+		() => ({
+			audience: audienceRange,
+			comments: commentsRange,
+			views: viewsRange,
+			reposts: repostsRange,
+			likes: likesRange,
+		}),
+		[audienceRange, commentsRange, viewsRange, repostsRange, likesRange],
+	);
 
-  // Получаем максимальные значения для слайдеров из данных
-// Обновим useEffect для инициализации диапазонов слайдеров
-useEffect(() => {
-  if (isSuccess_voice && data_voice?.values) {
-    // Собираем все значения метрик из всех записей
-    const allMetrics = data_voice.values.flatMap(item => 
-      item.sunkey_data.map(sunkey => ({
-        audience: sunkey.audienceCount || 0,
-        comments: sunkey.commentsCount || 0,
-        views: sunkey.viewsCount || 0,
-        reposts: sunkey.repostsCount || 0
-      }))
-    );
-    
-    // Находим максимальные значения
-    const maxAudience = Math.max(...allMetrics.map(m => m.audience), 10000);
-    const maxComments = Math.max(...allMetrics.map(m => m.comments), 100);
-    const maxViews = Math.max(...allMetrics.map(m => m.views), 1000);
-    const maxReposts = Math.max(...allMetrics.map(m => m.reposts), 100);
-    
-    // Устанавливаем диапазоны слайдеров от 0 до максимального значения
-    setAudienceRange([0, maxAudience]);
-    setCommentsRange([0, maxComments]);
-    setViewsRange([0, maxViews]);
-    setRepostsRange([0, maxReposts]);
-    
-    // Также инициализируем отфильтрованные данные
-    setFilteredData(data_voice);
-  }
-}, [isSuccess_voice, data_voice]);
+	const filteredData = useMemo(
+		() => applyVoiceFilters(data_voice?.values, filters, ranges),
+		[data_voice, filters, ranges],
+	);
+	const visibleMentions = mentionCount(filteredData);
+	const totalMentions = mentionCount(data_voice?.values);
+	const facets = useMemo(() => voiceFacets(data_voice?.values), [data_voice]);
 
-  // Функция для фильтрации данных на основе слайдеров
-  useEffect(() => {
-    if (isSuccess_voice && data_voice?.values) {
-      const filteredValues = data_voice.values.map(item => {
-        const filteredSunkeyData = item.sunkey_data.filter(
-          sunkey =>
-            sunkey.audienceCount >= audienceRange[0] &&
-            sunkey.audienceCount <= audienceRange[1] &&
-            sunkey.commentsCount >= commentsRange[0] &&
-            sunkey.commentsCount <= commentsRange[1] &&
-            sunkey.viewsCount >= viewsRange[0] &&
-            sunkey.viewsCount <= viewsRange[1] &&
-            sunkey.repostsCount >= repostsRange[0] &&
-            sunkey.repostsCount <= repostsRange[1]
-        );
+	const [openFacet, setOpenFacet] = useState(null);
+	const facetRowRef = useRef(null);
 
-        return {
-          ...item,
-          sunkey_data: filteredSunkeyData
-        };
-      });
+	useEffect(() => {
+		if (!openFacet) return undefined;
+		const onDoc = event => {
+			if (!facetRowRef.current?.contains(event.target)) setOpenFacet(null);
+		};
+		const onKey = event => {
+			if (event.key === 'Escape') setOpenFacet(null);
+		};
+		document.addEventListener('mousedown', onDoc);
+		document.addEventListener('keydown', onKey);
+		return () => {
+			document.removeEventListener('mousedown', onDoc);
+			document.removeEventListener('keydown', onKey);
+		};
+	}, [openFacet]);
 
-      setFilteredData({
-        ...data_voice,
-        values: filteredValues
-      });
-    }
-  }, [audienceRange, commentsRange, viewsRange, repostsRange, isSuccess_voice, data_voice]);
+	const toggleFilterValue = (key, value, allNames) => {
+		const next = toggleVoiceFilter(filters[key], value, allNames);
+		setFilters(prev => ({ ...prev, [key]: next }));
+		const dim = FILTER_TO_DIM[key];
+		if (dim && next.includes(value)) setHighlightId(`${dim}::${value}`);
+		else setHighlightId(null);
+	};
 
-  // Состояния для ИИ анализа
-  const [showAiInput, setShowAiInput] = useState(false);
-  const [aiQuery, setAiQuery] = useState('');
-  const [aiAnalysis, setAiAnalysis] = useState('');
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [aiError, setAiError] = useState('');
+	const clearFilterKey = key => {
+		setFilters(prev => ({ ...prev, [key]: [] }));
+		setHighlightId(null);
+	};
 
-  const handleAiSubmit = async () => {
-    if (!aiQuery.trim()) {
-      setAiError('Пожалуйста, введите запрос для анализа');
-      return;
-    }
-  
-    setIsAiLoading(true);
-    setAiAnalysis(null);
-    setAiError(null);
-  
-    try {
-      if (!filteredData) {
-        throw new Error('Нет отфильтрованных данных для анализа');
-      }
-  
-      // Определяем текущую активную вкладку для анализа
-      let currentTabValue;
-      if (activeTable === 'sources') {
-        currentTabValue = "Источники";
-      } else if (activeTable === 'mention_types') {
-        currentTabValue = "Тип упоминаний";
-      } else {
-        currentTabValue = "Неизвестная вкладка";
-      }
-  
-      // Подготовка данных для запроса - используем только отфильтрованные данные
-      const requestData = {
-        question: aiQuery,
-        data: filteredData, // Уже отфильтрованные данные
-        index: dataForRequest.index,
-        min_date: dataForRequest.min_date,
-        max_date: dataForRequest.max_date,
-        current_tab: activeTable,
-        // Добавляем текущие значения фильтров для контекста
-        filters: {
-          audienceRange,
-          commentsRange,
-          viewsRange,
-          repostsRange
-        },
-        // Добавляем отфильтрованные табличные данные
-        tableData: {
-          sources: activeTable === 'sources' ? filteredSourcesForTable : [],
-          mentionTypes: activeTable === 'mention_types' ? mentionTypesTable : []
-        }
-      };
-  
-      console.log('Отправляем запрос с отфильтрованными данными:', requestData);
-  
-      // Отправка запроса на бэкенд
-      // http://localhost:5001/ai-question-voice
-      const response = await fetch('/api/ai-question-voice', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData)
-      }); 
-  
-      if (!response.ok) {
-        throw new Error(`Ошибка запроса: ${response.status}`);
-      }
-  
-      const result = await response.json();
-  
-      // Обработка различных форматов ответа
-      if (result.content) {
-        setAiAnalysis(result.content);
-      } else if (result.response?.content) {
-        setAiAnalysis(result.response.content);
-      } else if (result.analysis) {
-        setAiAnalysis(result.analysis);
-      } else if (typeof result === 'string') {
-        setAiAnalysis(result);
-      } else {
-        setAiAnalysis(JSON.stringify(result, null, 2));
-      }
-  
-    } catch (error) {
-      console.error('Ошибка при запросе к ИИ:', error);
-      setAiError(error.message || 'Произошла ошибка при выполнении анализа. Пожалуйста, попробуйте позже.');
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
+	const handleNodeFilter = useCallback(({ dim, value }) => {
+		const key = DIM_TO_FILTER[dim];
+		if (!key) return;
+		setFilters(prev => ({ ...prev, [key]: toggleVoiceFilter(prev[key], value) }));
+		const id = `${dim}::${value}`;
+		setHighlightId(prev => (prev === id ? null : id));
+	}, []);
 
-  useEffect(() => {
-    if (filteredData) {
-      console.log('Данные после фильтрации (filteredData):', filteredData);
-    }
-  }, [filteredData]);
+	const handleHubFilter = useCallback(hub => {
+		setFilters(prev => ({ ...prev, hub: toggleVoiceFilter(prev.hub, hub) }));
+		const id = `h::${hub}`;
+		setHighlightId(prev => (prev === id ? null : id));
+	}, []);
 
-  // Состояния для таблиц
-  const [showTable, setShowTable] = useState(false);
-  const [activeTable, setActiveTable] = useState('sources');
-  const [sortConfig, setSortConfig] = useState({
-    key: 'total',
-    direction: 'desc'
-  });
-  
+	const activeNote =
+		[
+			...selectedList(filters.search),
+			...selectedList(filters.type),
+			...selectedList(filters.hub),
+			...selectedList(filters.tonality),
+			...selectedList(filters.author_type),
+		].join(' → ') || 'Голос клиента';
 
-  const handleSort = (key) => {
-    let direction = 'desc';
-    if (sortConfig.key === key && sortConfig.direction === 'desc') {
-      direction = 'asc';
-    }
-    setSortConfig({ key, direction });
-  };
+	const [showTable, setShowTable] = useState(false);
+	const [activeTable, setActiveTable] = useState('sources');
+	const [sortConfig, setSortConfig] = useState({ key: 'total', direction: 'desc' });
+	const [mentionTypeSortConfig, setMentionTypeSortConfig] = useState({
+		key: 'count',
+		direction: 'desc',
+	});
 
-  const handleAuthorsSort = (key) => {
-    let direction = 'desc';
-    if (authorsSortConfig.key === key && authorsSortConfig.direction === 'desc') {
-      direction = 'asc';
-    }
-    setAuthorsSortConfig({ key, direction });
-  };
+	const handleSort = key => {
+		setSortConfig(prev => ({
+			key,
+			direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc',
+		}));
+	};
+	const handleMentionTypeSort = key => {
+		setMentionTypeSortConfig(prev => ({
+			key,
+			direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc',
+		}));
+	};
 
-  const exportSourcesTable = () => {
-    if (!filteredSourcesForTable || filteredSourcesForTable.length === 0) {
-      alert("Нет данных для экспорта");
-      return;
-    }
-  
-    const headers = [
-      'Источник',
-      'Нейтральные',
-      'Позитивные',
-      'Негативные',
-      'Аудитория',
-      'Всего'
-    ];
-  
-    const tableData = filteredSourcesForTable.map(source => [
-      source.source,
-      source.neutral,
-      source.positive,
-      source.negative,
-      source.audience,
-      source.total
-    ]);
-  
-    const worksheetData = [headers, ...tableData];
-    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Источники');
-    XLSX.writeFile(workbook, 'Источники_упоминаний.xlsx');
-  };
+	const filteredSourcesForTable = useMemo(() => {
+		const map = new Map();
+		(filteredData || []).forEach(value => {
+			(value.sunkey_data || []).forEach(row => {
+				if (!map.has(row.hub)) {
+					map.set(row.hub, {
+						source: row.hub,
+						neutral: 0,
+						positive: 0,
+						negative: 0,
+						audience: 0,
+						total: 0,
+					});
+				}
+				const prev = map.get(row.hub);
+				const count = Number(row.count) || 0;
+				if (row.tonality === 'Нейтрал') prev.neutral += count;
+				if (row.tonality === 'Позитив') prev.positive += count;
+				if (row.tonality === 'Негатив') prev.negative += count;
+				prev.audience += Number(row.audienceCount) || 0;
+				prev.total += count;
+			});
+		});
+		const arr = [...map.values()];
+		const dir = sortConfig.direction === 'asc' ? 1 : -1;
+		return arr.sort((a, b) => ((a[sortConfig.key] || 0) - (b[sortConfig.key] || 0)) * dir);
+	}, [filteredData, sortConfig]);
 
-  function getFilteredSourcesForTable(filteredData, sortConfig) {
-    // Накапливаем метрику по источникам по всем value (по всем дням или как у вас структура)
-    const sourceStatsMap = new Map();
-  
-    if (!filteredData?.values) return [];
-  
-    filteredData.values.forEach(value => {
-      // Фильтруем sunkey_data по слайдерам
-      const filteredSunkeys = value.sunkey_data.filter(s =>
-        s.audienceCount >= audienceRange[0] && s.audienceCount <= audienceRange[1] &&
-        s.commentsCount >= commentsRange[0] && s.commentsCount <= commentsRange[1] &&
-        s.viewsCount >= viewsRange[0] && s.viewsCount <= viewsRange[1] &&
-        s.repostsCount >= repostsRange[0] && s.repostsCount <= repostsRange[1]
-      );
-    
-      // Собираем валидные hub'ы
-      const validHubs = new Set(filteredSunkeys.map(s => s.hub));
-  
-      // Для каждого валидного hub собираем все показатели
-      validHubs.forEach(hub => {
-        // Для одной value точим один срез по каждому hub
-        // Тональность
-        const itemTonality = value.tonality.find(t => t.source === hub) || {};
-        // Аудитория
-        const audience = filteredSunkeys
-          .filter(s => s.hub === hub)
-          .reduce((acc, s) => acc + (s.audienceCount || 0), 0);
-  
-        // Если уже есть этот hub — агрегируем
-        if (!sourceStatsMap.has(hub)) {
-          sourceStatsMap.set(hub, {
-            source: hub,
-            neutral: 0,
-            positive: 0,
-            negative: 0,
-            audience: 0,
-            total: 0,
-          });
-        }
-        const prev = sourceStatsMap.get(hub);
-        prev.neutral += itemTonality.Нейтрал || 0;
-        prev.positive += itemTonality.Позитив || 0;
-        prev.negative += itemTonality.Негатив || 0;
-        prev.audience += audience;
-        prev.total += (itemTonality.Нейтрал || 0) + (itemTonality.Позитив || 0) + (itemTonality.Негатив || 0);
-        sourceStatsMap.set(hub, prev);
-      });
-    });
+	const mentionTypesTable = useMemo(() => {
+		const map = new Map();
+		(filteredData || []).forEach(value => {
+			(value.sunkey_data || []).forEach(row => {
+				const key = `${row.hub}//${row.type}`;
+				if (!map.has(key)) {
+					map.set(key, { hub: row.hub, type: row.type, count: 0, audience: 0 });
+				}
+				const cur = map.get(key);
+				cur.count += Number(row.count) || 0;
+				cur.audience += Number(row.audienceCount) || 0;
+			});
+		});
+		const arr = [...map.values()];
+		const dir = mentionTypeSortConfig.direction === 'asc' ? 1 : -1;
+		const key = mentionTypeSortConfig.key;
+		return arr.sort((a, b) => {
+			if (typeof a[key] === 'string') {
+				return String(a[key]).localeCompare(String(b[key]), 'ru') * dir;
+			}
+			return ((a[key] || 0) - (b[key] || 0)) * dir;
+		});
+	}, [filteredData, mentionTypeSortConfig]);
 
-    const handleMentionTypeSort = (key) => {
-      let direction = 'desc';
-      if (mentionTypeSortConfig.key === key && mentionTypeSortConfig.direction === 'desc') {
-        direction = 'asc';
-      }
-      setMentionTypeSortConfig({ key, direction });
-    };
-  
-    // В массив + сортировка
-    const arr = Array.from(sourceStatsMap.values());
-    if (!sortConfig.key) return arr.sort((a, b) => b.total - a.total);
-  
-    return arr.sort((a, b) => {
-      const getCompareValue = (item) => item[sortConfig.key];
-      const valueA = getCompareValue(a);
-      const valueB = getCompareValue(b);
-      if (valueA < valueB) return sortConfig.direction === 'desc' ? 1 : -1;
-      if (valueA > valueB) return sortConfig.direction === 'desc' ? -1 : 1;
-      return 0;
-    });
-  }
+	const exportSourcesTable = () => {
+		const headers = ['Источник', 'Нейтральные', 'Позитивные', 'Негативные', 'Аудитория', 'Всего'];
+		const rows = filteredSourcesForTable.map(row => [
+			row.source,
+			row.neutral,
+			row.positive,
+			row.negative,
+			row.audience,
+			row.total,
+		]);
+		const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+		const book = XLSX.utils.book_new();
+		XLSX.utils.book_append_sheet(book, sheet, 'Источники');
+		XLSX.writeFile(book, 'Источники_упоминаний.xlsx');
+	};
 
-  const filteredSourcesForTable = getFilteredSourcesForTable(filteredData, sortConfig);
+	const exportMentionTypesTable = () => {
+		const headers = ['Источник', 'Тип упоминания', 'Кол-во', 'Аудитория'];
+		const rows = mentionTypesTable.map(row => [row.hub, row.type, row.count, row.audience]);
+		const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+		const book = XLSX.utils.book_new();
+		XLSX.utils.book_append_sheet(book, sheet, 'Типы упоминаний');
+		XLSX.writeFile(book, 'Типы_упоминаний.xlsx');
+	};
 
-  function getMentionTypesTableData(filteredData, sortConfig) {
-    if (!filteredData?.values) return [];
-    const mentionTypeMap = new Map();
-    
-    filteredData.values.forEach(value => {
-      // Применяем фильтрацию по слайдерам
-      const filteredSunkeys = value.sunkey_data.filter(s =>
-        s.audienceCount >= audienceRange[0] && s.audienceCount <= audienceRange[1] &&
-        s.commentsCount >= commentsRange[0] && s.commentsCount <= commentsRange[1] &&
-        s.viewsCount >= viewsRange[0] && s.viewsCount <= viewsRange[1] &&
-        s.repostsCount >= repostsRange[0] && s.repostsCount <= repostsRange[1]
-      );
-      
-      filteredSunkeys.forEach(item => {
-        // По каждому hub + type собираем
-        const key = item.hub + '//' + item.type;
-        if (!mentionTypeMap.has(key)) {
-          mentionTypeMap.set(key, {
-            hub: item.hub,
-            type: item.type,
-            count: 0,
-            audience: 0
-          });
-        }
-        const cur = mentionTypeMap.get(key);
-        cur.count += 1;
-        cur.audience += item.audienceCount || 0;
-      });
-    });
-    
-    let arr = Array.from(mentionTypeMap.values());
-    if (sortConfig?.key) {
-      arr = arr.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'desc' ? 1 : -1;
-        if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'desc' ? -1 : 1;
-        return 0;
-      });
-    } else {
-      arr = arr.sort((a, b) => b.count - a.count);
-    }
-    return arr;
-  }
-  
-  const mentionTypesTable = getMentionTypesTableData(filteredData, sortConfig);
-  
-  // Экспорт для "Типов упоминаний"
-  const exportMentionTypesTable = () => {
-    if (!mentionTypesTable || mentionTypesTable.length === 0) {
-      alert("Нет данных для экспорта");
-      return;
-    }
-    const headers = ['Источник', 'Тип упоминания', 'Кол-во', 'Аудитория, суммарно'];
-    const tableData = mentionTypesTable.map(row => [
-      row.hub,
-      row.type,
-      row.count,
-      row.audience
-    ]);
-    const worksheetData = [headers, ...tableData];
-    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Типы упоминаний');
-    XLSX.writeFile(workbook, 'Типы_упоминаний.xlsx');
-  };
+	const selectFilter = (label, key, options) => {
+		const chosen = selectedList(filters[key]);
+		const allNames = options.map(item => item.name);
+		const allChecked = chosen.length === 0;
+		return (
+			<div className={styles.facet}>
+				<span>{label}</span>
+				<div className={styles.facetMenu}>
+					<button
+						type="button"
+						className={styles.facetToggle}
+						aria-expanded={openFacet === key}
+						onClick={() => setOpenFacet(prev => (prev === key ? null : key))}
+					>
+						<span className={styles.facetToggleText}>{facetSummary(chosen)}</span>
+						<span className={styles.facetArrow} aria-hidden>
+							▾
+						</span>
+					</button>
+					{openFacet === key && (
+						<div className={styles.facetDropdown} role="group" aria-label={label}>
+							<label className={styles.facetOption}>
+								<input
+									type="checkbox"
+									checked={allChecked}
+									onChange={() => clearFilterKey(key)}
+								/>
+								<span>Все</span>
+							</label>
+							{options.map(item => (
+								<label key={item.name} className={styles.facetOption}>
+									<input
+										type="checkbox"
+										checked={chosen.includes(item.name)}
+										onChange={() => toggleFilterValue(key, item.name, allNames)}
+									/>
+									<span>
+										{item.name} ({Number(item.count).toLocaleString('ru-RU')})
+									</span>
+								</label>
+							))}
+						</div>
+					)}
+				</div>
+			</div>
+		);
+	};
 
-  const [mentionTypeSortConfig, setMentionTypeSortConfig] = useState({
-    key: 'audience', // столбец по умолчанию для сортировки
-    direction: 'asc' // направление сортировки
-  });
-  
+	return (
+		<Layout>
+			{(isLoading || isLoading_getUserId || isLoading_voice) && (
+				<>
+					<BackgroundLoader />
+					<Loader />
+				</>
+			)}
+			{pathname !== '/home' && active_menu ? <LeftMenuActive /> : <LeftMenu />}
+			<Content alignStart={Boolean(isSuccess_voice)}>
+				<div className={styles.block__pageName} style={!isSuccess_voice ? { alignSelf: 'center', textAlign: 'center', width: 'auto' } : {}}>
+					{isSuccess_voice ? (
+						<h3 className={styles.pageName__title}>Голос клиента</h3>
+					) : (
+						<BeforeSearch
+							title="Голос клиента"
+							link="https://tsdoc.headsmade.com/en/voice-of-customer"
+						/>
+					)}
+				</div>
+				<div className={styles.block__configureSearch} style={!isSuccess_voice ? { alignSelf: 'center', justifyContent: 'center', width: 'auto' } : {}}>
+					{isSuccess && dataUser && Object.keys(dataUser).length > 0 && <DataForSearch />}
+					{isSuccess && dataForRequest.index !== null && dataUser && Object.keys(dataUser).length > 0 && (
+						<CustomCalendar />
+					)}
+					<Input
+						placeholder="Поиск по тексту"
+						styleInput={{
+							width: 'auto',
+							height: 'calc(56/1440*100vw)',
+							borderRadius: 'calc(12/1440*100vw)',
+							marginRight: '10px',
+							marginLeft: 10,
+						}}
+						styleLabel={{ display: 'none' }}
+						onChange={event => addQueryStr(event.target.value)}
+						value={dataForRequest.query_str || ''}
+					/>
+					<Button
+						style={{
+							width: 'calc(220/1440*100vw)',
+							height: 'calc(56/1440*100vw)',
+							marginLeft: '10px',
+						}}
+						onClick={getVoiceData}
+					>
+						Запуск
+					</Button>
+				</div>
+				{isNoData && <NoDataRequest />}
+				{!isNoData && isSuccess_voice && (
+					<div className={styles.scrollableResults}>
+						<div className={styles.slidersContainer}>
+							<div className={styles.sliderWrapper}>
+								<label>Аудитория:</label>
+								<Slider range min={0} max={sliderMax.audience} value={audienceRange} onChange={setAudienceRange} />
+								<div className={styles.sliderValues}>
+									<span>{audienceRange[0]}</span> - <span>{audienceRange[1].toLocaleString('ru-RU')}</span>
+								</div>
+							</div>
+							<div className={styles.sliderWrapper}>
+								<label>Комментариев:</label>
+								<Slider range min={0} max={sliderMax.comments} value={commentsRange} onChange={setCommentsRange} />
+								<div className={styles.sliderValues}>
+									<span>{commentsRange[0]}</span> - <span>{commentsRange[1].toLocaleString('ru-RU')}</span>
+								</div>
+							</div>
+							<div className={styles.sliderWrapper}>
+								<label>Просмотров:</label>
+								<Slider range min={0} max={sliderMax.views} value={viewsRange} onChange={setViewsRange} />
+								<div className={styles.sliderValues}>
+									<span>{viewsRange[0]}</span> - <span>{viewsRange[1].toLocaleString('ru-RU')}</span>
+								</div>
+							</div>
+							<div className={styles.sliderWrapper}>
+								<label>Репостов:</label>
+								<Slider range min={0} max={sliderMax.reposts} value={repostsRange} onChange={setRepostsRange} />
+								<div className={styles.sliderValues}>
+									<span>{repostsRange[0]}</span> - <span>{repostsRange[1].toLocaleString('ru-RU')}</span>
+								</div>
+							</div>
+							<div className={styles.sliderWrapper}>
+								<label>Лайков:</label>
+								<Slider range min={0} max={sliderMax.likes} value={likesRange} onChange={setLikesRange} />
+								<div className={styles.sliderValues}>
+									<span>{likesRange[0]}</span> - <span>{likesRange[1].toLocaleString('ru-RU')}</span>
+								</div>
+							</div>
+						</div>
 
-  return (
-    <Layout>
-      {(isLoading || isLoading_voice) && (
-        <>
-          <BackgroundLoader />
-          <Loader />
-        </>
-      )}
-      {pathname !== '/home' && active_menu ? <LeftMenuActive /> : <LeftMenu />}
-      <Content>
-        <div
-          className={styles.block__pageName}
-          style={!isSuccess_voice ? { alignSelf: 'center' } : {}}
-        >
-          {isSuccess_voice ? (
-            <></>
-          ) : (
-            <BeforeSearch
-              title="Голос клиента"
-              link="https://tsdoc.headsmade.com/en/voice-of-customer"
-            />
-          )}
-        </div>
-        <div
-          className={styles.block__configureSearch}
-          style={!isSuccess_voice ? { alignSelf: 'center' } : {}}
-        >
-          {isSuccess && dataUser && Object.keys(dataUser).length > 0 && (
-            <DataForSearch />
-          )}
-          {isSuccess && dataForRequest.index !== null && dataUser && Object.keys(dataUser).length > 0 && (
-            <CustomCalendar />
-          )}
-          <Input
-            placeholder="Поиск по тексту"
-            styleInput={{
-              width: 'auto',
-              height: 'calc(55.9/1440*100vw)',
-              borderRadius: 'calc(8/1440*100vw)',
-              marginRight: '10px'
-            }}
-            styleLabel={{ display: 'none' }}
-            onChange={onChange}
-            value={dataForRequest.query_str === null ? 'yes' : dataForRequest.query_str}
-          />
-          <Button
-            style={{
-              width: 'calc(220/1440*100vw)',
-              height: 'calc(56/1440*100vw)',
-              marginLeft: '10px',
-            }}
-            onClick={getVoiceData}
-          >
-            Запуск
-          </Button>
-        </div>
-        {isNoData && <NoDataRequest />}
-        {!isNoData && isSuccess_voice && (
-          <div className={styles.scrollableResults}>
-            {/* Слайдеры */}
-            <div className={voiceStyles.slidersContainer}>
-              <div className={voiceStyles.sliderWrapper}>
-                <label>Аудитория:</label>
-                <Slider range min={0} max={audienceRange[1]} value={audienceRange} onChange={setAudienceRange} />
-                <div className={voiceStyles.sliderValues}>
-                  <span>{audienceRange[0]}</span> - <span>{audienceRange[1]}</span>
-                </div>
-              </div>
-              <div className={voiceStyles.sliderWrapper}>
-                <label>Комментариев:</label>
-                <Slider range min={0} max={commentsRange[1]} value={commentsRange} onChange={setCommentsRange} />
-                <div className={voiceStyles.sliderValues}>
-                  <span>{commentsRange[0]}</span> - <span>{commentsRange[1]}</span>
-                </div>
-              </div>
-              <div className={voiceStyles.sliderWrapper}>
-                <label>Просмотров:</label>
-                <Slider range min={0} max={viewsRange[1]} value={viewsRange} onChange={setViewsRange} />
-                <div className={voiceStyles.sliderValues}>
-                  <span>{viewsRange[0]}</span> - <span>{viewsRange[1]}</span>
-                </div>
-              </div>
-              <div className={voiceStyles.sliderWrapper}>
-                <label>Репостов:</label>
-                <Slider range min={0} max={repostsRange[1]} value={repostsRange} onChange={setRepostsRange} />
-                <div className={voiceStyles.sliderValues}>
-                  <span>{repostsRange[0]}</span> - <span>{repostsRange[1]}</span>
-                </div>
-              </div>
-            </div>
-  
-            {/* График */}
-            <Suspense fallback={<Loader />}>
-              <VoiceGraph voiceData={filteredData?.values || []} />
-            </Suspense>
-  
-            {/* AI Анализ */}
-            <div className={styles.aiAnalysisBlock}>
-              <button className={styles.analyzeButton} onClick={() => setShowAiInput(!showAiInput)}>
-                {showAiInput ? 'Скрыть анализ' : 'Проанализировать данные через ИИ'}
-              </button>
-              {showAiInput && (
-                <div className={styles.aiInteractionWrapper}>
-                  <div className={styles.aiInputContainer}>
-                    <div className={styles.aiInputGroup}>
-                      <textarea
-                        className={styles.aiTextarea}
-                        placeholder={`Примеры запросов:
-  - Проанализируй данные по площадкам публикаций сообщений - какие самые популярные площадки?
-  - Какие самые активные источники упоминаний? Приведи примеры сообщений и ссылки на них.
-  - Какие тематики есть в положительных отзывах? Приведи примеры и ссылки.`}
-                        rows="4"
-                        value={aiQuery}
-                        onChange={e => setAiQuery(e.target.value)}
-                      />
-                      <button
-                        className={styles.sendButton}
-                        onClick={handleAiSubmit}
-                        disabled={isAiLoading}
-                      >
-                        {isAiLoading ? 'Анализируем...' : 'Отправить запрос'}
-                      </button>
-                    </div>
-                  </div>
-                  {isAiLoading && (
-                    <div className={styles.aiLoading}>
-                      <Loader size="small" />
-                      <p>Анализируем данные. Это может занять некоторое время...</p>
-                    </div>
-                  )}
-                  {aiError && (
-                    <div className={styles.aiError}>
-                      <p>Ошибка: {aiError}</p>
-                    </div>
-                  )}
-                  {aiAnalysis && (
-                    <div className={styles.aiResponse}>
-                      <h4>Результаты анализа:</h4>
-                      <div className={styles.aiResponseContent}>
-                        <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
-                          {aiAnalysis}
-                        </ReactMarkdown>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-  
-            {/* Таблицы */}
-            <div className={styles.tableSection}>
-              <div
-                className={styles.tableToggleHeader}
-                onClick={() => setShowTable(!showTable)}
-              >
-                <div className={styles.toggleTitle}>
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className={`${styles.toggleIcon} ${showTable ? styles.rotated : ''}`}
-                  >
-                    <path d="M19 9L12 16L5 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  <span>Таблицы данных</span>
-                </div>
-                <div className={styles.toggleStatus}>
-                  {showTable ? 'Скрыть' : 'Показать'}
-                </div>
-              </div>
-              {showTable && (
-                <>
-                  <div className={styles.tableControls}>
-                    <div className={styles.tableTabs}>
-                      <button
-                        className={`${styles.tabButton} ${activeTable === 'sources' ? styles.activeTab : ''}`}
-                        onClick={() => setActiveTable('sources')}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                          <path d="M3 17H21M3 12H21M3 7H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        Источники
-                      </button>
-                      <button
-                        className={`${styles.tabButton} ${activeTable === 'mention_types' ? styles.activeTab : ''}`}
-                        onClick={() => setActiveTable('mention_types')}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                          <path d="M3 7H21M3 12H21M3 17H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        Типы упоминаний
-                      </button>
-                    </div>
-                    {activeTable === 'sources' && (
-                      <button className={styles.exportButton} onClick={exportSourcesTable}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                        Выгрузить таблицу
-                      </button>
-                    )}
-                    {activeTable === 'mention_types' && (
-                      <button className={styles.exportButton} onClick={exportMentionTypesTable}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                        Выгрузить таблицу
-                      </button>
-                    )}
-                  </div>
-                  <div className={styles.tableWrapper}>
-                    {activeTable === 'sources' && (
-                      <table className={styles.dataTable}>
-                        <thead>
-                          <tr>
-                            <th>Источник</th>
-                            <th className={styles.sortableHeader} onClick={() => handleSort('neutral')}>
-                              Нейтральные
-                              {sortConfig.key === 'neutral' && (
-                                <span className={styles.sortIcon}>{sortConfig.direction === 'desc' ? '↓' : '↑'}</span>
-                              )}
-                            </th>
-                            <th className={styles.sortableHeader} onClick={() => handleSort('positive')}>
-                              Позитивные
-                              {sortConfig.key === 'positive' && (
-                                <span className={styles.sortIcon}>{sortConfig.direction === 'desc' ? '↓' : '↑'}</span>
-                              )}
-                            </th>
-                            <th className={styles.sortableHeader} onClick={() => handleSort('negative')}>
-                              Негативные
-                              {sortConfig.key === 'negative' && (
-                                <span className={styles.sortIcon}>{sortConfig.direction === 'desc' ? '↓' : '↑'}</span>
-                              )}
-                            </th>
-                            <th className={styles.sortableHeader} onClick={() => handleSort('audience')}>
-                              Аудитория
-                              {sortConfig.key === 'audience' && (
-                                <span className={styles.sortIcon}>{sortConfig.direction === 'desc' ? '↓' : '↑'}</span>
-                              )}
-                            </th>
-                            <th className={styles.sortableHeader} onClick={() => handleSort('total')}>
-                              Всего
-                              {sortConfig.key === 'total' && (
-                                <span className={styles.sortIcon}>{sortConfig.direction === 'desc' ? '↓' : '↑'}</span>
-                              )}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredSourcesForTable.length > 0 ? filteredSourcesForTable.map((source, index) => (
-                            <tr key={`source-${source.source}-${index}`}>
-                              <td>{source.source}</td>
-                              <td>{source.neutral}</td>
-                              <td>{source.positive}</td>
-                              <td>{source.negative}</td>
-                              <td>{source.audience.toLocaleString()}</td>
-                              <td>{source.total}</td>
-                            </tr>
-                          )) : (
-                            <tr>
-                              <td colSpan={6} style={{ textAlign: 'center' }}>Нет данных по заданным фильтрам</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    )}
-                    {activeTable === 'mention_types' && (
-                      <table className={styles.dataTable}>
-                        <thead>
-                          <tr>
-                            <th>Источник</th>
-                            <th>Тип упоминания</th>
-                            <th className={styles.sortableHeader} onClick={() => handleMentionTypeSort('count')}>
-                              Количество
-                              {mentionTypeSortConfig.key === 'count' && (
-                                <span className={styles.sortIcon}>
-                                  {mentionTypeSortConfig.direction === 'desc' ? '↓' : '↑'}
-                                </span>
-                              )}
-                            </th>
-                            <th className={styles.sortableHeader} onClick={() => handleMentionTypeSort('audience')}>
-                              Аудитория
-                              {mentionTypeSortConfig.key === 'audience' && (
-                                <span className={styles.sortIcon}>
-                                  {mentionTypeSortConfig.direction === 'desc' ? '↓' : '↑'}
-                                </span>
-                              )}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {mentionTypesTable.length > 0 ? mentionTypesTable.map((row, idx) => (
-                            <tr key={`${row.hub}-${row.type}-${idx}`}>
-                              <td>{row.hub}</td>
-                              <td>{row.type}</td>
-                              <td>{row.count}</td>
-                              <td>{row.audience.toLocaleString()}</td>
-                            </tr>
-                          )) : (
-                            <tr>
-                              <td colSpan={4} style={{ textAlign: 'center' }}>Нет данных по заданным фильтрам</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </Content>
-    </Layout>
-  );
+						<div className={styles.facetRow} ref={facetRowRef}>
+							{selectFilter('Запрос', 'search', facets.searches)}
+							{selectFilter('Тип сообщения', 'type', facets.types)}
+							{selectFilter('Источник', 'hub', facets.hubs)}
+							{selectFilter('Тональность', 'tonality', facets.tonalities)}
+							{facets.authorTypes.length > 1 && selectFilter('Тип автора', 'author_type', facets.authorTypes)}
+							<button type="button" className={styles.resetSlice} onClick={() => { setFilters(emptyVoiceFilters()); setHighlightId(null); }}>
+								Сбросить срез
+							</button>
+						</div>
+						<div className={styles.filterInfo}>
+							Текущий срез: <b>{visibleMentions.toLocaleString('ru-RU')}</b> упоминаний из{' '}
+							<b>{totalMentions.toLocaleString('ru-RU')}</b>
+							{activeNote !== 'Голос клиента' ? <> · {activeNote}</> : null}
+						</div>
+
+						<Suspense fallback={<Loader />}>
+							<VoiceGraph
+								voiceData={filteredData}
+								onNodeFilter={handleNodeFilter}
+								onHubFilter={handleHubFilter}
+								highlightId={highlightId}
+							/>
+						</Suspense>
+
+						<VoiceAiAnalysis
+							filteredData={filteredData}
+							visibleMentions={visibleMentions}
+							totalMentions={totalMentions}
+							dataForRequest={dataForRequest}
+							filters={filters}
+							ranges={ranges}
+							currentNote={activeNote}
+						/>
+
+						<div className={styles.tableSection}>
+							<div className={styles.tableToggleHeader} onClick={() => setShowTable(!showTable)}>
+								<div className={styles.toggleTitle}>
+									<span>Таблицы данных</span>
+								</div>
+								<div className={styles.toggleStatus}>{showTable ? 'Скрыть' : 'Показать'}</div>
+							</div>
+							{showTable && (
+								<div className={styles.tableControls}>
+									<div className={styles.tableTabs}>
+										<button
+											type="button"
+											className={`${styles.tabButton} ${activeTable === 'sources' ? styles.activeTab : ''}`}
+											onClick={() => setActiveTable('sources')}
+										>
+											Источники
+										</button>
+										<button
+											type="button"
+											className={`${styles.tabButton} ${activeTable === 'mention_types' ? styles.activeTab : ''}`}
+											onClick={() => setActiveTable('mention_types')}
+										>
+											Типы упоминаний
+										</button>
+									</div>
+									<button
+										type="button"
+										className={styles.exportButton}
+										onClick={activeTable === 'sources' ? exportSourcesTable : exportMentionTypesTable}
+									>
+										Выгрузить таблицу
+									</button>
+									<div className={styles.tableWrapper}>
+										{activeTable === 'sources' ? (
+											<table className={styles.dataTable}>
+												<thead>
+													<tr>
+														<th>Источник</th>
+														<th className={styles.sortableHeader} onClick={() => handleSort('neutral')}>Нейтральные</th>
+														<th className={styles.sortableHeader} onClick={() => handleSort('positive')}>Позитивные</th>
+														<th className={styles.sortableHeader} onClick={() => handleSort('negative')}>Негативные</th>
+														<th className={styles.sortableHeader} onClick={() => handleSort('audience')}>Аудитория</th>
+														<th className={styles.sortableHeader} onClick={() => handleSort('total')}>Всего</th>
+													</tr>
+												</thead>
+												<tbody>
+													{filteredSourcesForTable.map(source => (
+														<tr key={source.source}>
+															<td>{source.source}</td>
+															<td>{source.neutral}</td>
+															<td>{source.positive}</td>
+															<td>{source.negative}</td>
+															<td>{source.audience.toLocaleString('ru-RU')}</td>
+															<td>{source.total}</td>
+														</tr>
+													))}
+												</tbody>
+											</table>
+										) : (
+											<table className={styles.dataTable}>
+												<thead>
+													<tr>
+														<th>Источник</th>
+														<th>Тип упоминания</th>
+														<th className={styles.sortableHeader} onClick={() => handleMentionTypeSort('count')}>Количество</th>
+														<th className={styles.sortableHeader} onClick={() => handleMentionTypeSort('audience')}>Аудитория</th>
+													</tr>
+												</thead>
+												<tbody>
+													{mentionTypesTable.map(row => (
+														<tr key={`${row.hub}-${row.type}`}>
+															<td>{row.hub}</td>
+															<td>{row.type}</td>
+															<td>{row.count}</td>
+															<td>{row.audience.toLocaleString('ru-RU')}</td>
+														</tr>
+													))}
+												</tbody>
+											</table>
+										)}
+									</div>
+								</div>
+							)}
+						</div>
+					</div>
+				)}
+			</Content>
+		</Layout>
+	);
 };
 
 export default VoiceOfCustomer;

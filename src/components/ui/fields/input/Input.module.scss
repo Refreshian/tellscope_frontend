@@ -43,3 +43,22 @@
 		color: rgba($color: $color_black, $alpha: 0.4);
 	}
 }
+
+
+/* ===== Tellscope polish: search input ===== */
+.img {
+	left: 14px;
+}
+
+.input {
+	padding-left: 40px;
+	border-color: rgba(16, 24, 40, 0.1);
+	transition:
+		border-color 0.15s ease,
+		box-shadow 0.15s ease;
+
+	&:focus {
+		border-color: #1760e8;
+		box-shadow: 0 0 0 3px rgba(23, 96, 232, 0.12);
+	}
+}

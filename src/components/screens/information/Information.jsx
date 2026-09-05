@@ -4,7 +4,7 @@ import React, {
 	useEffect,
 	useState,
 	useMemo
-  } from 'react';
+} from 'react';
 import { useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import Slider from 'rc-slider';
@@ -28,6 +28,7 @@ import Input from '@/components/ui/fields/input/Input';
 import LeftMenu from '@/components/ui/left-menu/LeftMenu';
 import LeftMenuActive from '@/components/ui/left-menu/left-menu-active/LeftMenuActive';
 import NoDataRequest from '@/components/no-data-request/NoDataRequest';
+import AiAnalysisBlock from '@/components/ui/ai-analysis/AiAnalysisBlock';
 import QueryStringHelp from '@/components/ui/query-string-help/QueryStringHelp';
 
 import { useActions } from '@/hooks/useActions';
@@ -210,7 +211,13 @@ const Information = () => {
 
 			const requestData = {
 				question: aiQuery,
-				data: filteredData,
+				data: {
+					...filteredData,
+					num_messages: countTotalMessages(filteredData),
+					num_unique_authors: new Set(
+						(filteredData.values || []).map((item) => item?.author?.fullname || item?.author?.url)
+					).size,
+				},
 				index: dataForRequest.index,
 				min_date: dataForRequest.min_date,
 				max_date: dataForRequest.max_date,
@@ -219,18 +226,19 @@ const Information = () => {
 					repostsRange,
 					erRange,
 					viewsCountRange,
+					original_messages: countTotalMessages(data_information),
 				},
 				searchInTexts,
 			}; 
-			// http://localhost:5001/ai-question-information-graph
+
 			const response = await fetch('/api/ai-question-information-graph', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(requestData),
 			});
+			const result = await response.json().catch(() => ({}));
 			if (!response.ok)
-				throw new Error(`Ошибка запроса: ${response.status}`);
-			const result = await response.json();
+				throw new Error(result.error || `Ошибка запроса: ${response.status}`);
 
 			if (result.content)
 				setAiAnalysis(result.content);
@@ -262,64 +270,125 @@ const Information = () => {
 		setSortConfig({ key, direction });
 	};
 
-	const sortedTableData = useMemo(() => {
+	// FLATTENED data for table (each row = один текст, не важно репост или нет)
+	const flattenedTableData = useMemo(() => {
 		if (!filteredData || !filteredData.values) return [];
-		const dataCopy = [...filteredData.values];
-		dataCopy.sort((a, b) => {
-			let valA, valB;
-			switch (sortConfig.key) {
-				case 'audience':
-					valA = Number(a.author.audienceCount) || 0;
-					valB = Number(b.author.audienceCount) || 0;
-					break;
-				case 'reposts':
-					valA = a.reposts ? a.reposts.length : 0;
-					valB = b.reposts ? b.reposts.length : 0;
-					break;
-				case 'er':
-					valA = Number(a.author.er) || 0;
-					valB = Number(b.author.er) || 0;
-					break;
-				case 'viewsCount':
-					valA = Number(a.author.viewsCount) || 0;
-					valB = Number(b.author.viewsCount) || 0;
-					break;
-				default:
-					return 0;
+		let result = [];
+		filteredData.values.forEach((item) => {
+			// основной текст
+			result.push({
+				...item.author,
+				repostCount: item.reposts ? item.reposts.length : 0,
+				type: 'original',
+				rootAuthor: item.author.fullname,
+				rootUrl: item.author.url, // добавим rootUrl для возможного дальнейшего использования
+			});
+			// репосты
+			if (item.reposts && Array.isArray(item.reposts) && item.reposts.length > 0) {
+				item.reposts.forEach((repost) => {
+					result.push({ 
+						...repost,
+						repostCount: '',
+						type: 'repost',
+						rootAuthor: item.author.fullname,
+						rootUrl: item.author.url, // вот тут понадобится!
+					});
+				});
 			}
+		});
+		return result;
+	}, [filteredData]);
+
+	const sortedTableData = useMemo(() => {
+	const dataCopy = [...flattenedTableData];
+	dataCopy.sort((a, b) => {
+		let valA, valB;
+		let numeric = false;
+		switch (sortConfig.key) {
+		case 'audience':
+			valA = Number(a.audienceCount) || 0;
+			valB = Number(b.audienceCount) || 0;
+			numeric = true;
+			break;
+		case 'reposts':
+			valA = Number(a.repostCount) || 0;
+			valB = Number(b.repostCount) || 0;
+			numeric = true;
+			break;
+		case 'er':
+			valA = Number(a.er) || 0;
+			valB = Number(b.er) || 0;
+			numeric = true;
+			break;
+		case 'viewsCount':
+			valA = Number(a.viewsCount) || 0;
+			valB = Number(b.viewsCount) || 0;
+			numeric = true;
+			break;
+		case 'fullname':
+			valA = a.fullname || '';
+			valB = b.fullname || '';
+			break;
+		case 'author_type':
+			valA = a.author_type || '';
+			valB = b.author_type || '';
+			break;
+		case 'hub':
+			valA = a.hub || '';
+			valB = b.hub || '';
+			break;
+		case 'sex':
+			valA = a.sex || '';
+			valB = b.sex || '';
+			break;
+		case 'age':
+			valA = a.age || '';
+			valB = b.age || '';
+			break;
+		case 'url':
+			valA = a.url || '';
+			valB = b.url || '';
+			break;
+		default:
+			return 0;
+		}
+		if (numeric) {
 			if (valA < valB) return sortConfig.direction === 'desc' ? 1 : -1;
 			if (valA > valB) return sortConfig.direction === 'desc' ? -1 : 1;
 			return 0;
-		});
-		return dataCopy;
-	}, [filteredData, sortConfig]);
+		}
+		const cmp = String(valA).localeCompare(String(valB), 'ru', { numeric: true, sensitivity: 'base' });
+		return sortConfig.direction === 'desc' ? -cmp : cmp;
+	});
+	return dataCopy;
+	}, [flattenedTableData, sortConfig]);
 
 	const exportTable = () => {
-		if (!filteredData || !filteredData.values) return;
-		const worksheetData = [
-			['Имя', 'Тип профиля', 'Источник', 'Пол', 'Возраст', 'Аудитория', 'Репосты', 'Вовлеченность (ER)', 'Просмотры', 'URL'],
-		];
+	if (!sortedTableData.length) return;
+	const worksheetData = [
+		['Имя', 'Тип профиля', 'Источник', 'Пол', 'Возраст', 'Аудитория', 'Репосты (только для оригинала)', 'Вовлеченность (ER)', 'Просмотры', 'URL', 'Тип', 'Оригинальный автор'],
+	];
 
-		console.log(sortedTableData[0]?.author);
-		sortedTableData.forEach((item) => {
-			const author = item.author;
-			worksheetData.push([
-				author.fullname,
-				author.author_type,
-				author.hub,
-				author.sex,
-				author.age || '-',
-				author.audienceCount,  
-				item.reposts ? item.reposts.length : 0,
-				author.er || 0,
-				author.viewsCount || 0,
-				author.url,
-			]);
-		});
-		const workbook = XLSX.utils.book_new();
-		const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-		XLSX.utils.book_append_sheet(workbook, worksheet, 'Данные');
-		XLSX.writeFile(workbook, 'Информационный граф.xlsx');
+	sortedTableData.forEach((author) => {
+		worksheetData.push([
+		author.fullname,
+		author.author_type,
+		author.hub,
+		author.sex,
+		author.age || '-',
+		author.audienceCount,
+		author.repostCount !== undefined ? author.repostCount : '',
+		author.er || 0,
+		author.viewsCount || 0,
+		author.url,
+		author.type === 'repost' ? 'репост' : 'оригинал',
+		author.rootAuthor,
+		]);
+	});
+	const workbook = XLSX.utils.book_new();
+	const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+	XLSX.utils.book_append_sheet(workbook, worksheet, 'Данные');
+	XLSX.writeFile(workbook, 'Информационный граф.xlsx');
 	};
 
 	const countTotalMessages = (data) => {
@@ -337,312 +406,324 @@ const Information = () => {
 		if (sortedTableData.length > 0) {
 		  console.log('Поля первого автора:', sortedTableData[0].author);
 		}
-	  }, [sortedTableData]);
+	}, [sortedTableData]);
 
 	return ( 
 		<Layout>
-		  {(isLoading || isLoading_information) && (
-			<>
-			  <BackgroundLoader />
-			  <Loader />
-			</>
-		  )}
-		  {pathname !== '/home' && active_menu ? <LeftMenuActive /> : <LeftMenu />}
-		  <Content>
-			{/* СТАВИМ stickyTop СЮДА, ОБЕРНУВ оба верхних блока */}
-			<div className={styles.stickyTop}>
-			  <div
-				className={styles.block__pageName}
-				style={isSuccess_information ? {} : { alignSelf: 'center' }}
-			  >
-				{isSuccess_information ? (
-				  <>
-					<h3 className={styles.pageName__title}>Информационный граф</h3>
-					<p>
-					  {data_information && data_information.num_messages
-						? `${data_information.num_messages} текста(ов) и ${data_information.num_unique_authors} автора(ов)`
-						: ''}
-					</p>
-				  </>
-				) : (
-				  <BeforeSearch
-					title="Информационный граф"
-					link="https://tsdoc.headsmade.com/en/information-graf"
-				  />
-				)}
-			  </div>
-			  <div
-				className={styles.block__configureSearch}
-				style={isSuccess_information ? {} : { alignSelf: 'center' }}
-			  >
-				{isSuccess &&
-				  Object.keys(dataUser ? dataUser : {}).length > 0 && (
-					<DataForSearch multi={false} />
-				  )}
-				{isSuccess &&
-				  dataForRequest.index !== null &&
-				  Object.keys(dataUser ? dataUser : {}).length > 0 && (
-					<CustomCalendar />
-				  )}
-				{/* <AdditionalParameters /> */}
-				<Input
-				  placeholder="Поиск по тексту"
-				  styleInput={{
-					width: 'calc(281/1440*100vw)',
-					height: 'calc(55.9/1440*100vw)',
-					borderRadius: 'calc(8/1440*100vw)',
-				  }}
-				  styleLabel={{ display: 'none' }}
-				  onChange={onChange}
-				  value={
-					dataForRequest.query_str === null
-					  ? ''
-					  : dataForRequest.query_str
-				  }
-				/>
-				{/* <QueryStringHelp /> */}
-				<Button
-				  style={{
-					width: 'calc(220/1440*100vw)',
-					height: 'calc(56/1440*100vw)',
-				  }}
-				  onClick={getInformationData}
-				>
-				  Запуск
-				</Button>
-			  </div>
-			</div>
-			{/* КОНЕЦ stickyTop */}
-	
-			{externalNoData && <NoDataRequest />}
-	
-			{isSuccess_information && (
-			  <div className={styles.scrollableResults}>
-				{/* Ползунки фильтрации */}
-				<div className={styles.slidersContainer}>
-				  <div className={styles.sliderRow}>
-					<div className={styles.sliderWrapper}>
-					  <label>Аудитория:</label>
-					  <Slider range min={0} max={audienceRange[1]} value={audienceRange} onChange={setAudienceRange} />
-					  <div className={styles.sliderValues}>
-						<span>{audienceRange[0]}</span> - <span>{audienceRange[1]}</span>
-					  </div>
-					</div>
-					<div className={styles.sliderWrapper}>
-					  <label>Репосты:</label>
-					  <Slider range min={0} max={repostsRange[1]} value={repostsRange} onChange={setRepostsRange} />
-					  <div className={styles.sliderValues}>
-						<span>{repostsRange[0]}</span> - <span>{repostsRange[1]}</span>
-					  </div>
-					</div>
-					<div className={styles.sliderWrapper}>
-					  <label>Вовлеченность (ER):</label>
-					  <Slider range min={0} max={erRange[1]} value={erRange} onChange={setErRange} />
-					  <div className={styles.sliderValues}>
-						<span>{erRange[0]}</span> - <span>{erRange[1]}</span>
-					  </div>
-					</div>
-					<div className={styles.sliderWrapper}>
-					  <label>Просмотры:</label>
-					  <Slider range min={0} max={viewsCountRange[1]} value={viewsCountRange} onChange={setViewsCountRange} />
-					  <div className={styles.sliderValues}>
-						<span>{viewsCountRange[0]}</span> - <span>{viewsCountRange[1]}</span>
-					  </div>
-					</div>
-				  </div>
-				</div>
-	
-				{/* Информация о количестве упоминаний */}
-				<div className={styles.filterInfo}>
-				  Текущие фильтры содержат <b>{countTotalMessages(filteredData) || 0}</b>
-				  &nbsp;упоминаний из <b>{countTotalMessages(data_information) || 0}</b>
-				</div>
-	
-				{/* Граф */}
-				<Suspense fallback={<Loader />}>
-				  <InformationGraphs data={filteredData || { values: [] }} />
-				</Suspense>
-	
-				{/* Блок ИИ-анализа */}
-				<div className={styles.aiAnalysisBlock}>
-				  <button
-					className={styles.analyzeButton}
-					onClick={() => setShowAiInput((v) => !v)}
-				  >
-					{showAiInput ? 'Скрыть анализ' : 'Проанализировать данные с помощью ИИ'}
-				  </button>
-				  {showAiInput && (
-					<div className={styles.aiInteractionWrapper}>
-					  <div className={styles.aiInputContainer}>
-						<textarea
-						  className={styles.aiTextarea}
-						  placeholder={
-							"Примеры запросов:\n- Какие основные тенденции в данных?\n- Расскажи, как распространялась информация, приведи примеры и ссылки на важные сообщения.\n- Выяви самых активных авторов с высоким значением вовлеченности."
-						  }
-						  rows={4}
-						  value={aiQuery}
-						  onChange={(e) => setAiQuery(e.target.value)}
-						/>
-						<div className={styles.aiControls}>
-						  <div className={styles.aiCheckboxContainer}>
-							<input
-							  type="checkbox"
-							  id="searchInTexts"
-							  className={styles.aiCheckbox}
-							  checked={searchInTexts}
-							  onChange={(e) => setSearchInTexts(e.target.checked)}
-							/>
-							<label htmlFor="searchInTexts" className={styles.aiCheckboxLabel}>
-							  Искать по текстам
-							</label>
-						  </div>
-						  <button
-							className={styles.sendButton}
-							onClick={handleAiSubmit}
-							disabled={isAiLoading}
-						  >
-							{isAiLoading ? 'Анализируем...' : 'Отправить запрос'}
-						  </button>
-						</div>
-					  </div>
-					  {isAiLoading && (
-						<div className={styles.aiLoading}>
-						  <Loader size="small" />
-						  <p>Анализируем данные. Это может занять некоторое время...</p>
-						</div>
-					  )}
-					  {aiError && (
-						<div className={styles.aiError}>
-						  <p>Ошибка: {aiError}</p>
-						</div>
-					  )}
-					  {aiAnalysis && (
-						<div className={styles.aiResponse}>
-						  <h4>Результаты анализа:</h4>
-						  <div className={styles.aiResponseContent}>
-							<ReactMarkdown rehypePlugins={[rehypeHighlight]}>
-							  {aiAnalysis}
-							</ReactMarkdown>
-						  </div>
-						</div>
-					  )}
-					</div>
-				  )}
-				</div>
-	
-				{/* Таблица */}
-				<div className={styles.tableSection}>
-				  <button
-					className={styles.tableToggleHeader}
-					onClick={() => setShowTable(!showTable)}
-				  >
-					<div className={styles.toggleTitle}>
-					  <svg
-						width="20"
-						height="20"
-						viewBox="0 0 24 24"
-						fill="none"
-						xmlns="http://www.w3.org/2000/svg"
-						className={`${styles.toggleIcon} ${showTable ? styles.rotated : ''}`}
-					  >
-						<path d="M19 9L12 16L5 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-					  </svg>
-					  <span>Таблица авторов</span>
-					</div>
-					<div className={styles.toggleStatus}>
-					  {showTable ? 'Скрыть таблицу' : 'Показать таблицу'}
-					</div>
-				  </button>
-				  {showTable && (
-					<div className={styles.tableControls}>
-					  <div className={styles.exportButtons}>
-						<button className={styles.exportButton} onClick={exportTable}>
-						  <svg width="16" height="16" viewBox="0 0 24 24"
-							fill="none" stroke="currentColor">
-							<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-							<polyline points="7 10 12 15 17 10" />
-							<line x1="12" y1="15" x2="12" y2="3" />
-						  </svg>
-						  Выгрузить таблицу
-						</button>
-					  </div>
-					  <div className={styles.tableWrapper}>
-						<table className={styles.dataTable}>
-						  <thead>
-							<tr>
-							  <th>Имя</th>
-							  <th>Тип профиля</th>
-							  <th>Источник</th>
-							  <th>Пол</th>
-							  <th>Возраст</th>
-							  <th onClick={() => handleSort('audience')} className={styles.sortableHeader}>
-								Аудитория
-								{sortConfig.key === 'audience' && (
-								  <span className={styles.sortIcon}>
-									{sortConfig.direction === 'desc' ? '↓' : '↑'}
-								  </span>
-								)}
-							  </th>
-							  <th onClick={() => handleSort('reposts')} className={styles.sortableHeader}>
-								Репосты
-								{sortConfig.key === 'reposts' && (
-								  <span className={styles.sortIcon}>
-									{sortConfig.direction === 'desc' ? '↓' : '↑'}
-								  </span>
-								)}
-							  </th>
-							  <th onClick={() => handleSort('er')} className={styles.sortableHeader}>
-								Вовлеченность (ER)
-								{sortConfig.key === 'er' && (
-								  <span className={styles.sortIcon}>
-									{sortConfig.direction === 'desc' ? '↓' : '↑'}
-								  </span>
-								)}
-							  </th>
-							  <th onClick={() => handleSort('viewsCount')} className={styles.sortableHeader}>
-								Просмотры
-								{sortConfig.key === 'viewsCount' && (
-								  <span className={styles.sortIcon}>
-									{sortConfig.direction === 'desc' ? '↓' : '↑'}
-								  </span>
-								)}
-							  </th>
-							  <th>URL</th>
-							</tr>
-						  </thead>
-						  <tbody>
-						  {sortedTableData.map((item, index) => {
-							const author = item.author;
-							return (
-								<tr key={`${author.fullname}-${index}`}>
-								<td>{author.fullname}</td>
-								<td>{author.author_type}</td>
-								<td>{author.hub}</td>
-								<td>{author.sex || '-'}</td>
-								<td>{author.age || '-'}</td>
-								<td>{author.audienceCount}</td>
-								<td>{item.reposts ? item.reposts.length : 0}</td>
-								<td>{author.er || 0}</td>
-								<td>{author.viewsCount || 0}</td>
-								<td className={styles.textCell}>
-									<a href={author.url} target="_blank" rel="noopener noreferrer">
-									{author.url}
-									</a>
-								</td>
-								</tr>
-							);
-							})}
-						  </tbody>
-						</table>
-					  </div>
-					</div>
-				  )}
-				</div>
-			  </div>
+			{(isLoading || isLoading_information) && (
+				<>
+					<BackgroundLoader />
+					<Loader />
+				</>
 			)}
-		  </Content>
+			{pathname !== '/home' && active_menu ? <LeftMenuActive /> : <LeftMenu />}
+			<Content>
+				<div className={styles.stickyTop}>
+				<div className={styles.block__pageName} style={isSuccess_information ? {} : { alignSelf: 'center' }}>
+					{isSuccess_information ? (
+					<>
+						<h3 className={styles.pageName__title}>Информационный граф</h3>
+						<p>
+						{data_information && data_information.num_messages
+							? `${data_information.num_messages} текста(ов) и ${data_information.num_unique_authors} автора(ов)`
+							: ''}
+						</p>
+					</>
+					) : (
+					<BeforeSearch
+						title="Информационный граф"
+						link="https://tsdoc.headsmade.com/en/information-graf"
+					/>
+					)}
+				</div>
+				<div className={styles.topControls}>
+					{isSuccess &&
+					Object.keys(dataUser ? dataUser : {}).length > 0 && (
+						<DataForSearch multi={false} 
+						style={{ width: "217px", minWidth: "180px", maxWidth: "260px" }}/>
+					)}
+					{isSuccess &&
+					dataForRequest.index !== null &&
+					Object.keys(dataUser ? dataUser : {}).length > 0 && (
+						<CustomCalendar />
+					)}
+					<Input
+					placeholder="Поиск по тексту"
+					styleInput={{
+						width: 'calc(281/1440*100vw)',
+						height: 'calc(56/1440*100vw)',
+						borderRadius: 'calc(12/1440*100vw)',
+					}}
+					styleLabel={{ display: 'none' }}
+					onChange={onChange}
+					value={
+						dataForRequest.query_str === null
+						? ''
+						: dataForRequest.query_str
+					}
+					/>
+					<Button
+					style={{
+						width: 'calc(220/1440*100vw)',
+						height: 'calc(56/1440*100vw)',
+					}}
+					onClick={getInformationData}
+					>
+					Запуск
+					</Button>
+				</div>
+				</div>
+
+				{externalNoData && <NoDataRequest />}
+
+				{isSuccess_information && (
+					<div className={styles.scrollableResults}>
+						{/* Ползунки фильтрации */}
+						<div className={styles.slidersContainer}>
+							<div className={styles.sliderRow}>
+								<div className={styles.sliderWrapper}>
+									<label>Аудитория:</label>
+									<Slider range min={0} max={audienceRange[1]} value={audienceRange} onChange={setAudienceRange} />
+									<div className={styles.sliderValues}>
+										<span>{audienceRange[0]}</span> - <span>{audienceRange[1]}</span>
+									</div>
+								</div>
+								<div className={styles.sliderWrapper}>
+									<label>Репосты:</label>
+									<Slider range min={0} max={repostsRange[1]} value={repostsRange} onChange={setRepostsRange} />
+									<div className={styles.sliderValues}>
+										<span>{repostsRange[0]}</span> - <span>{repostsRange[1]}</span>
+									</div>
+								</div>
+								<div className={styles.sliderWrapper}>
+									<label>Вовлеченность (ER):</label>
+									<Slider range min={0} max={erRange[1]} value={erRange} onChange={setErRange} />
+									<div className={styles.sliderValues}>
+										<span>{erRange[0]}</span> - <span>{erRange[1]}</span>
+									</div>
+								</div>
+								<div className={styles.sliderWrapper}>
+									<label>Просмотры:</label>
+									<Slider range min={0} max={viewsCountRange[1]} value={viewsCountRange} onChange={setViewsCountRange} />
+									<div className={styles.sliderValues}>
+										<span>{viewsCountRange[0]}</span> - <span>{viewsCountRange[1]}</span>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						{/* Информация о количестве упоминаний */}
+						<div className={styles.filterInfo}>
+							Текущие фильтры содержат <b>{countTotalMessages(filteredData) || 0}</b>
+							&nbsp;упоминаний из <b>{countTotalMessages(data_information) || 0}</b>
+						</div>
+
+						{/* Контейнер для графика с ограничением высоты */}
+						<div className={styles.graphContainer}>
+							<Suspense fallback={<Loader />}>
+								<InformationGraphs data={filteredData || { values: [] }} />
+							</Suspense>
+						</div>
+
+						<AiAnalysisBlock
+							visibleCount={countTotalMessages(filteredData) || 0}
+							totalCount={countTotalMessages(data_information) || 0}
+							suggestions={[
+								'Как распространялась информация и какие сообщения ключевые?',
+								'Кто авторы с высоким охватом и вовлечённостью?',
+								'Какие площадки доминируют в текущей выборке?',
+							]}
+							showInput={showAiInput}
+							onToggle={() => setShowAiInput((v) => !v)}
+							query={aiQuery}
+							onQueryChange={setAiQuery}
+							onSubmit={handleAiSubmit}
+							loading={isAiLoading}
+							error={aiError}
+							analysis={aiAnalysis}
+							loadingNode={<Loader size="small" />}
+							extraControls={(
+								<div className={styles.aiCheckboxContainer}>
+									<input
+										type="checkbox"
+										id="searchInTexts"
+										className={styles.aiCheckbox}
+										checked={searchInTexts}
+										onChange={(e) => setSearchInTexts(e.target.checked)}
+									/>
+									<label htmlFor="searchInTexts" className={styles.aiCheckboxLabel}>
+										Искать по текстам
+									</label>
+								</div>
+							)}
+						/>
+
+						{/* Таблица */}
+						<div className={styles.tableSection}>
+							<button
+								className={styles.tableToggleHeader}
+								onClick={() => setShowTable(!showTable)}
+							>
+								<div className={styles.toggleTitle}>
+									<svg
+										width="20"
+										height="20"
+										viewBox="0 0 24 24"
+										fill="none"
+										xmlns="http://www.w3.org/2000/svg"
+										className={`${styles.toggleIcon} ${showTable ? styles.rotated : ''}`}
+									>
+										<path d="M19 9L12 16L5 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+									</svg>
+									<span>Таблица авторов</span>
+								</div>
+								<div className={styles.toggleStatus}>
+									{showTable ? 'Скрыть таблицу' : 'Показать таблицу'}
+								</div>
+							</button>
+							{showTable && (
+								<div className={styles.tableControls}>
+									<div className={styles.exportButtons}>
+										<button className={styles.exportButton} onClick={exportTable}>
+											<svg width="16" height="16" viewBox="0 0 24 24"
+												fill="none" stroke="currentColor">
+												<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+												<polyline points="7 10 12 15 17 10" />
+												<line x1="12" y1="15" x2="12" y2="3" />
+											</svg>
+											Выгрузить таблицу
+										</button>
+									</div>
+									<div className={styles.tableWrapper}>
+										<table className={styles.dataTable}>
+											<thead>
+												<tr>
+													<th onClick={() => handleSort('fullname')} className={styles.sortableHeader}>
+														Имя
+														{sortConfig.key === 'fullname' && (
+															<span className={styles.sortIcon}>
+																{sortConfig.direction === 'desc' ? '↓' : '↑'}
+															</span>
+														)}
+													</th>
+													<th onClick={() => handleSort('author_type')} className={styles.sortableHeader}>
+														Тип профиля
+														{sortConfig.key === 'author_type' && (
+															<span className={styles.sortIcon}>
+																{sortConfig.direction === 'desc' ? '↓' : '↑'}
+															</span>
+														)}
+													</th>
+													<th onClick={() => handleSort('hub')} className={styles.sortableHeader}>
+														Источник
+														{sortConfig.key === 'hub' && (
+															<span className={styles.sortIcon}>
+																{sortConfig.direction === 'desc' ? '↓' : '↑'}
+															</span>
+														)}
+													</th>
+													<th onClick={() => handleSort('sex')} className={styles.sortableHeader}>
+														Пол
+														{sortConfig.key === 'sex' && (
+															<span className={styles.sortIcon}>
+																{sortConfig.direction === 'desc' ? '↓' : '↑'}
+															</span>
+														)}
+													</th>
+													<th onClick={() => handleSort('age')} className={styles.sortableHeader}>
+														Возраст
+														{sortConfig.key === 'age' && (
+															<span className={styles.sortIcon}>
+																{sortConfig.direction === 'desc' ? '↓' : '↑'}
+															</span>
+														)}
+													</th>
+													<th onClick={() => handleSort('audience')} className={styles.sortableHeader}>
+														Аудитория
+														{sortConfig.key === 'audience' && (
+															<span className={styles.sortIcon}>
+																{sortConfig.direction === 'desc' ? '↓' : '↑'}
+															</span>
+														)}
+													</th>
+													<th onClick={() => handleSort('reposts')} className={styles.sortableHeader}>
+														Репосты
+														{sortConfig.key === 'reposts' && (
+															<span className={styles.sortIcon}>
+																{sortConfig.direction === 'desc' ? '↓' : '↑'}
+															</span>
+														)}
+													</th>
+													<th onClick={() => handleSort('er')} className={styles.sortableHeader}>
+														Вовлеченность (ER)
+														{sortConfig.key === 'er' && (
+															<span className={styles.sortIcon}>
+																{sortConfig.direction === 'desc' ? '↓' : '↑'}
+															</span>
+														)}
+													</th>
+													<th onClick={() => handleSort('viewsCount')} className={styles.sortableHeader}>
+														Просмотры
+														{sortConfig.key === 'viewsCount' && (
+															<span className={styles.sortIcon}>
+																{sortConfig.direction === 'desc' ? '↓' : '↑'}
+															</span>
+														)}
+													</th>
+													<th onClick={() => handleSort('url')} className={styles.sortableHeader}>
+														URL
+														{sortConfig.key === 'url' && (
+															<span className={styles.sortIcon}>
+																{sortConfig.direction === 'desc' ? '↓' : '↑'}
+															</span>
+														)}
+													</th>
+												</tr>
+											</thead>
+												<tbody>
+												{sortedTableData.map((author, index) => (
+												<tr key={`${author.fullname}-${author.url}-${index}`} className={author.type === 'repost' ? styles.repostRow : ''}>
+													<td>
+													{author.fullname}
+													{author.type === 'repost' && author.rootUrl && (
+														<>
+														&nbsp;(
+														<a
+															href={author.rootUrl}
+															target="_blank"
+															rel="noopener noreferrer"
+															style={{ color: 'gray', fontSize: 12, textDecoration: 'underline' }}
+														>
+															репост от {author.rootAuthor}
+														</a>
+														)
+														</>
+													)} 
+													</td>
+													<td>{author.author_type}</td>
+													<td>{author.hub}</td>
+													<td>{author.sex || '-'}</td>
+													<td>{author.age || '-'}</td>
+													<td>{author.audienceCount}</td>
+													<td>{author.repostCount !== undefined ? author.repostCount : ''}</td>
+													<td>{author.er || 0}</td>
+													<td>{author.viewsCount || 0}</td>
+													<td className={styles.textCell}>
+													<a href={author.url} target="_blank" rel="noopener noreferrer">{author.url}</a>
+													</td>
+												</tr>
+												))}
+												</tbody>
+										</table>
+									</div>
+								</div>
+							)}
+						</div>
+					</div>
+				)}
+			</Content>
 		</Layout>
-	  );
-	};
-	
-	export default Information;
+	);
+};
+
+export default Information;
