@@ -23,7 +23,7 @@
 	@include block__sources();
 }
 
-/* ===== Tellscope: restore chips under the donut ===== */
+/* ===== Tellscope: полоса возврата источников — карточки на всю ширину ===== */
 .mentionsWrap {
 	display: flex;
 	flex-direction: column;
@@ -39,36 +39,26 @@
 }
 
 .block__sources {
-	position: static !important;
-	top: auto !important;
-	right: auto !important;
-	width: auto !important;
-	height: auto !important;
-	max-height: none !important;
-	transform: none !important;
 	display: flex;
-	flex-wrap: wrap;
-	justify-content: center;
-	gap: 8px;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 10px;
 	margin-top: 10px;
-	padding: 6px 0 2px;
-	background: transparent;
-	border: none;
-	box-shadow: none;
-	overflow: visible !important;
+	padding: 4px 0 2px;
+	width: 100%;
 }
 
-.restoreChip {
-	display: inline-flex;
-	align-items: center;
-	gap: 7px;
-	padding: 5px 12px;
+.restoreCard {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	width: 100%;
+	padding: 10px 14px;
 	border: 1px solid rgba(16, 24, 40, 0.12);
-	border-radius: 999px;
+	border-radius: 12px;
 	background: #ffffff;
-	font-size: 13px;
-	color: #344054;
 	cursor: pointer;
+	text-align: left;
 	transition:
 		border-color 0.15s ease,
 		box-shadow 0.15s ease,
@@ -76,56 +66,124 @@
 
 	&:hover {
 		border-color: rgba(23, 96, 232, 0.4);
-		box-shadow: 0 2px 8px rgba(16, 24, 40, 0.08);
-		background-color: #f4f7ff;
+		box-shadow: 0 3px 10px rgba(16, 24, 40, 0.08);
+		background-color: #f7faff;
 	}
 }
 
-.restoreDot {
-	width: 10px;
-	height: 10px;
-	border-radius: 50%;
-	flex: 0 0 10px;
+.restoreCardHead {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
 }
 
-
-.restoreChip {
-	gap: 8px;
-	align-items: center;
+.restoreDot {
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	flex: 0 0 12px;
 }
 
 .restoreName {
-	font-weight: 600;
+	font-weight: 700;
+	font-size: 15px;
 	color: #101828;
-	max-width: 200px;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	min-width: 0;
 }
 
-.restoreTones {
-	display: inline-flex;
-	align-items: center;
-	gap: 7px;
-	font-variant-numeric: tabular-nums;
-	font-size: 13px;
+.restoreAction {
+	margin-left: auto;
+	font-size: 12px;
+	color: #8a94a6;
+	flex: 0 0 auto;
+}
+
+.restoreCardBody {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	padding-right: 170px;
+}
+
+.restoreRow {
+	display: flex;
+	align-items: baseline;
+	gap: 12px;
+	min-width: 0;
+}
+
+.restoreLabel {
+	width: 86px;
+	flex: 0 0 86px;
+	font-size: 12px;
+	color: #667085;
+}
+
+.restoreValue {
+	font-size: 14px;
 	font-weight: 700;
+	font-variant-numeric: tabular-nums;
 }
 
-.toneNeg {
-	color: #d92d20;
+.restoreAud {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	justify-content: center;
+	gap: 2px;
+	padding-left: 14px;
+	border-left: 1px solid rgba(16, 24, 40, 0.08);
 }
 
-.tonePos {
-	color: #039855;
-}
-
-.toneNeu {
+.restoreAudLabel {
+	font-size: 11px;
 	color: #98a2b3;
 }
 
-.toneAud {
-	color: #667085;
-	font-size: 12px;
-	font-weight: 500;
+.restoreAudValue {
+	font-size: 15px;
+	font-weight: 700;
+	color: #101828;
+	font-variant-numeric: tabular-nums;
+}
+
+.labNeg,
+.valNeg {
+	color: #d92d20;
+}
+
+.labPos,
+.valPos {
+	color: #039855;
+}
+
+.labNeu,
+.valNeu {
+	color: #98a2b3;
+}
+
+@media (max-width: 640px) {
+	.restoreCardBody {
+		padding-right: 0;
+	}
+
+	.restoreAud {
+		position: static;
+		flex-direction: row;
+		justify-content: flex-end;
+		gap: 8px;
+		border-left: none;
+		padding: 6px 0 0;
+		margin-top: 4px;
+		border-top: 1px solid rgba(16, 24, 40, 0.08);
+	}
 }

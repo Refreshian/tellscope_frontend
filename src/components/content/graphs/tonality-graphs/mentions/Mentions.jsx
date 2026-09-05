@@ -156,33 +156,54 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 							<button
 								type='button'
 								key={`deleted-${index}`}
-								className={styles.restoreChip}
+								className={styles.restoreCard}
 								onClick={() => handleRestoreClick(index)}
 								title='Клик — вернуть источник на график'
 							>
-								<span
-									className={styles.restoreDot}
-									style={{ background: entry.color }}
-								/>
-								<span className={styles.restoreName}>{entry.name}</span>
-								<span className={styles.restoreTones}>
+								<span className={styles.restoreCardHead}>
+									<span
+										className={styles.restoreDot}
+										style={{ background: entry.color }}
+									/>
+									<span className={styles.restoreName}>{entry.name}</span>
+									<span className={styles.restoreAction}>↩ вернуть</span>
+								</span>
+								<span className={styles.restoreCardBody}>
 									{neg > 0 && (
-										<span className={styles.toneNeg} title='Негативных сообщений'>
-											{formatCount(neg)}
+										<span className={styles.restoreRow}>
+											<span className={`${styles.restoreLabel} ${styles.labNeg}`}>
+												Негатив
+											</span>
+											<span className={`${styles.restoreValue} ${styles.valNeg}`}>
+												{formatCount(neg)}
+											</span>
 										</span>
 									)}
 									{pos > 0 && (
-										<span className={styles.tonePos} title='Позитивных сообщений'>
-											{formatCount(pos)}
+										<span className={styles.restoreRow}>
+											<span className={`${styles.restoreLabel} ${styles.labPos}`}>
+												Позитив
+											</span>
+											<span className={`${styles.restoreValue} ${styles.valPos}`}>
+												{formatCount(pos)}
+											</span>
 										</span>
 									)}
 									{neu > 0 && (
-										<span className={styles.toneNeu} title='Нейтральных сообщений'>
-											{formatCount(neu)}
+										<span className={styles.restoreRow}>
+											<span className={`${styles.restoreLabel} ${styles.labNeu}`}>
+												Нейтрал
+											</span>
+											<span className={`${styles.restoreValue} ${styles.valNeu}`}>
+												{formatCount(neu)}
+											</span>
 										</span>
 									)}
 									{aud > 0 && (
-										<span className={styles.toneAud}>({formatCount(aud)})</span>
+										<span className={styles.restoreAud}>
+											<span className={styles.restoreAudLabel}>Аудитория</span>
+											<span className={styles.restoreAudValue}>{formatCount(aud)}</span>
+										</span>
 									)}
 								</span>
 							</button>
