@@ -567,19 +567,18 @@ const DataSetPage = () => {
                             {baAccMsg && <div style={{ color: '#047857', marginTop: 4 }}>{baAccMsg}</div>}
                             {baAccErr && <div style={{ color: '#c53030', marginTop: 4 }}>{baAccErr}</div>}
                             {baThemes.length === 0 ? (
-                                <div style={{ color: '#98a2b3', padding: '6px 0', fontSize: 12 }}>Темы не найдены — нажмите «Обновить» или сохраните аккаунт BA.</div>
+                                <div style={{ color: '#98a2b3', padding: '4px 0', fontSize: 12 }}>Темы не найдены — нажмите «Обновить» или сохраните аккаунт BA.</div>
                             ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '6px 0 2px' }}>
                                     {baThemes.map(th => (
-                                        <div key={th.theme_id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px dashed #e6eaf0', fontSize: 13 }}>
-                                            <span style={{ width: 8, height: 8, borderRadius: 4, background: '#1760e8', flex: '0 0 auto' }} />
-                                            <span>{th.title}</span>
-                                        </div>
+                                        <span key={th.theme_id} title={th.title} style={{ border: '1px solid #c7d7fe', background: '#eef2ff', color: '#1760e8', borderRadius: 999, padding: '3px 11px', fontSize: 12, lineHeight: 1.4, whiteSpace: 'nowrap' }}>
+                                            {th.title}
+                                        </span>
                                     ))}
                                 </div>
                             )}
-                            <p style={{ color: '#98a2b3', margin: '6px 0 0' }}>
-                                Откройте папку темы — наверху появится кнопка «Загрузить из Brand Analytics».
+                            <p style={{ color: '#98a2b3', margin: '4px 0 0', fontSize: 12 }}>
+                                Для скачивания откройте папку темы — внутри будет кнопка «Загрузить из Brand Analytics».
                             </p>
                         </div>
                     </details>
