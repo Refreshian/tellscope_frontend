@@ -9,6 +9,15 @@ import MediaRating from '@/components/screens/media-rating/MediaRating';
 import AiAnalyticsPage from '@/components/screens/tables/ai-analytics-page/AiAnalyticsPage';
 import UserTonality from '@/components/screens/user-tonality/UserTonality';
 import VoiceOfCustomer from '@/components/screens/voice-of-customer/VoiceOfCustomer';
+import AIBot from '@/components/content/tables/ai-bot/AIBot';
+import ChatLLM from '@/components/screens/ai-test/ChatLLM.jsx';
+import GraphAnalysis from "../components/GraphVisualization/GraphAnalysis.jsx";
+import SmartAgent from '@/components/screens/smart-agent/SmartAgent';
+import MetaphorExamples from '../components/screens/metaphor-examples/MetaphorExamples.jsx';
+import Configs from '@/components/screens/configs/Configs';
+import MosinformRating from '@/components/screens/mosinform-rating/MosinformRating';
+import AdminPage from '@/components/screens/admin/AdminPage';
+
 
 import AnalysisOfThemesPage from '../components/screens/tables/ai-analytics-page/analysis-of-themes/AnalysisOfThemesPage';
 
@@ -83,4 +92,44 @@ export const routes = [
 		component: Faq,
 		isAuth: true,
 	},
+	{
+		path: "/ai-bot",
+		component: AIBot,
+		title: "AI Ассистент"
+	}, 
+	{
+		path: '/chat',
+		component: ChatLLM,
+		isAuth: true,
+	},
+	{
+		path: '/graph-analysis',
+		component: GraphAnalysis,
+		isAuth: true,
+	},
+	{
+		path: '/smart-agent',
+		component: SmartAgent,
+		isAuth: true,
+	},
+	{
+		path: '/lca-examples',
+		component: MetaphorExamples,
+		isAuth: true,
+	},
+	{
+		path: '/configs',
+		component: Configs,
+		isAuth: true,
+	},
+	{
+		path: '/mosinform-rating',
+		component: MosinformRating,
+		isAuth: true,
+	},
+	{
+		path: '/admin',
+		component: AdminPage,
+		isAuth: true,
+	}
 ];
