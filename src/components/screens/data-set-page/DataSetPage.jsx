@@ -350,13 +350,57 @@ const DataSetPage = () => {
     const baLoadedRef = useRef(false);
     const baPollRef = useRef(null);
 
+    const [baLogin, setBaLogin] = useState('');
+    const [baPass, setBaPass] = useState('');
+    const [baAccMsg, setBaAccMsg] = useState('');
+    const [baAccErr, setBaAccErr] = useState('');
+
+    const loadBaThemes = uid => {
+        fetch('/api/ba/themes' + (uid ? '?user_id=' + uid : ''))
+            .then(r => r.json())
+            .then(d => setBaThemes(d.themes || []))
+            .catch(() => {});
+    };
+
+    const baSaveAccount = async () => {
+        if (!baLogin.trim()) {
+            setBaAccErr('Введите логин Brand Analytics');
+            return;
+        }
+        setBaAccErr('');
+        setBaAccMsg('Сохраняю…');
+        try {
+            const r = await fetch('/api/ba/account', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: String(data_getUserId || '1'),
+                    login: baLogin.trim(),
+                    password: baPass,
+                    create_folders: true,
+                }),
+            });
+            const d = await r.json();
+            if (!r.ok) {
+                setBaAccMsg('');
+                setBaAccErr(d.detail || 'Ошибка сохранения');
+                return;
+            }
+            setBaAccMsg('Сохранено. Папки по темам созданы.');
+            setBaPass('');
+            loadBaThemes(data_getUserId);
+            refetch();
+        } catch (e) {
+            setBaAccMsg('');
+            setBaAccErr(String((e && e.message) || e));
+        }
+    };
+
+
     useEffect(() => {
         if (!baLoadedRef.current) {
             baLoadedRef.current = true;
-            fetch('/api/ba/themes')
-                .then(r => r.json())
-                .then(d => setBaThemes(d.themes || []))
-                .catch(() => {});
+            loadBaThemes(data_getUserId);
         }
         return () => {
             if (baPollRef.current) clearInterval(baPollRef.current);
@@ -503,6 +547,11 @@ const DataSetPage = () => {
                         )}
                     </div>
                 </div>
+                {isInsideFolder && (
+                    <div style={{ fontSize: 13, color: '#667085', margin: '2px 0 0' }}>
+                        Текущая папка: <b style={{ color: '#101828' }}>{folderSeg}</b>
+                    </div>
+                )}
                 {baOpen && isInsideFolder && (
                     <div
                         style={{
@@ -554,49 +603,39 @@ const DataSetPage = () => {
                     </div>
                 )}
                 {pathname === '/data-set' && (
-                    <div
-                        style={{
-                            width: '100%',
-                            margin: '6px 0',
-                            padding: '10px 14px',
-                            border: '1px solid rgba(16,24,40,.1)',
-                            borderRadius: 10,
-                            background: '#fbfcfe',
-                        }}
-                    >
-                        <b style={{ fontSize: 13 }}>Brand Analytics — доступные темы</b>
-                        {baThemes.length === 0 && (
-                            <div style={{ fontSize: 12, color: '#667085', marginTop: 4 }}>
-                                Загружаю список тем…
+                    <details style={{ width: '100%', margin: '6px 0', fontSize: 12 }}>
+                        <summary style={{ cursor: 'pointer', color: '#667085' }}>
+                            Brand Analytics: {baThemes.length > 0 ? 'доступно тем: ' + baThemes.length : '…'}
+                        </summary>
+                        <div style={{ padding: '6px 10px', border: '1px solid rgba(16,24,40,.08)', borderRadius: 8, marginTop: 6, background: '#fbfcfe' }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Ваш аккаунт Brand Analytics</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                                <input placeholder='Логин BA (email)' value={baLogin} onChange={e => setBaLogin(e.target.value)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2', minWidth: 220 }} />
+                                <input type='password' placeholder='Пароль BA' value={baPass} onChange={e => setBaPass(e.target.value)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }} />
+                                <button type='button' className={styles.button__title} onClick={baSaveAccount}>
+                                    Сохранить и создать папки
+                                </button>
                             </div>
-                        )}
-                        {baThemes.map(th => {
-                            const li = th.last_import;
-                            return (
-                                <div
-                                    key={th.theme_id}
-                                    style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        gap: 12,
-                                        padding: '6px 0',
-                                        borderBottom: '1px dashed #e6eaf0',
-                                        fontSize: 13,
-                                    }}
-                                >
-                                    <span>{th.title}</span>
-                                    <span style={{ color: '#667085', fontSize: 12 }}>
-                                        {li ? 'последний импорт: ' + (li.file || '') : 'импорта не было'}
-                                    </span>
-                                </div>
-                            );
-                        })}
-                        <p style={{ fontSize: 12, color: '#667085', margin: '8px 0 0' }}>
-                            Откройте папку темы — внутри будет кнопка «Загрузить из Brand Analytics» с выбором периода.
-                        </p>
-                    </div>
+                            {baAccMsg && <div style={{ color: '#047857', marginTop: 4 }}>{baAccMsg}</div>}
+                            {baAccErr && <div style={{ color: '#c53030', marginTop: 4 }}>{baAccErr}</div>}
+                            {baThemes.map(th => {
+                                const li = th.last_import;
+                                return (
+                                    <div key={th.theme_id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '5px 0', borderBottom: '1px dashed #e6eaf0' }}>
+                                        <span>{th.title}</span>
+                                        <span style={{ color: '#98a2b3', fontSize: 11 }}>
+                                            {li ? 'импорт: ' + (li.file || '') : 'нет импорта'}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                            <p style={{ color: '#98a2b3', margin: '6px 0 0' }}>
+                                Откройте папку темы — внутри будет кнопка «Загрузить из Brand Analytics».
+                            </p>
+                        </div>
+                    </details>
                 )}
-                {convertError && <div className={styles.error} style={{ color: 'red', marginTop: 10 }}>{convertError}</div>}
+ <div className={styles.error} style={{ color: 'red', marginTop: 10 }}>{convertError}</div>}
                 {convertResult && <div className={styles.success} style={{ color: 'green', marginTop: 10 }}>{convertResult}</div>}
 
                 {pathname === '/data-set' ? <DataSet /> : <DataInFolder />}
