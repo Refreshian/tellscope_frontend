@@ -1,43 +1,121 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import * as d3 from 'd3';
 
-import { useCheckWidth } from '@/hooks/useCheckWidth';
+import { topNWithOther, TOP_PIE_SLICES } from '@/utils/chartPerf';
 
 import styles from './Mentions.module.scss';
-import { renderActiveShape } from './RenderActiveShape';
 
-const Mentions = ({ isViewSource, data, setData, activeButton }) => {
-	const { windowSize } = useCheckWidth();
-
-	const innerRadius = useMemo(
-		() => windowSize.width * 0.055,
-		[windowSize.width],
-	);
-	const outerRadius = useMemo(
-		() => windowSize.width * 0.101,
-		[windowSize.width],
-	);
-
-	const [activeIndex, setActiveIndex] = useState(0);
+const Mentions = ({ isViewSource, data, setData, activeButton, onVisibleChange }) => {
+	const svgRef = useRef(null);
+	const containerRef = useRef(null);
+	const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 	const [deletedData, setDeletedData] = useState([]);
 
-	useEffect(() => setDeletedData([]), [activeButton]); //HELP: Для того чтобы список удаления (в пояснениях к графику) очищался при переключении графика
+	useEffect(() => setDeletedData([]), [activeButton]);
 
-	const onPieEnter = useCallback((_, index) => {
-		setActiveIndex(index);
+	useEffect(() => {
+		onVisibleChange?.({
+			type: 'mentions',
+			side: activeButton,
+			hubNames: (data || []).map(item => item.name).filter(Boolean),
+		});
+	}, [data, activeButton, onVisibleChange]);
+
+	useEffect(() => {
+		if (!containerRef.current) return;
+		let frame = 0;
+		const observer = new ResizeObserver(entries => {
+			if (!entries[0]) return;
+			const { width, height } = entries[0].contentRect;
+			cancelAnimationFrame(frame);
+			frame = requestAnimationFrame(() => {
+				setDimensions(prev =>
+					Math.abs(prev.width - width) < 4 && Math.abs(prev.height - height) < 4
+						? prev
+						: { width, height },
+				);
+			});
+		});
+		observer.observe(containerRef.current);
+		return () => {
+			cancelAnimationFrame(frame);
+			observer.disconnect();
+		};
 	}, []);
 
-	const onPieClick = useCallback(() => {
-		if (activeIndex !== null) {
-			setData(prevData => {
-				const newData = [...prevData];
-				const deletedItem = newData.splice(activeIndex, 1)[0];
-				setDeletedData(prevDeletedData => [...prevDeletedData, deletedItem]);
-				return newData;
+	const chartData = useMemo(() => topNWithOther(data, TOP_PIE_SLICES), [data]);
+
+	useEffect(() => {
+		if (!svgRef.current || !dimensions.width || !dimensions.height || !chartData.length)
+			return;
+
+		const svg = d3.select(svgRef.current);
+		svg.selectAll('*').remove();
+
+		const margin = 40;
+		const width = dimensions.width;
+		const height = dimensions.height;
+		const radius = Math.min(width, height) / 2 - margin;
+
+		svg.attr('width', width).attr('height', height);
+
+		const g = svg
+			.append('g')
+			.attr('transform', `translate(${width / 2}, ${height / 2})`);
+
+		const pie = d3.pie().value(d => d.value).sort(null);
+		const arc = d3.arc().innerRadius(radius * 0.6).outerRadius(radius);
+		const arcHover = d3.arc().innerRadius(radius * 0.6).outerRadius(radius * 1.08);
+
+		const textGroup = g.append('g').attr('class', 'center-text');
+		textGroup
+			.append('text')
+			.attr('class', 'center-name')
+			.attr('text-anchor', 'middle')
+			.attr('dy', '-0.5em')
+			.style('font-size', '16px')
+			.style('font-weight', 'bold')
+			.style('fill', '#333');
+		textGroup
+			.append('text')
+			.attr('class', 'center-value')
+			.attr('text-anchor', 'middle')
+			.attr('dy', '1em')
+			.style('font-size', '14px')
+			.style('fill', '#666');
+
+		const arcs = g.selectAll('.arc').data(pie(chartData)).enter().append('g').attr('class', 'arc');
+
+		arcs
+			.append('path')
+			.attr('d', arc)
+			.attr('fill', d => d.data.color)
+			.attr('stroke', 'white')
+			.attr('stroke-width', chartData.length > 24 ? 1 : 2)
+			.style('cursor', 'pointer')
+			.on('mouseenter', function (event, d) {
+				d3.select(this).attr('d', arcHover);
+				textGroup.select('.center-name').text(d.data.name || '');
+				textGroup.select('.center-value').text(d.data.value ?? '');
+			})
+			.on('mouseleave', function () {
+				d3.select(this).attr('d', arc);
+				textGroup.select('.center-name').text('');
+				textGroup.select('.center-value').text('');
+			})
+			.on('click', function (event, d) {
+				if (d.data.isOther) return;
+				const clickedName = d.data.name;
+				setData(prevData => {
+					const idx = prevData.findIndex(item => item.name === clickedName);
+					if (idx < 0) return prevData;
+					const next = [...prevData];
+					const deletedItem = next.splice(idx, 1)[0];
+					setDeletedData(prevDeleted => [...prevDeleted, deletedItem]);
+					return next;
+				});
 			});
-			setActiveIndex(null);
-		}
-	}, [activeIndex, setData]);
+	}, [chartData, dimensions, setData]);
 
 	const handleRestoreClick = useCallback(
 		index => {
@@ -51,45 +129,30 @@ const Mentions = ({ isViewSource, data, setData, activeButton }) => {
 	);
 
 	return (
-		<>
-			<ResponsiveContainer width='100%' height='100%'>
-				<PieChart>
-					<Pie
-						activeIndex={activeIndex}
-						activeShape={renderActiveShape}
-						data={data}
-						cx='50%'
-						cy='50%'
-						innerRadius={innerRadius}
-						outerRadius={outerRadius}
-						fill='#8884d8'
-						dataKey='value'
-						onMouseEnter={onPieEnter}
-						onClick={onPieClick}
-					>
-						{data.map((entry, index) => (
-							<Cell key={`cell-${index}`} fill={entry.color} />
-						))}
-					</Pie>
-				</PieChart>
-			</ResponsiveContainer>
-
-			<div
-				className={styles.block__sources}
-				style={{ opacity: isViewSource ? 1 : 0 }}
-			>
-				{deletedData.map((entry, index) => (
-					<p
-						key={`deleted-${index}`}
-						onClick={() => handleRestoreClick(index)}
-						style={{ cursor: 'pointer', color: entry.color }}
-					>
-						{entry.name}
-					</p>
-				))}
+		<div className={styles.mentionsWrap}>
+			<div ref={containerRef} className={styles.mentionsContainer}>
+				<svg ref={svgRef}></svg>
 			</div>
-		</>
+			{deletedData.length > 0 && (
+				<div className={styles.block__sources}>
+					{deletedData.map((entry, index) => (
+						<button
+							type='button'
+							key={`deleted-${index}`}
+							className={styles.restoreChip}
+							onClick={() => handleRestoreClick(index)}
+						>
+							<span
+								className={styles.restoreDot}
+								style={{ background: entry.color }}
+							/>
+							{entry.name}
+						</button>
+					))}
+				</div>
+			)}
+		</div>
 	);
 };
 
-export default Mentions;
+export default memo(Mentions);

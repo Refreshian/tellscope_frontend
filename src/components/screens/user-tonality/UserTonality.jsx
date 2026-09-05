@@ -147,6 +147,34 @@ const UserTonality = () => {
     const { json_files_directory: dataUser } = useSelector(store => store.dataUsersSlice);
     const { index: baseData, min_range_date, max_range_date } = useSelector(state => state.dataForRequest);
 
+    // Название выбранной в меню темы (для корня sunburst «Тональность авторов»)
+    const themeRootLabel = useMemo(() => {
+        if (!dataUser || baseData === undefined || baseData === null) return '';
+        const walk = obj => {
+            for (const key in obj) {
+                const v = obj[key];
+                if (Array.isArray(v)) {
+                    for (const file of v) {
+                        if (
+                            file &&
+                            (String(file.index_number) === String(baseData) ||
+                                String(file.indexNumber) === String(baseData))
+                        ) {
+                            return file.file || file.name || '';
+                        }
+                    }
+                } else if (v && typeof v === 'object') {
+                    const found = walk(v);
+                    if (found) return found;
+                }
+            }
+            return '';
+        };
+        const name = walk(dataUser);
+        return name ? name.replace(/\.json$/i, '') : '';
+    }, [dataUser, baseData]);
+
+
     // Добавляем новое состояние для выбора таблицы
     const [activeTable, setActiveTable] = useState('sources'); // 'sources' или 'authors'
     const [showTable, setShowTable] = useState(false);
@@ -851,6 +879,7 @@ const UserTonality = () => {
                                 data={filteredData}
                                 onTabChange={handleTabChange}
                                 onVisibleSlice={handleGraphSlice}
+                                rootLabel={themeRootLabel}
                             />
                         </Suspense>
 

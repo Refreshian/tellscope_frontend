@@ -4,8 +4,6 @@ import { useSelector } from 'react-redux';
 import Loader from '@/components/loading/loader/Loader';
 import PanelTargetGraph from '@/components/ui/panel-target-graph/PanelTargetGraph';
 
-import { useSaveImageGraph } from '@/hooks/useSaveImageGraph';
-
 import { funksTonality } from '@/utils/editData';
 
 import styles from './TonalityGraphs.module.scss';
@@ -13,7 +11,7 @@ import AuthorsGraph from './authors-graph/AuthorsGraph';
 import Mentions from './mentions/Mentions';
 import { tonalityButtons } from '@/data/panel.data';
 
-const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice }) => {
+const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice, rootLabel }) => {
   // Получаем данные из Redux (полные данные)
   const tonalityData = useSelector(state => state.tonalityData);
   
@@ -26,7 +24,6 @@ const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice }) => 
   }, [filteredData, tonalityData]);
   
   const [activeButton, setActiveButton] = useState('Негативные упоминания');
-  const [isViewSource, setIsViewSource] = useState(false);
   const [isViewAuthors, setIsViewAuthors] = useState(false);
   const [data, setData] = useState([]);
 
@@ -70,16 +67,6 @@ const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice }) => 
     }
   }, [activeButton, cashingData]);
 
-  const handleDownloadImage = useSaveImageGraph();
-
-  // На вкладках упоминаний панель возвращает источники, на «Тональности авторов» — авторов
-  const isAuthorsTab = activeButton === 'Тональность авторов';
-  const restoreLabel = isViewSource
-    ? 'скрыть список'
-    : isAuthorsTab
-      ? 'вернуть автора на график'
-      : 'вернуть источник на график';
-
   const dataCounters = useMemo(() => ({
     negative: cashingData?.tonality_values?.negative_count || 0,
     positive: cashingData?.tonality_values?.positive_count || 0,
@@ -94,34 +81,19 @@ const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice }) => 
           activeButton={activeButton}
           dataCounters={dataCounters}
         />
-        <div className={styles.block__settings}>
-          <button
-            className={styles.button__description}
-            onClick={() => setIsViewSource(!isViewSource)}
-          >
-            {restoreLabel}
-          </button>
-          <button
-            className={styles.button__settings}
-            onClick={() => handleDownloadImage('graph-for-download')}
-          >
-            <img src='/images/icons/setting/upload_active.svg' alt='icon' />
-          </button>
-        </div>
       </div>
-      <div className={styles.container__graph} id='graph-for-download'>
+      <div className={styles.container__graph}>
         {isViewAuthors ? (
           <Suspense fallback={<Loader />}>
             <AuthorsGraph
               cashingData={cashingData}
-              isViewSource={isViewSource}
+              rootName={rootLabel}
               onVisibleChange={onVisibleSlice}
             />
           </Suspense>
         ) : (
           <Suspense fallback={<Loader />}>
             <Mentions
-              isViewSource={isViewSource}
               data={data}
               setData={setData}
               activeButton={activeButton}
