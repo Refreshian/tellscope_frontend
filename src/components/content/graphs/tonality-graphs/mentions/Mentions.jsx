@@ -201,6 +201,7 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 					})}
 				</div>
 			)}
+		</div>
 	);
 };
 
