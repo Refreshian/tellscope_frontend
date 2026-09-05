@@ -355,6 +355,12 @@ const DataSetPage = () => {
         const m = document.cookie.split('; ').find(x => x.startsWith('token='));
         return m ? decodeURIComponent(m.slice('token='.length)) : '';
     };
+    const authHeaders = (json = false) => {
+        const h = json ? { 'Content-Type': 'application/json' } : {};
+        const t2 = getToken();
+        if (t2) h.Authorization = 'Bearer ' + t2;
+        return h;
+    };
 
     const [baLogin, setBaLogin] = useState('');
     const [baPass, setBaPass] = useState('');
@@ -362,7 +368,7 @@ const DataSetPage = () => {
     const [baAccErr, setBaAccErr] = useState('');
 
     const loadBaThemes = uid => {
-        fetch('/api/ba/themes' + (uid ? '?user_id=' + uid : ''))
+        fetch('/api/ba/themes' + (uid ? '?user_id=' + uid : ''), { headers: authHeaders() })
             .then(r => r.json())
             .then(d => setBaThemes(d.themes || []))
             .catch(() => {});
@@ -378,7 +384,7 @@ const DataSetPage = () => {
         try {
             const r = await fetch('/api/ba/account', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders(true),
                 body: JSON.stringify({
                     user_id: String(data_getUserId || '1'),
                     login: baLogin.trim(),
@@ -441,7 +447,7 @@ const DataSetPage = () => {
         try {
             const r = await fetch('/api/ba/import', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders(true),
                 body: JSON.stringify({
                     theme_id: baTheme,
                     folder: folderSeg,
@@ -458,7 +464,7 @@ const DataSetPage = () => {
             const jobId = d.job_id;
             const poll = async () => {
                 try {
-                    const rr = await fetch('/api/ba/jobs/' + jobId);
+                    const rr = await fetch('/api/ba/jobs/' + jobId, { headers: authHeaders() });
                     const dd = await rr.json();
                     setBaStatus(dd);
                     if (dd.status === 'done' || dd.status === 'error') {
