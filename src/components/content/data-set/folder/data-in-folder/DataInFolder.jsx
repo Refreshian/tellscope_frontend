@@ -258,6 +258,29 @@ const DataInFolder = () => {
                       style={viewStyle(file)}
                     >
                       <p className={styles.name}>{file.file}</p>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 12,
+                          flexWrap: 'wrap',
+                          marginLeft: 'auto',
+                          alignItems: 'center',
+                          color: '#667085',
+                          fontSize: 12,
+                        }}
+                      >
+                        <span title='Период данных в файле'>
+                          {file.min_data && file.max_data
+                            ? `период: ${fmtDay(file.min_data)} – ${fmtDay(file.max_data)}`
+                            : 'период: —'}
+                        </span>
+                        {file.created ? (
+                          <span title='Когда файл сформирован/загружен'>
+                            получен: {fmtTime(file.created)}
+                          </span>
+                        ) : null}
+                      </div>
+
                       <div className={styles.block__buttons}>
                         <button
                           className={styles.button__upload}
@@ -326,6 +349,19 @@ const DataInFolder = () => {
       </div>
     </div>
   );
+};
+
+
+const fmtDay = ts => {
+  if (!ts) return '';
+  try { return new Date(Number(ts) * 1000).toLocaleDateString('ru-RU'); } catch (e) { return ''; }
+};
+const fmtTime = ts => {
+  if (!ts) return '';
+  try {
+    const d = new Date(Number(ts) * 1000);
+    return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  } catch (e) { return ''; }
 };
 
 export default DataInFolder;
