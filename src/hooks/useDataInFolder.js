@@ -20,6 +20,11 @@ export const useDataInFolder = () => {
 	const [dragging, setDragging] = useState(false);
 	const { data } = useSelector(state => state.folderTarget);
 	const { buttonTarget } = useSelector(state => state.popupDelete);
+	const urlPathSeg = location.pathname.split('/').filter(Boolean);
+	let folderFromUrl = urlPathSeg[urlPathSeg.length - 1] || '';
+	try { folderFromUrl = decodeURIComponent(folderFromUrl); } catch (e) {}
+	const activeFolderName =
+		typeof data === 'string' && data && data !== 'processed' ? data : folderFromUrl;
 	const {
 		data: data_getUserId,
 		isError: isError_getUserId,
@@ -75,17 +80,14 @@ export const useDataInFolder = () => {
 
 			SetPopupDelete(true);
 		} else {
-			const convertDirectory =
-				buttonTarget === 'Файлы данных'
-					? 'json_files_directory'
-					: buttonTarget === 'Файлы кластеризации авторов'
-						? 'projector_files_directory'
-						: 'bertopic_files_directory';
+			const convertDirectory = isDataSetPath
+					? 'projector_files_directory'
+					: 'json_files_directory';
 			// Выполняем запрос
 			const response = await trigger_fileLoad({
 				user: data_getUserId,
 				directory: convertDirectory,
-				folder_name: data,
+				folder_name: activeFolderName,
 				file_name: file,
 				responseType: 'blob', // Указываем тип ответа
 			});
@@ -134,7 +136,7 @@ export const useDataInFolder = () => {
 			};
 			await trigger_dataAddFile({
 				data: formData,
-				name: data,
+				name: activeFolderName,
 				fileName: droppedFiles[0].name,
 				user: data_getUserId,
 			}).unwrap();
@@ -150,7 +152,7 @@ export const useDataInFolder = () => {
 			};
 			await trigger_dataAddFile({
 				data: formData,
-				name: data,
+				name: activeFolderName,
 				fileName: selectedFile.name,
 				user: data_getUserId,
 			}).unwrap();
