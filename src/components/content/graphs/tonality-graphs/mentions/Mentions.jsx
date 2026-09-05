@@ -152,6 +152,7 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 						const pos = s?.pos || 0;
 						const neu = s?.neu || 0;
 						const aud = s?.aud ?? (Number(entry.audience_sum) || 0);
+						const total = neg + pos + neu;
 						return (
 							<button
 								type='button'
@@ -166,18 +167,11 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 										style={{ background: entry.color }}
 									/>
 									<span className={styles.restoreName}>{entry.name}</span>
+									<span className={styles.chipTotal}>
+										{formatCount(total)} сообщений
+									</span>
 								</span>
 								<span className={styles.chipMetrics}>
-									{neg > 0 && (
-										<span className={styles.chipRow}>
-											<span className={`${styles.mLabel} ${styles.labNeg}`}>
-												Негатив
-											</span>
-											<span className={`${styles.mValue} ${styles.valNeg}`}>
-												{formatCount(neg)}
-											</span>
-										</span>
-									)}
 									{pos > 0 && (
 										<span className={styles.chipRow}>
 											<span className={`${styles.mLabel} ${styles.labPos}`}>
@@ -185,6 +179,16 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 											</span>
 											<span className={`${styles.mValue} ${styles.valPos}`}>
 												{formatCount(pos)}
+											</span>
+										</span>
+									)}
+									{neg > 0 && (
+										<span className={styles.chipRow}>
+											<span className={`${styles.mLabel} ${styles.labNeg}`}>
+												Негатив
+											</span>
+											<span className={`${styles.mValue} ${styles.valNeg}`}>
+												{formatCount(neg)}
 											</span>
 										</span>
 									)}
