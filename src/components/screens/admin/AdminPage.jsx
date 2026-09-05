@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Content from '@/components/content/Content';
 import Layout from '@/components/layout/Layout';
+import LeftMenu from '@/components/ui/left-menu/LeftMenu';
 
 const getToken = () => {
 	const m = document.cookie.split('; ').find(x => x.startsWith('token='));
@@ -190,6 +191,7 @@ const AdminPage = () => {
 
 	return (
 		<Layout>
+			<LeftMenu />
 			<Content>
 		<div style={{ maxWidth: 1080, margin: '0 auto', padding: 20, fontFamily: 'inherit' }}>
 			<h2 style={{ margin: '0 0 6px' }}>Пользователи и доступ</h2>
