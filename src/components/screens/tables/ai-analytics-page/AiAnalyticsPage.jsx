@@ -146,7 +146,7 @@ const AiAnalyticsPage = () => {
 					<PopupAi />
 				</>
 			)}
-			<Content>
+			<Content style={isSuccess_aiAnalyticsGET ? { justifyContent: 'flex-start', alignItems: 'center' } : undefined}>
 				{!showGuide && (
 					<div style={{ width: 'min(96%, 980px)', margin: '12px auto 0', textAlign: 'center', boxSizing: 'border-box' }}>
 						<button
