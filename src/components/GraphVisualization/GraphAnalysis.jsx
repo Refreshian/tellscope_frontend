@@ -38,7 +38,7 @@ const truncateName = (value, maxLength = 28) => {
 
 const formatCount = (value) => Number(value || 0).toLocaleString('ru-RU');
 
-const FileSelect = ({ folders, value, onSelect, loading }) => {
+const FileSelect = ({ folders, value, onSelect, onDeleteFile, loading }) => {
   const [open, setOpen] = useState(false);
   const ref = useClickOutside(() => setOpen(false));
   const selected = folders
@@ -83,6 +83,14 @@ const FileSelect = ({ folders, value, onSelect, loading }) => {
                   }}
                 >
                   <p className={styles.optionText}>{file.displayName}</p>
+                  {onDeleteFile && (
+                    <button
+                      type='button'
+                      className={styles.deleteBtn}
+                      title='Удалить файл'
+                      onClick={(e) => { e.stopPropagation(); onDeleteFile(file); }}
+                    >×</button>
+                  )}
                 </div>
               ))}
             </div>
@@ -247,6 +255,19 @@ const GraphAnalysis = () => {
     return treeData;
   };
 
+  const handleDeleteFile = async (file) => {
+    if (!window.confirm('Удалить файл «' + (file.displayName || file.fileName) + '»? Это действие необратимо.')) return;
+    if (!userId) { message.error('Не определён пользователь'); return; }
+    try {
+      await api.delete('/delete-csv-file', { params: { user_id: userId, file_name: file.fileName } });
+      message.success('Файл удалён');
+      if (selectedFile && selectedFile.fullPath === file.fullPath) { setSelectedFile(null); setIsGraphBuilt(false); setGraphData(null); }
+      await fetchUserFolders();
+    } catch (e) {
+      message.error('Ошибка удаления: ' + (e?.response?.data?.detail || e?.message || 'неизвестно'));
+    }
+  };
+
   const handleFileSelect = (file) => {
     if (!file) {
       setSelectedFile(null);
@@ -351,6 +372,7 @@ const GraphAnalysis = () => {
               folders={csvTreeData}
               value={selectedFile?.fullPath}
               onSelect={handleFileSelect}
+              onDeleteFile={handleDeleteFile}
               loading={isLoadingFolders}
             />
             <TypeSelect

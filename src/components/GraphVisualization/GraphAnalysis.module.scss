@@ -169,3 +169,21 @@
     max-width: 100%;
   }
 }
+.deleteBtn {
+	margin-left: auto;
+	width: 20px;
+	height: 20px;
+	border: 0;
+	background: transparent;
+	color: #98a2b3;
+	font-size: 15px;
+	line-height: 1;
+	cursor: pointer;
+	border-radius: 6px;
+	flex: 0 0 auto;
+}
+
+.deleteBtn:hover {
+	color: #c53030;
+	background: rgba(197, 48, 48, 0.08);
+}
