@@ -13,6 +13,11 @@ import { colors } from '../../../app.constants';
 import styles from './Auth.module.scss';
 
 const Auth = () => {
+
+	useEffect(() => {
+		document.body.classList.add('dsh-cosmos-bg');
+		return () => document.body.classList.remove('dsh-cosmos-bg');
+	}, []);
 	const [message, setMessage] = useState('');
 	const [viewMessage, setViewMessage] = useState(false);
 	const [isViewAuth, setIsViewAuth] = useState(true);

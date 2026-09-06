@@ -1174,3 +1174,8 @@
 		grid-template-columns: 1fr;
 	}
 }
+.chat__container.user .message__content {
+	background-image: linear-gradient(135deg, #2E5BFF 0%, #6C5CE7 100%);
+	background-color: transparent;
+	border-radius: 16px 16px 4px 16px;
+}

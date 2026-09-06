@@ -105,3 +105,11 @@ body {
 		max-width: 100% !important;
 	}
 }
+body.dsh-cosmos-bg {
+	background:
+		radial-gradient(1100px 620px at 88% -10%, rgba(108, 92, 231, 0.20), transparent 60%),
+		radial-gradient(900px 520px at -10% 112%, rgba(34, 184, 240, 0.14), transparent 55%),
+		radial-gradient(1400px 700px at 40% 130%, rgba(11, 27, 59, 0.55), transparent 70%),
+		linear-gradient(180deg, #0A1838 0%, #14285A 55%, #0B1B3B 100%);
+	background-attachment: fixed;
+}
