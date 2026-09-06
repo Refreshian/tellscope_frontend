@@ -147,6 +147,24 @@ const AiAnalyticsPage = () => {
 				</>
 			)}
 			<Content>
+				{!showGuide && (
+					<div style={{ width: 'min(96%, 980px)', margin: '12px auto 0', textAlign: 'left', boxSizing: 'border-box' }}>
+						<button
+							type='button'
+							onClick={() => setShowGuide(true)}
+							style={{
+								background: 'rgba(108, 92, 231, 0.07)',
+								border: '1px solid rgba(108, 92, 231, 0.3)',
+								color: '#5B5BD6',
+								borderRadius: 8,
+								padding: '6px 12px',
+								fontSize: 12.5,
+								fontFamily: 'inherit',
+								cursor: 'pointer',
+							}}
+						>? Как работает ИИ-анализ</button>
+					</div>
+				)}
 				{showGuide && (
 					<div
 						style={{
@@ -167,7 +185,7 @@ const AiAnalyticsPage = () => {
 					>
 						<b>Как работает ИИ-аналитика:</b>
 						<ol style={{ margin: '4px 0 0', paddingLeft: 20 }}>
-							<li>Настройте тему, период и запрос и нажмите <b>«Запуск»</b> — появится таблица с текстами.</li>
+							<li>Выберите тему (и при необходимости период и запрос), затем нажмите <b>«Запуск»</b> — появится таблица с текстами.</li>
 							<li>Отметьте до 5 текстов и нажмите <b>«Тестировать»</b>, чтобы проверить, как ИИ отвечает на ваш запрос.</li>
 							<li>Если ответ устроил — запустите <b>полный расчёт по всем текстам</b> (идёт в фоне). Прогресс и результат будут в «Статусе расчёта данных» на странице «Наборы данных».</li>
 						</ol>
