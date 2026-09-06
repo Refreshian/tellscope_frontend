@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import PanelTargetGraph from '@/components/ui/panel-target-graph/PanelTargetGraph';
 
@@ -14,8 +15,13 @@ import ProgressBar from '../../ui/progress-bar/ProgressBar';
 import styles from './DataSet.module.scss';
 import Folder from './folder/Folder';
 import HistoryCard from './history-card/HistoryCard';
+import MosinformArchive from './MosinformArchive';
+import MlopsQueue from './MlopsQueue';
 import NoData from './no-data/NoData';
 import { dataSetButtons } from '@/data/panel.data';
+
+const MOSINFORM_TAB = 'Мосинформ.Рейтинг';
+const QUEUE_TAB = 'Очередь ML';
 
 const DataSet = () => {
 	const { addButtonTarget_PopupDelete } = useActions();
@@ -27,7 +33,15 @@ const DataSet = () => {
 		two: 0,
 		three: 0,
 	});
-	const [activeButton, setActiveButton] = useState('Файлы данных');
+	const location = useLocation();
+	const navigate = useNavigate();
+	const [activeButton, setActiveButton] = useState(() => {
+		const tab = new URLSearchParams(location.search).get('tab');
+		if (tab === 'mosinform') return MOSINFORM_TAB;
+		if (tab === 'queue') return QUEUE_TAB;
+		return 'Файлы данных';
+	});
+	const [showDevModal, setShowDevModal] = useState(false);
 
 	const {
 		data: data_getUserId,
@@ -44,8 +58,6 @@ const DataSet = () => {
 
 	useEffect(() => {
 		if (activeButton === 'Файлы данных') {
-			addButtonTarget_PopupDelete(activeButton);
-		} else if (activeButton === 'Файлы кластеризации авторов') {
 			addButtonTarget_PopupDelete(activeButton);
 		} else {
 			addButtonTarget_PopupDelete(activeButton);
@@ -76,21 +88,31 @@ const DataSet = () => {
 		}
 	}, []);
 
+	useEffect(() => {
+		const tab = new URLSearchParams(location.search).get('tab');
+		if (tab === 'mosinform') setActiveButton(MOSINFORM_TAB);
+		if (tab === 'queue') setActiveButton(QUEUE_TAB);
+	}, [location.search]);
+
 	const onClick = button => {
-		if (button === 'Файлы данных') {
-			setActiveButton('Файлы данных');
-		} else if (button === 'Файлы кластеризации авторов') {
-			setActiveButton('Файлы кластеризации авторов');
-		} else if (button === 'Статус расчета данных') {
-			setActiveButton('Статус расчета данных');
+		if (button === 'Файлы кластеризации авторов') {
+			setShowDevModal(true);
+			return;
+		}
+		setActiveButton(button);
+		if (button === MOSINFORM_TAB) {
+			navigate('/data-set?tab=mosinform', { replace: true });
+		} else if (button === QUEUE_TAB) {
+			navigate('/data-set?tab=queue', { replace: true });
+		} else if (location.search.includes('tab=')) {
+			navigate('/data-set', { replace: true });
 		}
 	};
 
-	const {
-		json_files_directory: dataUser,
-		projector_files_directory: dataUser_Projector,
-		bertopic_files_directory: dataUser_bertopic,
-	} = useSelector(store => store.dataUsersSlice);
+	const queryData = data && typeof data === 'object' ? data : {};
+	const dataUser = queryData.json_files_directory || {};
+	const dataUser_Projector = queryData.projector_files_directory || {};
+	const dataUser_bertopic = queryData.bertopic_files_directory || {};
 
 	const allData = Object.keys(
 		activeButton === 'Файлы данных' ? dataUser : dataUser_Projector || {},
@@ -116,8 +138,6 @@ const DataSet = () => {
 
 	const filteredData = useMemo(() => {
 		if (activeButton === 'Файлы данных') {
-			return getFilteredData(allData, filterText);
-		} else if (activeButton === 'Файлы кластеризации авторов') {
 			return getFilteredData(allData, filterText);
 		} else {
 			return [];
@@ -148,35 +168,7 @@ const DataSet = () => {
 					)}
 				</>
 			);
-		} else if (activeButton === 'Файлы кластеризации авторов') {
-			return (
-				<>
-					{allData && allData.values && allData.values.length !== 0 ? (
-						allData.values.map(folder => (
-							<Folder
-								key={Math.random() + Math.random()}
-								folder={folder}
-								processedFolder={true}
-								buttonTarget={activeButton}
-							/>
-						))
-					) : (
-						<div className={styles.block__noDat}>
-							<h2 className={styles.title}>Здесь пока ничего нет</h2>
-							<p className={styles.description}>
-								Чтобы получить обработанные файлы для загрузки в Embedding
-								Projector нужно запустить расчет кластеризации авторов <br />
-								{/* <span>Файлы для обработки</span> */}
-							</p>
-							{/* <button onClick={() => onClick('Файлы данных')}> */}
-							<button onClick={() => onClick('Файлы данных')}>
-								Запустить расчет
-							</button>
-						</div>
-					)}
-				</>
-			);
-		} else if (activeButton === 'Статус расчета данных') {
+		} else if (activeButton === 'Статус ИИ-расчета данных') {
 			const history = Object.values(arrayData).flat();
 			return (
 				<div className={styles.wrapper_statusProgress}>
@@ -190,7 +182,6 @@ const DataSet = () => {
 						{progress_load && Number(progress_load) > 0 ? (
 							<>
 								<h3>
-									{/* <span>Файл:</span> {file_name?.['html-file']} */}
 									<span>Файл:</span> {file_name?.file}
 								</h3>
 								<span>Запросы:</span>
@@ -202,12 +193,18 @@ const DataSet = () => {
 					</div>
 				</div>
 			);
+		} else if (activeButton === MOSINFORM_TAB) {
+			return <MosinformArchive filterText={filterText} />;
+		} else if (activeButton === QUEUE_TAB) {
+			return <MlopsQueue filterText={filterText} />;
 		}
 	};
 
+	const hasFiles = allData && allData.length !== 0;
+	const isArchive = activeButton === MOSINFORM_TAB || activeButton === QUEUE_TAB;
 	const styleContent = {
-		justifyContent: allData && allData.length !== 0 ? '' : 'center',
-		alignItems: allData && allData.length !== 0 ? '' : 'center',
+		justifyContent: hasFiles || isArchive ? '' : 'center',
+		alignItems: hasFiles || isArchive ? '' : 'center',
 		paddingTop:
 			activeButton === 'three' ? 'calc(24/1440*100vw)' : 'calc(92/1440*100vw)',
 		paddingRight: activeButton === 'three' ? '0px' : 'calc(44/1440*100vw)',
@@ -220,8 +217,40 @@ const DataSet = () => {
 				dataButtons={dataSetButtons}
 				activeButton={activeButton}
 			/>
+
+			{showDevModal && (
+				<div className={styles.modalOverlay} onClick={() => setShowDevModal(false)}>
+					<div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+						<button 
+							className={styles.closeButton}
+							onClick={() => setShowDevModal(false)}
+						>
+							×
+						</button>
+						<div className={styles.modalIcon}>🚧</div>
+						<h2>Функция в разработке</h2>
+						<p>Раздел "Файлы кластеризации авторов" находится в активной разработке</p>
+						<div className={styles.features}>
+							<h3>Планируемые возможности:</h3>
+							<ul>
+								<li>📊 Визуализация кластеров авторов</li>
+								<li>📥 Экспорт для Embedding Projector</li>
+								<li>👥 Детальная информация о каждом авторе</li>
+								<li>🔍 Анализ связей между авторами</li>
+							</ul>
+						</div>
+						<button 
+							className={styles.okButton}
+							onClick={() => setShowDevModal(false)}
+						>
+							Понятно
+						</button>
+					</div>
+				</div>
+			)}
+
 			<div className={styles.block__content} style={styleContent}>
-				{!(activeButton === 'Статус расчета данных') && (
+				{activeButton !== 'Статус ИИ-расчета данных' && (
 					<div className={styles.block__field}>
 						<img
 							src='/images/icons/input_button/search.svg'
