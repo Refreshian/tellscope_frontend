@@ -218,7 +218,7 @@ const AdminPage = () => {
 		<div style={{ width: '100%', maxWidth: 1500, margin: '0 auto', padding: '18px 28px', fontFamily: 'inherit', boxSizing: 'border-box' }}>
 			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
 				<h2 style={{ margin: 0 }}>Пользователи и доступ</h2>
-				<span style={{ color: '#98a2b3', fontSize: 12 }}>Управление пользователями, доступом к наборам данных и аккаунтами Brand Analytics</span>
+				<span style={{ color: '#98a2b3', fontSize: 12 }}>Управление пользователями, доступом к наборам данных и аккаунтами</span>
 			</div>
 			{err && <div style={{ color: '#c53030', marginBottom: 8 }}>{err}</div>}
 
