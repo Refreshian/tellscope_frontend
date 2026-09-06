@@ -148,7 +148,7 @@ const AiAnalyticsPage = () => {
 			)}
 			<Content>
 				{!showGuide && (
-					<div style={{ width: 'min(96%, 980px)', margin: '12px auto 0', textAlign: 'left', boxSizing: 'border-box' }}>
+					<div style={{ width: 'min(96%, 980px)', margin: '12px auto 0', textAlign: 'center', boxSizing: 'border-box' }}>
 						<button
 							type='button'
 							onClick={() => setShowGuide(true)}
@@ -162,7 +162,7 @@ const AiAnalyticsPage = () => {
 								fontFamily: 'inherit',
 								cursor: 'pointer',
 							}}
-						>? Как работает ИИ-анализ</button>
+						>Как работает ИИ-анализ</button>
 					</div>
 				)}
 				{showGuide && (
