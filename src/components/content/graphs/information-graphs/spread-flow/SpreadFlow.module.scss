@@ -407,3 +407,13 @@
 		align-items: stretch;
 	}
 }
+// ночной космос для графа распространения (концепция A)
+.stage {
+	background: linear-gradient(160deg, #0A1838 0%, #122757 55%, #0B1B3B 100%);
+	border-radius: 12px;
+	box-shadow: 0 0 0 1px rgba(124, 140, 255, 0.2), 0 12px 34px rgba(5, 12, 35, 0.35);
+}
+.stage svg,
+.canvas svg {
+	filter: invert(1) hue-rotate(180deg) saturate(1.15) contrast(1.05);
+}
