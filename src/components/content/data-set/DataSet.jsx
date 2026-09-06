@@ -168,7 +168,7 @@ const DataSet = () => {
 					)}
 				</>
 			);
-		} else if (activeButton === 'Статус ИИ-расчета данных') {
+		} else if (activeButton === 'Статус расчета данных') {
 			const history = Object.values(arrayData).flat();
 			return (
 				<div className={styles.wrapper_statusProgress}>
@@ -250,7 +250,7 @@ const DataSet = () => {
 			)}
 
 			<div className={styles.block__content} style={styleContent}>
-				{activeButton !== 'Статус ИИ-расчета данных' && (
+				{activeButton !== 'Статус расчета данных' && (
 					<div className={styles.block__field}>
 						<img
 							src='/images/icons/input_button/search.svg'
