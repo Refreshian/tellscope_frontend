@@ -100,9 +100,11 @@ const AdminPage = () => {
 	const [folder, setFolder] = useState('');
 	const [targetId, setTargetId] = useState('');
 	const [access, setAccess] = useState('read');
+	const [llmUsage, setLlmUsage] = useState([]);
 
 	const reload = async () => {
-		const [us, sh] = await Promise.all([api('/admin/users'), api('/admin/shares')]);
+		const [us, sh, lu] = await Promise.all([api('/admin/users'), api('/admin/shares'), api('/admin/llm-usage')]);
+		setLlmUsage(lu && lu.rows ? lu.rows : []);
 		setUsers(us);
 		setShares(sh.shares || []);
 		setOwners(us);
@@ -304,6 +306,58 @@ const AdminPage = () => {
 					</div>
 				))}
 			</div>
+
+			<div style={card}>
+				<b>Потребление ИИ (LLM-токены)</b>
+				<div style={{ color: '#667085', fontSize: 12, marginTop: 4 }}>
+					Учёт запросов и токенов по аккаунтам, страницам и моделям (задел под биллинг).
+				</div>
+				{llmUsage.length === 0 && (
+					<div style={{ color: '#98a2b3', marginTop: 8, fontSize: 13 }}>Пока нет данных — токены появятся после первого запроса к ИИ</div>
+				)}
+				{llmUsage.length > 0 && (
+					<div style={{ marginTop: 10 }}>
+						<div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+							{[
+								{ label: 'Запросы', v: llmUsage.reduce((s, r) => s + r.requests, 0) },
+								{ label: 'Токены вход', v: llmUsage.reduce((s, r) => s + (r.prompt_tokens || 0), 0) },
+								{ label: 'Токены выход', v: llmUsage.reduce((s, r) => s + (r.completion_tokens || 0), 0) },
+								{ label: 'Токены всего', v: llmUsage.reduce((s, r) => s + (r.total_tokens || 0), 0) },
+							].map(x => (
+								<div key={x.label} style={{ background: 'rgba(108,92,231,0.08)', border: '1px solid rgba(108,92,231,0.2)', borderRadius: 10, padding: '6px 12px', fontSize: 12 }}>
+									<b style={{ color: '#152A5A' }}>{x.v.toLocaleString('ru-RU')}</b>&nbsp; {x.label}
+								</div>
+							))}
+						</div>
+						<table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+							<thead>
+								<tr>
+									<th style={th}>Аккаунт</th><th style={th}>Кейс (страница)</th><th style={th}>Провайдер</th><th style={th}>Модель</th>
+									<th style={th}>Запросы</th><th style={th}>Токены in</th><th style={th}>Токены out</th><th style={th}>Всего</th><th style={th}>Стоимость, $</th>
+								</tr>
+							</thead>
+							<tbody>
+								{llmUsage.map((r, idx) => {
+									const u = users.find(x => Number(x.id) === Number(r.user_id));
+									return (
+										<tr key={idx}>
+											<td style={td}>{u ? u.email : (r.user_id === 0 || r.user_id == null ? '— (не определён)' : '#' + r.user_id)}</td>
+											<td style={td}>{caseLabel(r.case_id)}</td>
+											<td style={td}>{r.provider}</td>
+											<td style={td}><div style={{ wordBreak: 'break-word' }}>{r.model}</div></td>
+											<td style={td}>{r.requests}</td>
+											<td style={td}>{(r.prompt_tokens || 0).toLocaleString('ru-RU')}</td>
+											<td style={td}>{(r.completion_tokens || 0).toLocaleString('ru-RU')}</td>
+											<td style={td}>{(r.total_tokens || 0).toLocaleString('ru-RU')}</td>
+											<td style={td}>{Number(r.cost_usd || 0).toFixed(5)}</td>
+										</tr>
+									);
+								})}
+							</tbody>
+						</table>
+					</div>
+				)}
+			</div>
 		</div>
 
 			{actUser && (
@@ -380,6 +434,22 @@ const ActivityChart = ({ days }) => {
 			})}
 		</div>
 	);
+};
+
+const caseLabel = c => {
+	const map = {
+		'llm_run': 'Полный расчёт ИИ',
+		'ai_question': 'ИИ-анализ / вопросы',
+		'information-graf': 'Информационный граф',
+		'media-rating': 'Медиа-рейтинг (СМИ)',
+		'voice-of-customer': 'Голос клиента',
+		'analysis-of-themes': 'Анализ тем',
+		'ai-bot': 'AI-бот',
+		'smart-agent': 'Smart Agent',
+		'lca-examples': 'LCA-примеры',
+		'graph-analysis': 'Анализ графа связей',
+	};
+	return map[c] || c || '—';
 };
 
 const th = { textAlign: 'left', borderBottom: '1px solid #e6eaf0', padding: 6 };
