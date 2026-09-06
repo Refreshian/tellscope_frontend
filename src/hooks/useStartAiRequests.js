@@ -1,268 +1,259 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 
 import { useGetUserIdQuery } from '../services/other.service';
 import {
-	useLazyGetStatusRequestQuery,
-	useLazyStartDataAiQuery,
-	useLazyStartTestingQuery,
+  useLazyGetStatusRequestQuery,
+  useLazyStartDataAiQuery,
+  useLazyStartTestingQuery,
 } from '../services/tables.service';
 import { findKeyById } from '../utils/searchInData';
 
 import { useActions } from './useActions';
 
 export const useStartAiRequests = () => {
-	const nav = useNavigate();
-	const { post } = useSelector(state => state.aiData);
-	const dataForRequest = useSelector(state => state.dataForRequest);
-	const { json_files_directory: dataUser } = useSelector(
-		store => store.dataUsersSlice,
-	);
-	const {
-		toggleBarStart,
-		toggleIsViewPromptPopup,
-		toggleFinalStatus,
-		addFirstHtmlFileRequest,
-	} = useActions();
+  const nav = useNavigate();
+  const { post } = useSelector(state => state.aiData);
+  const dataForRequest = useSelector(state => state.dataForRequest);
+  const { json_files_directory: dataUser } = useSelector(
+    store => store.dataUsersSlice,
+  );
+  const {
+    toggleBarStart,
+    toggleIsViewPromptPopup,
+    toggleFinalStatus,
+    addFirstHtmlFileRequest,
+  } = useActions();
 
-	const [isLoadingTest, setIsLoadingTest] = useState(false); //HELP: Состояние для управления лоадером
-	const [isSuccessTest, setIsSuccessTest] = useState(false);
-	const [isSuccessAi, setIsSuccessAi] = useState(false);
+  const [isLoadingTest, setIsLoadingTest] = useState(false);
+  const [isSuccessTest, setIsSuccessTest] = useState(false);
+  const [isSuccessAi, setIsSuccessAi] = useState(false);
+  const intervalRef = useRef(null);
 
-	const { data: data_getUserId } = useGetUserIdQuery();
-	const [trigger, { data, isError, isLoading, isSuccess }] =
-		useLazyStartTestingQuery();
-	const [
-		trigger_status,
-		{
-			data: data_status,
-			isError: isError_status,
-			isLoading: isLoading_status,
-			isSuccess: isSuccess_status,
-		},
-	] = useLazyGetStatusRequestQuery();
-	const [triger_data, { data_ai }] = useLazyStartDataAiQuery();
+  const { data: data_getUserId } = useGetUserIdQuery();
+  const [trigger, { data, isError, isLoading, isSuccess }] =
+    useLazyStartTestingQuery();
+  const [
+    trigger_status,
+    {
+      data: data_status,
+      isError: isError_status,
+      isLoading: isLoading_status,
+      isSuccess: isSuccess_status,
+    },
+  ] = useLazyGetStatusRequestQuery();
+  const [triger_data, { data_ai }] = useLazyStartDataAiQuery();
 
-	const getText = () => dataForRequest.texts.map(el => el.text);
+  const getText = () => dataForRequest.texts.map(el => el.text);
 
-	const dataForRequestTesting = {
-		user_id: data_getUserId,
-		texts: [
-			// ...dataForRequest.texts,
-			...getText(),
-		],
-		system_prompt: post.system_prompt,
-		prompt_question: post.text_prompt,
-	};
+  const dataForRequestTesting = {
+    user_id: data_getUserId,
+    texts: [
+      ...getText(),
+    ],
+    system_prompt: post.system_prompt,
+    prompt_question: post.text_prompt,
+  };
 
-	const dataForRequestAi = {
-		user_id: data_getUserId,
-		folder_name: findKeyById(dataForRequest.index, dataUser),
-		index: dataForRequest.index,
-		min_date: dataForRequest.min_range_date,
-		max_date: dataForRequest.max_range_date,
-		query_str: dataForRequest.query_str,
-		system_prompt: post.system_prompt,
-		promt_question: post.text_prompt,
-	};
+  const dataForRequestAi = {
+    user_id: data_getUserId,
+    folder_name: findKeyById(dataForRequest.index, dataUser),
+    index: dataForRequest.index,
+    min_date: dataForRequest.min_range_date,
+    max_date: dataForRequest.max_range_date,
+    query_str: dataForRequest.query_str,
+    system_prompt: post.system_prompt,
+    promt_question: post.text_prompt,
+  };
 
-	const onStartDataAi = async () => {
-		setIsSuccessAi(false);
-		toggleIsViewPromptPopup(false);
-		nav('/ai-analytics/analysis-of-themes');
-		try {
-			toggleBarStart(true);
-			// Cookies.set(STATUSBARSTART, 'true');
-			setIsLoadingTest(true);
-			const startResponse = await triger_data(dataForRequestAi);
+  // Функция для очистки интервала
+  const clearCurrentInterval = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
 
-			if (!startResponse.data?.task_id) {
-				setIsLoadingTest(false);
-				toggleBarStart(false);
-				// Cookies.remove(STATUSBARSTART);
-				return;
-			}
+  // Функция для завершения процесса и навигации
+	const completeProcess = useCallback((responseData) => {
+	clearCurrentInterval();
+	setIsLoadingTest(false);
+	setIsSuccessAi(true);
+	toggleBarStart(true);     // оставить состояние "анализ идет"
+	toggleFinalStatus(true);  // статус "готово"
 
-			const taskId = startResponse.data.task_id;
-			// const MAX_CHECKS = 100;
-			// let checksCount = 0;
-			let currentStage = 'progress'; // Текущий этап обработки: progress → embedding → final
+	}, [addFirstHtmlFileRequest, toggleFinalStatus]);
 
-			const checkStatus = async () => {
-				try {
-					const statusResponse = await trigger_status(taskId);
 
-					console.log(
-						'statusResponse',
-						currentStage,
-						statusResponse?.data.final_status === 'done',
-					);
+  const onStartDataAi = useCallback(async () => {
+    setIsSuccessAi(false);
+    toggleIsViewPromptPopup(false);
+    
+    try {
+      toggleBarStart(true);
+      setIsLoadingTest(true);
+      
+      const startResponse = await triger_data(dataForRequestAi);
+      console.log('Start response:', startResponse);
 
-					if (statusResponse.error) {
-						console.error('Status check failed:', statusResponse.error);
-						setIsLoadingTest(false);
-						// Cookies.remove(PROGRESSBAR);
-						return false;
-					}
+      if (!startResponse.data?.task_id) {
+        setIsLoadingTest(false);
+        toggleBarStart(false);
+        return;
+      }
 
-					// Обновляем текущий этап в зависимости от прогресса
-					switch (currentStage) {
-						case 'progress':
-							if (statusResponse.data?.progress === 100) {
-								currentStage = 'embedding';
-							}
-							break;
+      const taskId = startResponse.data.task_id;
+      let currentStage = 'progress';
 
-						case 'embedding':
-							if (statusResponse.data?.embedding_progress === 100) {
-								currentStage = 'final';
-							}
-							break;
-					}
+      const checkStatus = async () => {
+        try {
+          const statusResponse = await trigger_status(taskId);
+          console.log('Status response', currentStage, statusResponse?.data);
 
-					// Проверяем финальный статус
-					if (
-						currentStage === 'final' &&
-						statusResponse.data?.final_status === 'done'
-					) {
-						setIsLoadingTest(false);
-						setIsSuccessAi(true);
-						// Cookies.remove(PROGRESSBAR);
-						console.log('Task fully completed!', statusResponse.data);
-						addFirstHtmlFileRequest({
-							file_name: statusResponse.data?.['html-file'],
-							folder_name: statusResponse.data?.folder_name,
-						});
-						toggleFinalStatus(true);
-						return true;
-					}
+          if (statusResponse.error) {
+            console.error('Status check failed:', statusResponse.error);
+            clearCurrentInterval();
+            setIsLoadingTest(false);
+            toggleBarStart(false);
+            return;
+          }
 
-					return false;
-				} catch (e) {
-					setIsLoadingTest(false);
-					setIsSuccessAi(false);
-					console.error('Error during status check:', e);
-					return false;
-				}
-			};
+          const responseData = statusResponse.data;
+          
+          // Обновляем этап на основе прогресса
+          if (currentStage === 'progress' && responseData?.progress === 100) {
+            currentStage = 'embedding';
+            console.log('Switching to embedding stage');
+          }
 
-			// Первая проверка статуса
-			const isCompleted = await checkStatus();
-			if (isCompleted) return;
+          if (currentStage === 'embedding' && responseData?.embedding_progress === 100) {
+            currentStage = 'final';
+            console.log('Switching to final stage');
+          }
 
-			// Запускаем периодические проверки
-			const intervalId = setInterval(async () => {
-				// if (checksCount++ >= MAX_CHECKS) {
-				// 	clearInterval(intervalId);
-				// 	setIsLoadingTest(false);
-				// 	setIsSuccessAi(false);
-				// 	Cookies.remove(STATUSBARSTART);
-				// 	Cookies.remove(PROGRESSBAR);
-				// 	console.error('Maximum checks reached');
-				// 	return;
-				// }
-
-				const isCompleted = await checkStatus();
-				if (isCompleted) {
-					clearInterval(intervalId);
-					// toggleBarStart(false);
-				}
-			}, 3000);
-
-			return () => clearInterval(intervalId);
-		} catch (error) {
-			console.error('Testing failed:', error);
-			setIsLoadingTest(false);
-			setIsSuccessAi(false);
-			// toggleBarStart(false);
+        // Проверяем завершение всех этапов
+		if (
+		Number(responseData?.progress) === 100 &&
+		(responseData?.status === 'done' || responseData?.final_status === 'done')
+		) {
+		completeProcess(responseData);
 		}
-	};
 
-	const onStartTesting = async () => {
-		setIsSuccessTest(false);
-		try {
-			setIsLoadingTest(true); // Включаем лоадер перед началом запроса
-			const startResponse = await trigger(dataForRequestTesting);
-			console.log('startResponse', startResponse);
-			if (!startResponse.data?.task_id) {
-				setIsLoadingTest(false); // Выключаем лоадер, если task_id отсутствует
-				return;
-			}
+        } catch (e) {
+          console.error('Error during status check:', e);
+          clearCurrentInterval();
+          setIsLoadingTest(false);
+          setIsSuccessAi(false);
+          toggleBarStart(false);
+        }
+      };
 
-			const taskId = startResponse.data.task_id;
-			const MAX_CHECKS = 100; //HELP: Максимальное количество проверок
-			let checksCount = 0;
+      // Первая проверка
+      await checkStatus();
 
-			//HELP: Функция для проверки статуса задачи
-			const checkStatus = async () => {
-				try {
-					const statusResponse = await trigger_status(taskId);
+      // Запускаем периодические проверки
+      intervalRef.current = setInterval(checkStatus, 3000);
 
-					if (statusResponse.error) {
-						console.error('Status check failed:', statusResponse.error);
-						setIsLoadingTest(false); // Выключаем лоадер при ошибке
-						return false;
-					}
+    } catch (error) {
+      console.error('AI processing failed:', error);
+      clearCurrentInterval();
+      setIsLoadingTest(false);
+      setIsSuccessAi(false);
+      toggleBarStart(false);
+    }
+  }, [
+    dataForRequestAi,
+    triger_data,
+    trigger_status,
+    toggleIsViewPromptPopup,
+    toggleBarStart,
+    completeProcess,
+    clearCurrentInterval
+  ]);
 
-					if (statusResponse.data?.status === 'done') {
-						setIsLoadingTest(false); // Выключаем лоадер при завершении задачи
-						setIsSuccessTest(true);
-						console.log(
-							'Task completed!',
-							statusResponse.data,
-							// JSON.parse(statusResponse.data.result),
-							statusResponse.data.result,
-						);
-						return true; // Задача завершена
-					}
+  const onStartTesting = async () => {
+    setIsSuccessTest(false);
+    try {
+      setIsLoadingTest(true);
+      const startResponse = await trigger(dataForRequestTesting);
+      console.log('startResponse', startResponse);
+      if (!startResponse.data?.task_id) {
+        setIsLoadingTest(false);
+        return;
+      }
 
-					return false; // Задача еще не завершена
-				} catch (e) {
-					setIsLoadingTest(false); // Выключаем лоадер при ошибке
-					setIsSuccessTest(false);
-					console.error('Error during status check:', e);
-					return false;
-				}
-			};
+      const taskId = startResponse.data.task_id;
+      const MAX_CHECKS = 100;
+      let checksCount = 0;
+      let intervalId = null;
 
-			//HELP: Первый запрос выполняется сразу
-			const isCompleted = await checkStatus();
-			if (isCompleted) return;
+      const checkStatus = async () => {
+        try {
+          const statusResponse = await trigger_status(taskId);
 
-			//HELP: Запускаем интервал для последующих проверок
-			const intervalId = setInterval(async () => {
-				if (checksCount++ >= MAX_CHECKS) {
-					clearInterval(intervalId);
-					setIsLoadingTest(false); // Выключаем лоадер при достижении максимального количества проверок
-					setIsSuccessTest(false);
-					console.error('Status check timeout: Maximum checks reached');
-					return;
-				}
+          if (statusResponse.error) {
+            console.error('Status check failed:', statusResponse.error);
+            setIsLoadingTest(false);
+            if (intervalId) clearInterval(intervalId);
+            return false;
+          }
 
-				const isCompleted = await checkStatus();
-				if (isCompleted) {
-					clearInterval(intervalId); // Останавливаем интервал при завершении задачи
-					setIsSuccessTest(true);
-				}
-			}, 3000);
+          if (statusResponse.data?.status === 'done') {
+            setIsLoadingTest(false);
+            setIsSuccessTest(true);
+            if (intervalId) clearInterval(intervalId);
+            console.log(
+              'Task completed!',
+              statusResponse.data,
+              statusResponse.data.result,
+            );
+            return true;
+          }
 
-			//HELP: Очистка интервала при размонтировании
-			return () => clearInterval(intervalId);
-		} catch (e) {
-			console.error('Testing failed:', e);
-			setIsLoadingTest(false); // Выключаем лоадер при ошибке
-			setIsSuccessTest(false);
-		}
-	};
+          return false;
+        } catch (e) {
+          setIsLoadingTest(false);
+          setIsSuccessTest(false);
+          if (intervalId) clearInterval(intervalId);
+          console.error('Error during status check:', e);
+          return false;
+        }
+      };
 
-	return {
-		onStartTesting,
-		isLoadingTest,
-		isSuccessTest,
-		data,
-		onStartDataAi,
-		isSuccessAi,
-		setIsSuccessAi,
-	};
+      const isCompleted = await checkStatus();
+      if (isCompleted) return;
+
+      intervalId = setInterval(async () => {
+        if (checksCount++ >= MAX_CHECKS) {
+          clearInterval(intervalId);
+          setIsLoadingTest(false);
+          setIsSuccessTest(false);
+          console.error('Status check timeout: Maximum checks reached');
+          return;
+        }
+
+        const isCompleted = await checkStatus();
+        if (isCompleted) {
+          clearInterval(intervalId);
+          setIsSuccessTest(true);
+        }
+      }, 3000);
+
+    } catch (e) {
+      console.error('Testing failed:', e);
+      setIsLoadingTest(false);
+      setIsSuccessTest(false);
+    }
+  };
+
+  return {
+    onStartTesting,
+    isLoadingTest,
+    isSuccessTest,
+    data,
+    onStartDataAi,
+    isSuccessAi,
+    setIsSuccessAi,
+  };
 };

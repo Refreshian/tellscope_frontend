@@ -4,6 +4,7 @@ import { dataSetService } from '../services/dataSet.service';
 import { getGraphService } from '../services/getGraph.service';
 import { dataUsersService } from '../services/other.service';
 import { tablesService } from '../services/tables.service';
+import aiBotApi from '../services/aiBot.service'; // Изменили на default импорт
 
 import { reducer as aiData } from './ai-data/aiData.slice';
 import { reducer as booleanValues } from './boolean-values/booleanValues.slice';
@@ -39,7 +40,9 @@ const reducers = combineReducers({
 	[dataUsersService.reducerPath]: dataUsersService.reducer,
 	[dataSetService.reducerPath]: dataSetService.reducer,
 	[tablesService.reducerPath]: tablesService.reducer,
+	[aiBotApi.reducerPath]: aiBotApi.reducer,
 });
+
 export const store = configureStore({
 	reducer: reducers,
 	middleware: getDefaultMiddleware =>
@@ -47,5 +50,6 @@ export const store = configureStore({
 			.concat(getGraphService.middleware)
 			.concat(dataUsersService.middleware)
 			.concat(dataSetService.middleware)
-			.concat(tablesService.middleware),
+			.concat(tablesService.middleware)
+			.concat(aiBotApi.middleware),
 });

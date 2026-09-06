@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Tellscope Ops & Компоненты</title>
+<style>
+  body { font-family: "Inter", system-ui, sans-serif; color:#1f2933; margin:0; padding:0; background:#f7f9fb;}
+  header { background:#0f172a; color:#fff; padding:24px 32px; }
+  h1 { margin:0 0 8px 0; font-size:28px; }
+  h2 { margin:24px 0 12px; font-size:20px; color:#0f172a; }
+  h3 { margin:16px 0 8px; font-size:16px; color:#0f172a; }
+  .container { max-width:1200px; margin:0 auto; padding:24px 32px 48px; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin:16px 0; }
+  .card { background:#fff; border:1px solid #e5e9f0; border-radius:10px; padding:16px 18px; box-shadow:0 4px 16px rgba(15,23,42,0.05); }
+  code, pre { background:#0b1221; color:#d6e2ff; font-size:13px; border-radius:8px; padding:12px; display:block; white-space:pre-wrap; word-break:break-word; }
+  a { color:#2563eb; text-decoration:none; }
+  nav { display:flex; flex-wrap:wrap; gap:10px; margin:12px 0 0; }
+  nav a { padding:6px 10px; background:#111827; color:#e5e7eb; border-radius:6px; font-size:13px; }
+  .muted { color:#6b7280; font-size:13px; }
+  ul { margin:0 0 0 18px; padding:0; }
+  li { margin:6px 0; }
+  .warning { color:#b45309; font-weight:600; }
+  .ok { color:#047857; font-weight:600; }
+  .section { margin-top:32px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Tellscope: FastAPI & Data Stack</h1>
+  <div class="muted">Обработка соцмедиа и СМИ • dev хост: tellscope40.headsmade.com</div>
+  <nav>
+    <a href="#backend">Backend</a>
+    <a href="#venv">Python / Venv</a>
+    <a href="#db">PostgreSQL</a>
+    <a href="#alembic">Alembic</a>
+    <a href="#search">Elasticsearch</a>
+    <a href="#redis">Redis</a>
+    <a href="#celery">Celery</a>
+    <a href="#qdrant">Qdrant</a>
+    <a href="#frontend">Frontend</a>
+    <a href="#nginx">Nginx / Supervisor</a>
+    <a href="#gpu">GPU / CUDA</a>
+    <a href="#transfer">Копирование</a>
+    <a href="#logs">Логи</a>
+  </nav>
+</header>
+
+<div class="container">
+
+  <section class="section" id="backend">
+    <h2>Backend (FastAPI)</h2>
+    <div class="card">
+      <h3>Запуск (uvicorn)</h3>
+      <pre>/home/dev/tellscope_app/tellscope_backend/tellscope/venv/bin/uvicorn main:app --host 0.0.0.0 --port 5000 --timeout-keep-alive 60</pre>
+      <div class="muted">Рабочая папка: <code>/home/dev/tellscope_app/tellscope_backend</code></div>
+      <div class="muted">Домен: <code>tellscope40.headsmade.com</code></div>
+    </div>
+  </section>
+
+  <section class="section" id="venv">
+    <h2>Python / Виртуальное окружение</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Создать venv</h3>
+        <pre>sudo apt install python3.12-venv
+python3 -m venv tellscope
+source tellscope/bin/activate
+pip install -r requirements.txt</pre>
+      </div>
+      <div class="card">
+        <h3>Полезные пути</h3>
+        <ul>
+          <li>Активировать: <code>source tellscope/bin/activate</code></li>
+          <li>Интерпретатор: <code>/home/dev/tellscope_app/tellscope_backend/tellscope/bin/python</code></li>
+          <li>PYTHONPATH: <code>export PYTHONPATH=/home/dev/tellscope_app/tellscope_backend</code></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="db">
+    <h2>PostgreSQL</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Установка</h3>
+        <pre>sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+sudo apt-get update
+sudo apt-get -y install postgresql</pre>
+      </div>
+      <div class="card">
+        <h3>Пользователь и БД</h3>
+        <pre>sudo su - postgres
+psql -c "alter user postgres with password '****'"   # редактируйте пароль
+createuser dbuser
+createdb datadb -O dbuser
+psql datadb</pre>
+        <ul>
+          <li>Список БД: <code>\l</code> (в psql)</li>
+          <li>Удалённый доступ: <code>listen_addresses='*'</code> и <code>pg_hba.conf</code> правило <code>host datadb dbuser 0.0.0.0/0 md5</code></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="alembic">
+    <h2>Alembic (миграции)</h2>
+    <div class="card">
+      <pre># После изменения моделей
+alembic revision --autogenerate -m "описание изменений"
+alembic upgrade head</pre>
+    </div>
+  </section>
+
+  <section class="section" id="search">
+    <h2>Elasticsearch 8.x</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Установка</h3>
+        <pre>echo "deb [trusted=yes] https://mirror.yandex.ru/mirrors/elastic/8/ stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
+sudo apt update
+sudo apt install -y elasticsearch</pre>
+      </div>
+      <div class="card">
+        <h3>Сервис</h3>
+        <pre>sudo systemctl enable elasticsearch
+sudo systemctl start elasticsearch
+sudo systemctl status elasticsearch</pre>
+        <div class="muted">При необходимости — вручную создать <code>/etc/systemd/system/elasticsearch.service</code> и настроить права для пользователя <code>elasticsearch</code>.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="redis">
+    <h2>Redis</h2>
+    <div class="card">
+      <pre>sudo apt update
+sudo apt install redis-server -y
+sudo systemctl restart redis
+sudo systemctl enable --now redis-server
+sudo systemctl status redis</pre>
+    </div>
+  </section>
+
+  <section class="section" id="celery">
+    <h2>Celery</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Базовый запуск</h3>
+        <pre># worker
+celery -A run_celery worker --loglevel=info
+
+# beat
+celery -A run_celery beat --loglevel=info</pre>
+      </div>
+      <div class="card">
+        <h3>Отладка / перезапуск</h3>
+        <pre>sudo pkill -f celery          # остановить
+find . -type d -name "__pycache__" -exec rm -r {} +
+celery -A main.celery_app worker --loglevel=info --concurrency=1 --pool=solo</pre>
+        <div class="muted">Проверка задач: <code>celery -A celery_app inspect registered</code></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="qdrant">
+    <h2>Qdrant</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Volume + Сервис</h3>
+        <pre>docker volume create qdrant_data</pre>
+        <div class="muted">Сервис: <code>/etc/systemd/system/qdrant.service</code> (docker run с портами 6333/6334, volume qdrant_data).</div>
+      </div>
+      <div class="card">
+        <h3>Запуск / Статус</h3>
+        <pre>sudo systemctl daemon-reload
+sudo systemctl start qdrant
+sudo systemctl status qdrant
+sudo systemctl enable qdrant</pre>
+        <div class="muted">Проверка: <code>curl http://localhost:6333</code> или dashboard: <code>http://<i>host</i>:6333/dashboard</code></div>
+      </div>
+      <div class="card">
+        <h3>Продвинутая конфигурация (yaml)</h3>
+        <pre>/opt/qdrant/config/production.yaml
+# монтируется в контейнер через systemd unit</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="frontend">
+    <h2>Frontend (Vite / Yarn)</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Сборка</h3>
+        <pre>cd ~/tellscope_app/tellscope_frontend
+yarn add autoprefixer --dev
+yarn build</pre>
+      </div>
+      <div class="card">
+        <h3>Dev режим</h3>
+        <pre>yarn dev --host 0.0.0.0 --port 4000</pre>
+      </div>
+      <div class="card">
+        <h3>Деплой статики</h3>
+        <pre>sudo rm -rf /var/www/tellscope/
+sudo cp -r ./dist /var/www/tellscope
+sudo service nginx restart</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="nginx">
+    <h2>Nginx & Supervisor (FastAPI)</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Supervisor конфиг</h3>
+        <pre>Файл: /etc/supervisor/conf.d/tellscope.conf
+
+[program:fastapi_app]
+command=/home/dev/tellscope_app/tellscope_backend/venv_py312_clean/bin/uvicorn main:app --host 0.0.0.0 --port 5000 --workers 1
+directory=/home/dev/tellscope_app/tellscope_backend
+environment=PYTHONPATH="/home/dev/tellscope_app/tellscope_backend",CUDA_VISIBLE_DEVICES="3"
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/fastapi_app.err.log
+user=dev
+</pre>
+        <pre>sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl restart fastapi_app
+sudo supervisorctl status fastapi_app</pre>
+      </div>
+      <div class="card">
+        <h3>Nginx</h3>
+        <pre>sudo nano /etc/nginx/nginx.conf
+sudo nginx -t && sudo systemctl reload nginx</pre>
+        <div class="muted">Конфиги: <code>/etc/nginx/conf.d/tellscope40.headsmade.com.conf</code></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="gpu">
+    <h2>GPU / CUDA сервисы</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Мониторинг</h3>
+        <pre>watch -n 1 nvidia-smi</pre>
+        <div class="muted">Остановить процессы, если нужно: <code>sudo pkill -f python</code></div>
+      </div>
+      <div class="card">
+        <h3>Перезапуск контекста</h3>
+        <pre>sudo fuser -v /dev/nvidia*
+sudo pkill -f python
+sudo systemctl restart redis-server
+sudo systemctl restart elasticsearch</pre>
+      </div>
+      <div class="card">
+        <h3>vLLM контейнер</h3>
+        <pre>docker stop vllm-vllm-api-1
+docker start vllm-vllm-api-1</pre>
+        <div class="muted">Проверить модель: <code>curl http://localhost:8000/v1/models</code></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="transfer">
+    <h2>Копирование данных между серверами</h2>
+    <div class="card">
+      <h3>Примеры scp</h3>
+      <pre># Файл
+scp dev@194.146.113.123:/home/dev/fastapi/analytics_app/data/indexes.pkl \
+    dev@tellscope40.headsmade.com:/home/dev/tellscope_app/tellscope_backend/data/
+
+# Папка
+scp -r dev@194.146.113.123:/home/dev/fastapi/analytics_app/data/embed_files \
+    dev@tellscope40.headsmade.com:/home/dev/tellscope_app/tellscope_backend/data/embed_files</pre>
+    </div>
+  </section>
+
+  <section class="section" id="logs">
+    <h2>Логи и проверка</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>FastAPI (Supervisor)</h3>
+        <pre>tail -f /var/log/fastapi_app.err.log   # ошибки
+tail -f /var/log/fastapi_app.out.log   # общие логи</pre>
+      </div>
+      <div class="card">
+        <h3>Celery (systemd)</h3>
+        <pre>sudo systemctl restart celery
+sudo journalctl -u celery -f</pre>
+      </div>
+      <div class="card">
+        <h3>Qdrant</h3>
+        <pre>sudo systemctl status qdrant
+sudo journalctl -u qdrant -f
+docker logs qdrant --tail 50</pre>
+      </div>
+      <div class="card">
+        <h3>Размеры директорий</h3>
+        <pre>du -h --max-depth=1</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Разное / Быстрые заметки</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Перезагрузка Qdrant</h3>
+        <pre>docker-compose restart qdrant   # либо systemctl restart qdrant</pre>
+      </div>
+      <div class="card">
+        <h3>Redis очистка</h3>
+        <pre>redis-cli flushall</pre>
+      </div>
+      <div class="card">
+        <h3>Безопасность файлов</h3>
+        <pre class="warning">sudo chmod -R 777 /home/dev/tellscope_app/tellscope_backend/data  # используйте аккуратно</pre>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

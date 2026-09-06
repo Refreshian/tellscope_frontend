@@ -41,13 +41,31 @@ const Bubbles = ({ data }) => {
 		}),
 	  );
   
-	  series.nodes.template.events.on('dblclick', function (ev) {
+	series.nodes.template.events.on('dblclick', function (ev) {
+	const data = ev.target.dataItem.dataContext;
+	if (!data.type) { // если это главный круг или нужный вам тип
+		ev.preventDefault?.();  // отменяет дефолтное действие (зум)
+		ev.stopPropagation?.(); // на всякий случай останавливает всплытие
+		return;
+	}
+	// если это не главный круг — ваше основное действие (например, открыть URL)
+	const url = data.url;
+	if (url) {
+		window.open(url);
+	}
+	});
+
+		series.nodes.template.events.on('click', function (ev) {
 		const data = ev.target.dataItem.dataContext;
-		const url = data.url;
-		if (url) {
-		  window.open(url);
+		// Это исходный автор (верхний родитель)
+		// Его type не установлен (у него нет type), у остальных кругов type есть
+		if (!data.type) {
+			// Отменяем стандартное поведение (зум на исходный круг)
+			ev.preventDefault?.();
+			return;
 		}
-	  });
+		// иначе даем работать зуму (ничего не делаем)
+		});
   
 	  series.data.setAll([
 		{

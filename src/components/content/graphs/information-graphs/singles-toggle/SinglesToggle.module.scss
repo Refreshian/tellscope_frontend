@@ -1,0 +1,64 @@
+@import '@st/variables';
+
+.toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+	border: 1px solid rgba($color_black, 0.12);
+	background: $color_white;
+	border-radius: 999px;
+	padding: 4px 10px 4px 5px;
+	color: rgba($color_black, 0.72);
+	font-size: 0.75rem;
+	line-height: 1.2;
+	cursor: pointer;
+
+	&:disabled {
+		opacity: 0.45;
+		cursor: default;
+	}
+
+	&:hover:not(:disabled) {
+		border-color: rgba($color_blue, 0.45);
+	}
+}
+
+.on {
+	border-color: rgba($color_blue, 0.45);
+	background: rgba($color_blue, 0.08);
+	color: $color_blue;
+}
+
+.track {
+	position: relative;
+	width: 28px;
+	height: 16px;
+	border-radius: 999px;
+	background: rgba($color_black, 0.18);
+	flex-shrink: 0;
+	transition: background 0.15s ease;
+}
+
+.on .track {
+	background: $color_blue;
+}
+
+.knob {
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: $color_white;
+	transition: transform 0.15s ease;
+}
+
+.on .knob {
+	transform: translateX(12px);
+}
+
+.label {
+	white-space: nowrap;
+}

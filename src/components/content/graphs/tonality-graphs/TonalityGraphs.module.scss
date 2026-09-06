@@ -2,36 +2,28 @@
 @import '@st/functions';
 
 .block__graph {
-	// height: 81%;
-	height: adapt(610px, 1440px);
+	height: calc(100vh - 210px);
+	min-height: 520px;
 	width: 100%;
-	margin-top: adapt(16px, 1440px);
-	margin-bottom: adapt(40px, 1440px);
-	padding: adapt(16px, 1440px);
+	margin-top: 8px;
+	margin-bottom: 0;
+	padding: 12px;
 	background-color: $color_white;
 	display: flex;
 	flex-direction: column;
+	flex: 1 1 auto;
 
-	// Соотношение 1:1 (Квадратный экран)
-	@media (max-aspect-ratio: 1/1) {
-		height: adapt(810px, 1440px);
-	}
-	// Соотношение 4:3
-	@media (min-aspect-ratio: 4/3) {
-		height: adapt(810px, 1440px);
-	}
-	// Соотношение 16:9
-	@media (min-aspect-ratio: 16/9) {
-		height: adapt(610px, 1440px);
-	}
-	// Соотношение 16:10 (экраны ноутбуков)
-	@media (min-aspect-ratio: 16/10) {
-		height: adapt(440px, 1440px);
+	@media (max-width: 900px) {
+		height: auto;
+		min-height: 360px;
 	}
 
 	> .block__title {
 		display: flex;
-		justify-content: space-between;
+		justify-content: center;
+		align-items: center;
+		position: relative;
+		flex-shrink: 0;
 
 		> .block__buttons {
 			height: adapt(42px, 1440px);
@@ -60,6 +52,9 @@
 			height: adapt(33px, 1440px);
 			display: flex;
 			gap: 8px;
+			position: absolute;
+			right: 0;
+			top: 0;
 
 			> button {
 				&:hover {
@@ -69,7 +64,6 @@
 
 			> .button__description {
 				width: adapt(258px, 1440px);
-				// padding: adapt(8px, 1440px) adapt(13px, 1440px);
 				height: 100%;
 				border-radius: adapt(4px, 1440px);
 				background-color: $color_very_light_blue;
@@ -86,11 +80,26 @@
 	}
 
 	> .container__graph {
-		align-self: center;
+		align-self: stretch;
 		width: 100%;
-		// height: 98%;
-		height: adapt(556px, 1440px);
+		flex: 1 1 auto;
+		min-height: 420px;
+		height: 100%;
 		display: flex;
 		position: relative;
+		overflow: hidden;
+
+		svg {
+			max-width: 100%;
+			max-height: 100%;
+			width: 100% !important;
+			height: 100% !important;
+		}
+
+		canvas {
+			max-width: 100%;
+			max-height: 100%;
+			object-fit: contain;
+		}
 	}
 }

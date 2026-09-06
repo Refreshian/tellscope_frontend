@@ -115,7 +115,7 @@ const BubbleLineComparison = ({ activeSubcategory }) => {
 		<HighchartsReact
 			highcharts={Highcharts}
 			options={options}
-			containerProps={{ style: { width: '100%' } }}
+			containerProps={{ style: { width: '100%', height: '100%' } }}
 		/>
 	);
 };

@@ -31,14 +31,14 @@ export const menuPageData = [
 		src_active: '/images/icons/menu/voice_of_customer_active.svg',
 		path: '/voice-of-customer',
 	},
-	{
-		id: 4,
-		title: 'Конкуренты',
-		text: 'Конкуренты',
-		src: '/images/icons/menu/competitive_environment.svg',
-		src_active: '/images/icons/menu/competitive_environment_active.svg',
-		path: '/competitors',
-	},
+	// {
+	// 	id: 4,
+	// 	title: 'Конкуренты',
+	// 	text: 'Конкуренты',
+	// 	src: '/images/icons/menu/competitive_environment.svg',
+	// 	src_active: '/images/icons/menu/competitive_environment_active.svg',
+	// 	path: '/competitors',
+	// },
 	// {
 	// 	id: 5,
 	// 	title: 'Внешние факторы',
@@ -47,14 +47,14 @@ export const menuPageData = [
 	// 	src_active: '/images/icons/menu/external_factors_active.svg',
 	// 	path: '/none',
 	// },
-	{
-		id: 7,
-		title: 'Кластеризация авторов',
-		text: 'Кластеризация авторов',
-		src: '/images/icons/menu/authors_clastarization.svg',
-		src_active: '/images/icons/menu/authors_clastarization_active.svg',
-		path: '/clustering',
-	},
+	// {
+	// 	id: 7,
+	// 	title: 'Кластеризация авторов',
+	// 	text: 'Кластеризация авторов',
+	// 	src: '/images/icons/menu/authors_clastarization.svg',
+	// 	src_active: '/images/icons/menu/authors_clastarization_active.svg',
+	// 	path: '/clustering',
+	// },
 	// {
 	// 	id: 8,
 	// 	title: 'Text classification',
@@ -79,23 +79,48 @@ export const menuPageData = [
 		path: '/ai-analytics',
 		// path: '/none',
 	},
+    {
+        id: 10, // используйте следующий доступный ID
+        title: 'Связи авторов',
+        text: 'Связи авторов',
+        src: '/images/icons/menu/AI.png', // можно использовать существующую иконку или добавить новую
+        src_active: '/images/icons/menu/AI.png',
+        path: '/graph-analysis'
+    },
+	{
+		id: 5, // используйте следующий доступный ID
+		text: "ИИ-Бот", // название секции
+		src_active: "/images/icons/menu/chad_96011c3ae034462cbe830a422ef9c363.png", // путь к иконке
+		src: '/images/icons/menu/chad_96011c3ae034462cbe830a422ef9c363.png', // Путь к иконке (неактивное состояние)
+		path: '/ai-bot' // маршрут или "/none" если в разработке
+	},
 	{
 		id: 6,
-		title: 'Набор данных',
-		text: 'Набор данных',
+		title: 'Наборы данных',
+		text: 'Наборы данных',
 		src: '/images/icons/menu/show_data.svg',
 		src_active: '/images/icons/menu/show_data_active.svg',
 		path: '/data-set',
 	},
+	{
+		id: 11,
+		title: 'ОИВ рейтинг',
+		text: 'Мосинформ.Рейтинг',
+		src: '/images/icons/menu/table.svg',
+		src_active: '/images/icons/menu/table_active.svg',
+		path: '/mosinform-rating',
+		sidebarOnly: true,
+	},
+	// НОВЫЙ ЭЛЕМЕНТ
 ];
 
 export const menuSettings = [
-	{
+	{ 
 		id: 0,
 		title: 'FAQ',
 		src: '/images/icons/menu/FAQ.svg',
-		src_active: '/images/icons/menu/FAQ_active.svg',
-		path: 'https://tsdoc.headsmade.com/en/home',
+		src_active: '/images/icons/menu/faq.svg',
+		path: 'http://194.146.113.124:8080',
 	},
 	{
 		id: 1,

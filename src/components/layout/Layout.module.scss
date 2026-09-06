@@ -2,9 +2,10 @@
 
 .wrapper {
 	display: flex;
-	align-items: center;
-	justify-content: center;
+	align-items: stretch;
+	justify-content: flex-start;
 	width: 100%;
 	height: 100%;
+	overflow: hidden;
 	background-color: $color_very_light_grey;
 }

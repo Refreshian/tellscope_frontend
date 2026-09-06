@@ -40,12 +40,12 @@ const Folder = ({ folder, processedFolder, buttonTarget }) => {
 	// };
 
 	const handleClick = () => {
-		addTargetFolder(folder);
-		if (buttonTarget === 'Файлы данных') {
-			navigate(`/data-set/${folder}`);
-		} else if (buttonTarget === 'Файлы кластеризации авторов') {
-			navigate(`/data-set/processed/${folder}`);
-		}
+	addTargetFolder(folder);
+	if (buttonTarget === 'Файлы данных') {
+		navigate(`/data-set/${folder}`, { state: { folder } }); // Добавьте state
+	} else if (buttonTarget === 'Файлы кластеризации авторов') {
+		navigate(`/data-set/processed/${folder}`, { state: { folder } });
+	}
 	};
 
 	const onClick = () => {

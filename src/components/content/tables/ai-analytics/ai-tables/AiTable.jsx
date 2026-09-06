@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import {
 	flexRender,
 	getCoreRowModel,
@@ -6,10 +7,10 @@ import {
 	getSortedRowModel,
 	useReactTable,
   } from '@tanstack/react-table';
-  import { useMemo, useState } from 'react';
+  import { useMemo, useState, useEffect } from 'react';
   import { useSelector } from 'react-redux';
-  import Slider from 'rc-slider'; // Убедитесь, что этот пакет установлен
-  import 'rc-slider/assets/index.css'; // Импорт стилей для слайдера
+  import Slider from 'rc-slider';
+  import 'rc-slider/assets/index.css';
   
   import { useActions } from '../../../../../hooks/useActions';
   import { truncateDescription } from '../../../../../utils/editText';
@@ -21,11 +22,45 @@ import {
   const AiTable = () => {
 	const { aiTesting } = useSelector(state => state.aiData);
 	const { texts } = useSelector(state => state.dataForRequest);
-  
-	// Состояния для фильтрации данных
-	const [audienceRange, setAudienceRange] = useState([0, 50000]);
-	const [commentsRange, setCommentsRange] = useState([0, 1000]);
-	const [erRange, setErRange] = useState([0, 100]); // Вовлеченность (ER)
+
+	// Получение максимальных значений для слайдеров
+	const getMaxValues = () => {
+	  if (!aiTesting || aiTesting.length === 0) return { audience: 50000, comments: 1000, er: 100 };
+	  
+	  let maxAudience = 0;
+	  let maxComments = 0;
+	  let maxEr = 0;
+	  
+	  aiTesting.forEach(item => {
+		const audience = parseInt(item.audienceCount) || 0;
+		const comments = parseInt(item.commentsCount) || 0;
+		const er = parseFloat(item.er) || 0;
+		
+		maxAudience = Math.max(maxAudience, audience);
+		maxComments = Math.max(maxComments, comments);
+		maxEr = Math.max(maxEr, er);
+	  });
+	  
+	  return {
+		audience: maxAudience > 0 ? Math.ceil(maxAudience * 1.1) : 50000,
+		comments: maxComments > 0 ? Math.ceil(maxComments * 1.1) : 1000,
+		er: maxEr > 0 ? Math.ceil(maxEr * 1.1) : 100
+	  };
+	};
+	
+	const maxValues = useMemo(getMaxValues, [aiTesting]);
+
+	// Состояния для фильтрации данных - инициализируем после получения maxValues
+	const [audienceRange, setAudienceRange] = useState([0, maxValues.audience]);
+	const [commentsRange, setCommentsRange] = useState([0, maxValues.comments]);
+	const [erRange, setErRange] = useState([0, maxValues.er]);
+
+	// Обновляем диапазоны слайдеров при изменении данных
+	useEffect(() => {
+	  setAudienceRange([0, maxValues.audience]);
+	  setCommentsRange([0, maxValues.comments]);
+	  setErRange([0, maxValues.er]);
+	}, [maxValues.audience, maxValues.comments, maxValues.er]);
   
 	// Фильтрованные данные
 	const data = useMemo(() => {
@@ -156,33 +191,6 @@ import {
 		deleteTextsIds(obj);
 	  }
 	};
-  
-	// Получение максимальных значений для слайдеров
-	const getMaxValues = () => {
-	  if (!aiTesting || aiTesting.length === 0) return { audience: 50000, comments: 1000, er: 100 };
-	  
-	  let maxAudience = 0;
-	  let maxComments = 0;
-	  let maxEr = 0;
-	  
-	  aiTesting.forEach(item => {
-		const audience = parseInt(item.audienceCount) || 0;
-		const comments = parseInt(item.commentsCount) || 0;
-		const er = parseFloat(item.er) || 0;
-		
-		maxAudience = Math.max(maxAudience, audience);
-		maxComments = Math.max(maxComments, comments);
-		maxEr = Math.max(maxEr, er);
-	  });
-	  
-	  return {
-		audience: maxAudience > 0 ? Math.ceil(maxAudience * 1.1) : 50000,
-		comments: maxComments > 0 ? Math.ceil(maxComments * 1.1) : 1000,
-		er: maxEr > 0 ? Math.ceil(maxEr * 1.1) : 100
-	  };
-	};
-	
-	const maxValues = useMemo(getMaxValues, [aiTesting]);
   
 	return (
 	  <div className={styles.wrapper_table}>
@@ -337,7 +345,7 @@ import {
 						}}
 						style={{ cursor: 'pointer' }}
 					  >
-						{truncateDescription(rowEl.original.text, 150)}
+						{truncateDescription(rowEl.original.text, 250)}
 					  </td>
 					);
 				  } else {
@@ -415,7 +423,7 @@ import {
 		  </div>
 		</div>
 	  </div>
-	);
+	); 
   };
   
   export default AiTable;

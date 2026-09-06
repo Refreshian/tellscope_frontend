@@ -23,7 +23,7 @@ const SectionSelection = () => {
 			</div>
 			<h2 className={styles.title}>Выберите нужный раздел</h2>
 			<div className={styles.block__choice}>
-				{menuPageData.map(elemInfo => {
+				{menuPageData.filter(elemInfo => !elemInfo.sidebarOnly).map(elemInfo => {
 					return <SectionInfo key={elemInfo.id} elemInfo={elemInfo} />;
 				})}
 			</div>

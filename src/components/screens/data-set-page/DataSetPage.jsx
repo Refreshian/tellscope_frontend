@@ -379,7 +379,7 @@ const DataSetPage = () => {
     const refreshBaThemes = async () => {
         setBaRefreshing(true);
         try {
-            const r = await fetch('/api/ba/themes?user_id=' + encodeURIComponent(data_getUserId || '1') + '&refresh=1', { headers: authHeaders() });
+            const r = await fetch('/api/ba/themes?user_id=' + encodeURIComponent(data_getUserId) + '&refresh=1', { headers: authHeaders() });
             const d = await r.json();
             if (d && Array.isArray(d.themes)) setBaThemes(d.themes);
             if (d && d.refresh_error && window.console) console.warn('BA refresh:', d.refresh_error);
@@ -402,7 +402,7 @@ const DataSetPage = () => {
                 method: 'POST',
                 headers: authHeaders(true),
                 body: JSON.stringify({
-                    user_id: String(data_getUserId || '1'),
+                    user_id: String(data_getUserId),
                     login: baLogin.trim(),
                     password: baPass,
                     create_folders: true,
@@ -426,14 +426,14 @@ const DataSetPage = () => {
 
 
     useEffect(() => {
-        if (!baLoadedRef.current) {
+        if (!baLoadedRef.current && data_getUserId) {
             baLoadedRef.current = true;
             loadBaThemes(data_getUserId);
         }
         return () => {
             if (baPollRef.current) clearInterval(baPollRef.current);
         };
-    }, []);
+    }, [data_getUserId]);
 
     useEffect(() => {
         (async () => {

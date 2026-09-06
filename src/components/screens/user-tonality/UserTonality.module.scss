@@ -2,6 +2,19 @@
 
 @include pages__styles();
 
+.stickyTop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.block__configureSearch {
+  flex-wrap: nowrap;
+  align-items: center;
+  flex-direction: row;
+}
+
 // Основные стили компонента
 .aiAnalysisBlock {
   width: 100%;
@@ -512,29 +525,6 @@
   }
 }
 
-.scrollableResults {
-  width: 100%;
-  max-width: 100%;
-  /* Ключевой момент: */
-  height: calc(100vh - 180px); // 180px — суммарная высота stickyTop + отступы, подберите опытным путём
-  overflow-y: auto;
-  overflow-x: visible;
-  padding-top: 0;
-  margin-top: 0;
-  box-sizing: border-box;
-  /* Для плавности скроллинга в Chrome, Safari: */
-  scroll-behavior: smooth;
-}
-
-/* stickyTop уже скорректирован, чтобы всегда был наверху */
-
-/* Адаптив: */
-@media (max-width: 900px) {
-  .scrollableResults {
-    height: calc(100vh - 230px); // На мобильных можно увеличить высоту sticky меню
-  }
-}
-
 .top-controls {
   display: flex;
   justify-content: flex-start; /* Влево */
@@ -543,11 +533,35 @@
 .scrollableResults {
   width: 100%;
   max-width: 100%;
-  height: calc(100vh - 180px); // или твоя высота!
+  flex: 1 1 auto;
+  min-height: 0;
+  height: calc(100vh - 160px);
   overflow-y: auto;
-  overflow-x: hidden; // <--- ЭТО
+  overflow-x: hidden;
   padding-top: 0;
   margin-top: 0;
   box-sizing: border-box;
   scroll-behavior: smooth;
+}
+
+@media (max-width: 900px) {
+  .aiInputContainer {
+    flex-direction: column;
+  }
+
+  .sendButton,
+  .analyzeButton {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .slidersContainer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .scrollableResults {
+    height: auto;
+    max-height: none;
+  }
 }

@@ -44,3 +44,28 @@
 	border-radius: adapt(8px, 1440px);
 	color: $color_black;
 }
+
+@media (max-width: 900px) {
+	.block__sectionInfo {
+		width: 100%;
+		height: auto;
+		min-height: 72px;
+		padding: 14px 16px;
+		flex-direction: row;
+		justify-content: flex-start;
+		align-items: center;
+		gap: 14px;
+
+		> img {
+			width: 28px;
+			height: 28px;
+			margin-bottom: 0;
+			flex-shrink: 0;
+		}
+
+		> p {
+			text-align: left;
+			font-size: 0.95rem;
+		}
+	}
+}

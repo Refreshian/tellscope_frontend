@@ -1,11 +1,10 @@
 import { convertDateFormat } from './timestamp';
 
-export const truncateDescription = (description, maxLength) => {
-	if (description.length <= maxLength) {
-		return description;
-	}
-
-	return description.slice(0, maxLength) + '...';
+export const truncateDescription = (description, maxLength = 250) => {
+  if (!description || typeof description !== 'string') return '';
+  return description.length <= maxLength 
+    ? description 
+    : `${description.substring(0, maxLength)}...`;
 };
 
 export const truncateMiddle = (str, num) => {

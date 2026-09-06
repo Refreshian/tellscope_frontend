@@ -39,11 +39,20 @@ const Analysis = ({ data_llm }) => {
 	const columns = useMemo(
 		() => [
 			{
-				header: 'Тематика',
-				accessorKey: 'Тематика текста', // Ключ из данных
-
-				cell: ({ getValue }) =>
-					truncateDescription(getValue()?.toString() || '', 200),
+				header: 'Имя кластера',
+				accessorKey: 'Кластер',
+				cell: ({ row }) => {
+					const value = row.original['Кластер'] || row.original['Имя кластера'] || '';
+					return truncateDescription(value.toString(), 200);
+				},
+			},
+			{
+				header: 'Ответ LLM',
+				accessorKey: 'Тематика текста',
+				cell: ({ row }) => {
+					const value = row.original['Тематика текста'] || '';
+					return truncateDescription(value.toString(), 200);
+				},
 			},
 			{
 				header: 'Время',
@@ -112,6 +121,8 @@ const Analysis = ({ data_llm }) => {
 		onGlobalFilterChange: setFiltering,
 		onColumnVisibilityChange: setColumnVisibility,
 	});
+
+	console.log("Data structure:", data_llm?.full_data?.[0]);
 
 	const pageIndex = tableInstance.getState().pagination.pageIndex;
 	const pageCount = tableInstance.getPageCount();

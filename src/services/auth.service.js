@@ -1,47 +1,49 @@
 import axios from 'axios';
+import { API_URL, TOKEN, REFRESH_TOKEN } from '../app.constants';
 import Cookies from 'js-cookie';
 
-import { API_URL, TOKEN } from '../app.constants';
-
 export const authService = {
-	login: async (email, password, setIsAuth) => {
-		try {
-			const { data } = await axios.post(
-				`${API_URL}/auth/jwt/login`,
-				`grant_type=password&username=${email}&password=${password}&scope=&client_id=&client_secret=`,
-				// {
-				// 	username: email,
-				// 	password,
-				// },
-			);
+  login: async (email, password, setIsAuth) => {
+    try {
+      const params = new URLSearchParams();
+      params.append('username', email);
+      params.append('password', password);
+      // "/auth/jwt/login"
+      const { data } = await axios.post("/api/auth/jwt/login", params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        withCredentials: true
+      });
 
-			// console.log(data);
+      Cookies.set(TOKEN, data.access_token);
+      Cookies.set(REFRESH_TOKEN, data.refresh_token);
+      setIsAuth(true);
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
+    }
+  },
 
-			if (data.access_token) {
-				Cookies.set(TOKEN, data.access_token);
-				setIsAuth(true);
-			}
-		} catch (error) {
-			console.log(error);
-		}
-	},
-	registration: async (email, password) => {
-		try {
-			const { data } = await axios.post(`${API_URL}/auth/register`, {
-				email: email,
-				password: password,
-				is_active: true,
-				is_superuser: false,
-				is_verified: false,
-				username: 'string',
-				role_id: 0,
-				comments: 'string',
-			});
+registration: async (email, password, username, role_id = 1) => {
+  try {
+    const { data } = await axios.post("/api/auth/register", { ///auth/register
+      email,
+      password,
+      username, // <- обязательно!
+      role_id: 1,  // <- обязательно!
+      is_active: true,
+      is_superuser: false,
+      is_verified: false
+    });
+    return data;
+  } catch (error) {
+    console.error("Registration error:", error, error.response?.data);
+    throw error;
+  }
+},
 
-			return data;
-		} catch (error) {
-			console.log(error);
-			throw error;
-		}
-	},
+  logout: () => {
+    Cookies.remove(TOKEN);
+    Cookies.remove(REFRESH_TOKEN);
+    window.location.href = "/auth";
+  }
 };

@@ -15,5 +15,10 @@ export const useCheckAuth = () => {
 		if (!Cookies.get(TOKEN)) setIsAuth(false);
 	}, [pathname]);
 
-	if (!isAuth) navigate('/auth');
+	if (!isAuth) {
+		navigate('/auth', {
+			replace: true,
+			state: { from: pathname },
+		});
+	}
 };

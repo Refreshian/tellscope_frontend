@@ -32,13 +32,13 @@ const PopupAi = () => {
 	const { value: value_system, onChange: onChange_system } = useDebounce(
 		setSystemPrompt,
 		400, //HELP: задержка дебаунса
-		150, //HELP: количество символов в поле
+		500, //HELP: количество символов в поле
 		default_value_system,
 	);
 	const { value: value_text, onChange: onChange_text } = useDebounce(
 		setTextPrompt,
 		400,
-		150,
+		1000,
 		default_value_text,
 	);
 

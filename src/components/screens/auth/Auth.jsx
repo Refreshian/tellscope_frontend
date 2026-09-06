@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import Layout from '@/components/layout/Layout';
 import Button from '@/components/ui/button/Button';
@@ -26,10 +26,30 @@ const Auth = () => {
 	} = useAuthPage(setMessage, setViewMessage, setIsViewAuth);
 	const { isAuth } = useAuth();
 	const navigate = useNavigate();
+	const location = useLocation();
+	const { pathname, state } = location;
 
 	useEffect(() => {
-		if (isAuth) navigate('/home');
-	}, [isAuth]);
+		if (isAuth) return;
+		const fromState = state?.from;
+		const candidate = typeof fromState === 'string' ? fromState : pathname;
+		if (candidate && candidate !== '/' && candidate !== '/auth') {
+			sessionStorage.setItem('postAuthRedirectPath', candidate);
+		}
+	}, [isAuth, pathname, state]);
+
+	useEffect(() => {
+		if (!isAuth) return;
+		const redirectPath = sessionStorage.getItem('postAuthRedirectPath');
+		sessionStorage.removeItem('postAuthRedirectPath');
+
+		// Особое поведение только для страницы lca-examples.
+		if (redirectPath === '/lca-examples' || pathname === '/lca-examples') {
+			navigate('/lca-examples', { replace: true });
+			return;
+		}
+		navigate('/home', { replace: true });
+	}, [isAuth, pathname, navigate]);
 
 	const emailError = errors.email?.message;
 	const errorPassword = errors.password;
@@ -95,24 +115,19 @@ const Auth = () => {
 							</span>
 						)}
 					</div>
-					{!isViewAuth && (
-						<div className={styles.block__field}>
-							<InputAuth
-								label='Повторите пароль'
-								id='password_repeat'
-								type='password'
-								placeholder='Введите пароль'
-								register={register}
-								styleInput={
-									errorPassword ? { borderColor: colors.color_red } : {}
-								}
-								validate={validatePasswordRepeat}
-							/>
-							{errorPasswordRepeat && (
-								<span>{errors.password_repeat?.message}</span>
-							)}
-						</div>
-					)}
+				{!isViewAuth && (
+				<div className={styles.block__field}>
+					<InputAuth
+					label='Имя пользователя'
+					id='username'
+					type='text'
+					placeholder='Введите имя пользователя'
+					register={register}
+					styleInput={errors.username ? { borderColor: colors.color_red } : {}}
+					/>
+					{errors.username && <span>{errors.username?.message}</span>}
+				</div>
+				)}
 					<Button>{isViewAuth ? 'Войти' : 'Зарегистрироваться'}</Button>
 				</form>
 				<button

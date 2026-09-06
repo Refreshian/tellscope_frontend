@@ -597,8 +597,9 @@ table tbody tr:hover {
   position: sticky;
   z-index: 10;
   top: 0;
-  background: #f6f7fb;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+  // background: #f6f7fb;
+  // box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+  background-color: transparent;
 }
 
 // Стили для скроллбаров (Webkit)
@@ -665,6 +666,7 @@ table tbody tr:hover {
     width: 100%;
     padding-left: 0;
     margin-left: 0;
+    background-color: transparent;
     
     > * {
       margin-left: 0 !important;
@@ -867,16 +869,39 @@ table tbody tr:hover {
     .graphContainer {
       width: 100% !important;
       max-width: 100% !important;
+      height: 100% !important;
     }
   }
 
-/* Возьми параметры из второго примера */
+.graphContainer {
+  width: 100%;
+  max-width: 100%;
+  height: calc(100vh - 270px);
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+
+  > * {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    width: 100%;
+  }
+
+  @media (max-width: 900px) {
+    height: auto;
+    min-height: 420px;
+  }
+}
+
 .scrollableResults {
   width: 100%;
   max-width: 100%;
-  height: calc(100vh - 180px); /* 180px — высота stickyTop + отступы, подбери по макету */
+  flex: 1 1 auto;
+  min-height: 0;
+  height: calc(100vh - 160px);
   overflow-y: auto;
-  overflow-x: visible;
+  overflow-x: hidden;
   padding-top: 0;
   margin-top: 0;
   box-sizing: border-box;
@@ -884,18 +909,118 @@ table tbody tr:hover {
 }
 @media (max-width: 900px) {
   .scrollableResults {
-    height: calc(100vh - 230px);
+    height: auto;
+    max-height: none;
   }
 }
 
-.scrollableResults {
-  width: 100%;
+.block__configureSearch {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  width: auto;
   max-width: 100%;
-  height: calc(100vh - 180px); // или твоя высота!
+  padding: 0;
+  margin: 0;
+  margin-top: 12px;
+  background-color: transparent;
+  align-self: center;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  @media (min-width: 769px) {
+    flex-direction: row;
+  }
+
+  > * {
+    margin: 0 !important;
+    flex: 0 1 auto;
+    max-width: 100%;
+  }
+}
+
+.tableWrapper {
+  overflow-x: auto;
   overflow-y: auto;
-  overflow-x: hidden; // <--- ЭТО
-  padding-top: 0;
-  margin-top: 0;
-  box-sizing: border-box;
-  scroll-behavior: smooth;
+  width: 100%;
+}
+
+.dataTable {
+  min-width: 900px;
+  width: max-content;
+}
+
+.stickyTop {
+  position: sticky;
+  z-index: 10;
+  top: 0;
+  background-color: transparent;
+  padding-bottom: 15px;
+  margin-bottom: 15px;
+}
+
+.topControls {
+  display: flex;
+  align-items: center;
+  justify-content: center; // Добавить это свойство для центрирования
+  gap: 15px;
+  width: 100%;
+  flex-wrap: wrap;
+  
+  > * {
+    margin: 0 !important;
+  }
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: center; // И здесь тоже для мобильных
+    
+    > * {
+      width: 100% !important;
+    }
+  }
+}
+
+.block__pageName {
+  width: 100%; 
+  margin-bottom: 15px;
+  
+  h3 {
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.topControls > :first-child {
+  width: 217px !important;
+  min-width: 180px;
+  max-width: 260px;
+}
+
+@media (max-width: 900px) {
+  .aiInputContainer {
+    flex-direction: column;
+  }
+
+  .sendButton,
+  .analyzeButton {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .topControls > :first-child {
+    width: 100% !important;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .dataTableContainer,
+  .tableWrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }

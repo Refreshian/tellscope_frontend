@@ -1,319 +1,270 @@
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
-import { useEffect, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { funksInformationGraph } from '@/utils/editData';
-import {
-	convertDateFormat,
-	convertFromTimestampToRegular,
-} from '@/utils/timestamp';
+import { formatTime, hubColor } from '../spreadUtils';
+import { buildChains, cumulativePoints } from '../chainView';
+import ChainPanel from '../chain-panel/ChainPanel';
+import SinglesToggle from '../singles-toggle/SinglesToggle';
 
 import styles from './BarInformation.module.scss';
 
-const BarInformation = () => {
-	const { dynamicdata_audience } = useSelector(
-		state => state.informationGraphData,
-	);
-	const chartComponent = useRef(null);
+const TOP_CHAINS = 18;
+const MAX_SINGLES = 500;
+const openUrl = url => {
+	if (url) window.open(url, '_blank', 'noopener,noreferrer');
+};
 
-	const data =
-		funksInformationGraph.convertInformationDataFormat(dynamicdata_audience);
-
-	let firstObjectKey = Object.keys(data)[0];
-	let firstObjectValue = data[firstObjectKey];
-
-	const nbr = 20;
-	const startStep = 0;
-	const endStep = Object.keys(data[firstObjectKey]).length - 1;
-	const [currentStep, setCurrentStep] = useState(startStep);
-	const [isPlaying, setIsPlaying] = useState(false);
+const BarInformation = ({ data, showSingles = false, onShowSingles }) => {
+	const wrapRef = useRef(null);
+	const skipClearRef = useRef(false);
+	const lastClickRef = useRef({ t: 0, key: '' });
+	const [chartSize, setChartSize] = useState({ w: 0, h: 0 });
+	const [selectedId, setSelectedId] = useState(null);
 
 	useEffect(() => {
-		const FLOAT = /^-?\d+\.?\d*$/;
+		const el = wrapRef.current;
+		if (!el) return undefined;
+		const apply = () => setChartSize({ w: el.clientWidth, h: el.clientHeight });
+		apply();
+		const observer = new ResizeObserver(apply);
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, []);
 
-		Highcharts.Fx.prototype.textSetter = function () {
-			let startValue = this.start.replace(/ /g, ''),
-				endValue = this.end.replace(/ /g, ''),
-				currentValue = this.end.replace(/ /g, '');
-
-			if ((startValue || '').match(FLOAT)) {
-				startValue = parseInt(startValue, 10);
-				endValue = parseInt(endValue, 10);
-				currentValue = Highcharts.numberFormat(
-					Math.round(startValue + (endValue - startValue) * this.pos),
-					0,
-				);
-			}
-
-			this.elem.endText = this.end;
-
-			this.elem.attr(this.prop, currentValue, null, true);
-		};
-
-		Highcharts.SVGElement.prototype.textGetter = function () {
-			const ct = this.text.element.textContent || '';
-			return this.endText ? this.endText : ct.substring(0, ct.length / 2);
-		};
-
-		Highcharts.wrap(
-			Highcharts.Series.prototype,
-			'drawDataLabels',
-			function (proceed) {
-				const attr = Highcharts.SVGElement.prototype.attr,
-					chart = this.chart;
-
-				if (chart.sequenceTimer) {
-					this.points.forEach(point =>
-						(point.dataLabels || []).forEach(
-							label =>
-								(label.attr = function (hash) {
-									if (
-										hash &&
-										hash.text !== undefined &&
-										chart.isResizing === 0
-									) {
-										const text = hash.text;
-
-										delete hash.text;
-
-										return this.attr(hash).animate({ text });
-									}
-									return attr.apply(this, arguments);
-								}),
-						),
-					);
-				}
-
-				const ret = proceed.apply(
-					this,
-					Array.prototype.slice.call(arguments, 1),
-				);
-
-				this.points.forEach(p =>
-					(p.dataLabels || []).forEach(d => (d.attr = attr)),
-				);
-
-				return ret;
-			},
+	const { chains, truncated, singles, singlesTotal, truncatedSingles } =
+		useMemo(
+			() =>
+				buildChains(data?.values || [], {
+					minLen: 2,
+					maxChains: TOP_CHAINS,
+					maxSingles: MAX_SINGLES,
+				}),
+			[data],
 		);
-	}, [Highcharts]);
+	const visibleSingles = showSingles ? singles : [];
+	const chainById = useMemo(
+		() =>
+			new Map(
+				[...chains, ...visibleSingles].map(chain => [chain.id, chain]),
+			),
+		[chains, visibleSingles],
+	);
+	const selected = selectedId == null ? null : chainById.get(selectedId) || null;
 
-	const getData = index => {
-		if (!data) {
-			return [[], []];
+	useEffect(() => {
+		setSelectedId(null);
+	}, [data]);
+
+	useEffect(() => {
+		if (!showSingles && selected?.posts?.length === 1) setSelectedId(null);
+	}, [showSingles, selected]);
+
+	const series = useMemo(() => {
+		const next = chains.map(chain => {
+			const active = selectedId == null || selectedId === chain.id;
+			const base = hubColor(chain.origin?.hub);
+			return {
+				type: 'spline',
+				name: `${chain.origin?.name || 'Цепочка'} · ${chain.posts.length}`,
+				color: active
+					? base
+					: Highcharts.color(base).setOpacity(0.18).get(),
+				lineWidth: selectedId === chain.id ? 3.4 : 2,
+				marker: {
+					enabled: true,
+					radius: selectedId === chain.id ? 5 : 3.2,
+				},
+				data: cumulativePoints(chain),
+				turboThreshold: 0,
+				zIndex: selectedId === chain.id ? 5 : 2,
+			};
+		});
+		if (visibleSingles.length) {
+			next.push({
+				type: 'scatter',
+				name: 'Вне цепочек',
+				color: 'rgba(120, 128, 140, 0.9)',
+				marker: {
+					symbol: 'circle',
+					radius: 3.6,
+					lineWidth: 0,
+				},
+				data: visibleSingles.map(chain => {
+					const post = chain.posts[0];
+					return {
+						x: post.time,
+						y: post.audience,
+						chainId: chain.id,
+						index: 0,
+						name: post.name,
+						hub: post.hub,
+						url: post.url,
+						kind: post.kind,
+						audience: post.audience,
+						isolated: true,
+					};
+				}),
+				turboThreshold: 0,
+				zIndex: 1,
+			});
 		}
+		return next;
+	}, [chains, selectedId, visibleSingles]);
 
-		const output = Object.entries(data)
-			.map(country => {
-				const [countryName, countryData] = country;
-				return [countryName, Number(countryData[index].value)];
-			})
-			.sort((a, b) => b[1] - a[1]);
-		return [output[0], output.slice(0, nbr)];
-	};
-
-	const getSubtitle = () => {
-		const population = getData(currentStep)[0][1];
-		return `<span style="font-size: 2rem">${convertDateFormat(
-			convertFromTimestampToRegular(firstObjectValue[currentStep].year),
-		)}</span>
-        <br>
-        <span style="font-size: 22px">
-            Лидер: <b>${population}</b>
-        </span>`;
-	};
-
-	const options = {
-		accessibility: {
-			enabled: false,
-		},
-		chart: {
-			animation: {
-				duration: 500,
-			},
-			marginRight: 50,
-		},
-		title: {
-			text: null,
-		},
-		subtitle: {
-			useHTML: true,
-			text: getSubtitle(),
-			floating: true,
-			align: 'right',
-			verticalAlign: 'middle',
-			y: 80,
-			x: -100,
-		},
-		legend: {
-			enabled: false,
-		},
-		xAxis: {
-			type: 'category',
-		},
-		// xAxis: {
-		// 	type: 'category',
-		// 	labels: {
-		// 		enabled: false, // Скрываем подписи оси X
-		// 	},
-		// 	lineWidth: 0, // Убираем линию оси X
-		// 	tickLength: 0, // Убираем засечки (маленькие черточки)
-		// },
-		yAxis: {
-			// type: 'datetime',
-			// opposite: true,
-			// tickPixelInterval: 150,
-			title: {
-				text: null,
-			},
-		},
-		plotOptions: {
-			series: {
-				animation: false,
-				groupPadding: 0,
-				pointPadding: 0.1,
-				borderWidth: 0,
-				colorByPoint: true,
-				dataSorting: {
-					enabled: true,
-					matchByName: true,
-				},
-				type: 'bar',
-				dataLabels: {
-					enabled: true,
-				},
-			},
-		},
-		series: [
-			{
-				type: 'bar',
-				name: startStep,
-				data: getData(startStep)[1],
-			},
-		],
-		responsive: {
-			rules: [
-				{
-					condition: {
-						maxWidth: 550,
+	const options = useMemo(
+		() => ({
+			accessibility: { enabled: false },
+			chart: {
+				backgroundColor: 'transparent',
+				height: chartSize.h || null,
+				zoomType: 'x',
+				panning: { enabled: true, type: 'x' },
+				panKey: 'shift',
+				spacing: [12, 12, 8, 8],
+				events: {
+					click() {
+						window.setTimeout(() => {
+							if (!skipClearRef.current) setSelectedId(null);
+							skipClearRef.current = false;
+						}, 0);
 					},
-					chartOptions: {
-						xAxis: {
-							visible: false,
+				},
+			},
+			title: { text: null },
+			credits: { enabled: false },
+			legend: {
+				enabled: true,
+				itemStyle: { fontSize: '11px', fontWeight: '400' },
+				maxHeight: 64,
+			},
+			xAxis: {
+				type: 'datetime',
+				title: { text: 'Время появления' },
+				crosshair: true,
+			},
+			yAxis: {
+				title: { text: 'Накопленная аудитория цепочки' },
+				min: 0,
+			},
+			tooltip: {
+				useHTML: true,
+				formatter() {
+					const point = this.point.options;
+					const chain = chainById.get(point.chainId);
+					return (
+						`<b>${point.name || this.series.name}</b><br/>` +
+						`${point.hub || ''}<br/>` +
+						`${formatTime(this.x)}<br/>` +
+						`Аудитория сообщения: ${Highcharts.numberFormat(point.audience || 0, 0, ',', ' ')}<br/>` +
+						`Накоплено в цепочке: <b>${Highcharts.numberFormat(this.y, 0, ',', ' ')}</b>` +
+						(point.isolated
+							? '<br/>Не входит в цепочку'
+							: chain
+								? `<br/>Цепочка: ${chain.posts.length} сообщ.`
+								: '') +
+						`<br/><span style="color:#1760e8">Клик — выбрать цепочку · двойной клик — открыть</span>`
+					);
+				},
+			},
+			plotOptions: {
+				spline: {
+					states: { hover: { lineWidthPlus: 1 } },
+				},
+				scatter: {
+					tooltip: { headerFormat: '' },
+				},
+				series: {
+					animation: false,
+					cursor: 'pointer',
+					stickyTracking: false,
+					events: {
+						legendItemClick() {
+							skipClearRef.current = true;
+							const chainId = this.userOptions?.data?.[0]?.chainId;
+							if (chainById.has(chainId)) setSelectedId(chainId);
+							return false;
 						},
-						subtitle: {
-							x: 0,
-						},
-						plotOptions: {
-							series: {
-								dataLabels: [
-									{
-										enabled: true,
-										y: 8,
-									},
-									{
-										enabled: true,
-										format: '{point.name}',
-										y: -8,
-										style: {
-											fontWeight: 'normal',
-											opacity: 0.7,
-										},
-									},
-								],
+					},
+					point: {
+						events: {
+							click() {
+								skipClearRef.current = true;
+								const chainId = this.options.chainId;
+								const key = `${chainId}-${this.options.url || this.x}`;
+								const now = Date.now();
+								if (
+									now - lastClickRef.current.t < 280 &&
+									lastClickRef.current.key === key &&
+									this.options.url
+								) {
+									openUrl(this.options.url);
+									lastClickRef.current = { t: 0, key: '' };
+									return;
+								}
+								lastClickRef.current = { t: now, key };
+								if (chainById.has(chainId)) setSelectedId(chainId);
 							},
 						},
 					},
 				},
-			],
-		},
-	};
+			},
+			series,
+		}),
+		[series, chartSize.h, chainById],
+	);
 
-	const pause = () => {
-		setIsPlaying(false);
-		clearInterval(chartComponent.current.chart.sequenceTimer);
-		chartComponent.current.chart.sequenceTimer = undefined;
-	};
+	const toolbar = (
+		<div className={styles.toolbar}>
+			<p className={styles.hint}>
+				{chains.length
+					? 'Каждая линия — как росла аудитория одной цепочки. Клик выбирает её и открывает краткое содержание; двойной клик открывает сообщение.'
+					: 'Нет цепочек из двух и более сообщений.'}
+				{truncated > 0
+					? ` Показаны ${TOP_CHAINS} крупнейших, скрыто: ${truncated}.`
+					: ''}
+				{showSingles && truncatedSingles > 0
+					? ` Одиночных на графике: ${visibleSingles.length}, скрыто: ${truncatedSingles}.`
+					: ''}
+			</p>
+			{onShowSingles ? (
+				<SinglesToggle
+					on={showSingles}
+					onChange={onShowSingles}
+					count={singlesTotal}
+				/>
+			) : null}
+		</div>
+	);
 
-	const update = (increment = 0) => {
-		setCurrentStep(prev => {
-			const newStep = prev + increment;
-			if (newStep > endStep) {
-				pause();
-				return prev;
-			}
-			return newStep;
-		});
-
-		if (chartComponent.current) {
-			const chart = chartComponent.current.chart;
-			chart.update(
-				{
-					subtitle: {
-						text: getSubtitle(),
-					},
-				},
-				false,
-				false,
-				false,
-			);
-
-			chart.series[0].update({
-				name: currentStep,
-				data: getData(currentStep)[1],
-			});
-		}
-	};
-
-	const play = () => {
-		setIsPlaying(true);
-		chartComponent.current.chart.sequenceTimer = setInterval(() => {
-			setCurrentStep(prevYear =>
-				prevYear < endStep ? prevYear + 1 : prevYear,
-			);
-		}, 500);
-	};
-
-	const togglePlay = () => {
-		if (isPlaying) {
-			pause();
-		} else {
-			if (currentStep === endStep) setCurrentStep(startStep);
-			play();
-		}
-	};
-
-	useEffect(() => {
-		update();
-	}, [currentStep]);
-
-	useEffect(() => {
-		if (!isPlaying) {
-			update();
-		}
-	}, [isPlaying]);
+	if (!chains.length && !visibleSingles.length) {
+		return (
+			<div className={styles.wrapper_bar}>
+				{toolbar}
+				<p className={styles.empty}>
+					{singlesTotal
+						? 'Включите «Вне цепочек», чтобы показать публикации без повторов.'
+						: 'Нет цепочек из двух и более сообщений'}
+				</p>
+			</div>
+		);
+	}
 
 	return (
 		<div className={styles.wrapper_bar}>
-			<div className={styles.block__button}>
-				<button className={styles.button__play} onClick={togglePlay}>
-					{isPlaying ? '\u2758 \u2758' : '\u25B6'}
-				</button>
-				<input
-					className={styles.range}
-					type='range'
-					value={currentStep}
-					min={startStep}
-					max={endStep}
-					onChange={event => setCurrentStep(Number(event.target.value))}
-				/>
+			{toolbar}
+			<div className={styles.stage}>
+				<div className={styles.chart} ref={wrapRef}>
+					{chartSize.h > 40 && (
+						<HighchartsReact
+							highcharts={Highcharts}
+							options={options}
+							containerProps={{ style: { width: '100%', height: '100%' } }}
+						/>
+					)}
+				</div>
+				<ChainPanel chain={selected} yLabel="Накопленная аудитория" />
 			</div>
-			<HighchartsReact
-				ref={chartComponent}
-				highcharts={Highcharts}
-				options={options}
-			/>
 		</div>
 	);
 };

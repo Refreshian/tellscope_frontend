@@ -15,7 +15,6 @@ const LineDynamic = () => {
 				enabled: false, //HELP: Отключаем модуль доступности
 			},
 			chart: {
-				height: 'calc(900/1440*100vw)',
 				zoomType: 'xy',
 				type: 'spline',
 				scrollablePlotArea: {
@@ -76,7 +75,7 @@ const LineDynamic = () => {
 		<HighchartsReact
 			highcharts={Highcharts}
 			options={options}
-			containerProps={{ style: { width: '100%' } }}
+			containerProps={{ style: { width: '100%', height: '100%' } }}
 		/>
 	);
 };

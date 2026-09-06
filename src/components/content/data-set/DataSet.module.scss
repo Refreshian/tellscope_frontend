@@ -16,6 +16,7 @@
 	position: relative;
 	border-bottom: 2px solid rgba($color: $color_very_light_blue, $alpha: 0.04);
 	width: max-content;
+	max-width: 100%;
 
 	> .tab__button {
 		background-color: transparent;
@@ -159,5 +160,175 @@
 
 	> p {
 		text-align: center;
+	}
+}
+
+// Модалка в разработке
+.modalOverlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+	animation: fadeIn 0.3s ease;
+	backdrop-filter: blur(4px);
+}
+
+.modalContent {
+	background: white;
+	border-radius: adapt(16px, 1440px);
+	padding: adapt(32px, 1440px);
+	max-width: adapt(500px, 1440px);
+	width: 90%;
+	position: relative;
+	animation: slideUp 0.3s ease;
+	box-shadow: 0 adapt(20px, 1440px) adapt(60px, 1440px) rgba(0, 0, 0, 0.3);
+
+	h2 {
+		margin: 0 0 adapt(16px, 1440px) 0;
+		font-size: adapt(24px, 1440px);
+		color: #2c3e50;
+		text-align: center;
+	}
+
+	> p {
+		text-align: center;
+		color: #7f8c8d;
+		font-size: adapt(16px, 1440px);
+		margin-bottom: adapt(24px, 1440px);
+		line-height: 1.5;
+	}
+}
+
+.closeButton {
+	position: absolute;
+	top: adapt(16px, 1440px);
+	right: adapt(16px, 1440px);
+	background: none;
+	border: none;
+	font-size: adapt(28px, 1440px);
+	cursor: pointer;
+	color: #95a5a6;
+	line-height: 1;
+	width: adapt(32px, 1440px);
+	height: adapt(32px, 1440px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	transition: background-color 0.2s, color 0.2s;
+
+	&:hover {
+		color: #e74c3c;
+		background-color: rgba(231, 76, 60, 0.1);
+	}
+}
+
+.modalIcon {
+	text-align: center;
+	font-size: adapt(48px, 1440px);
+	margin-bottom: adapt(8px, 1440px);
+}
+
+.features {
+	background: #f8f9fa;
+	padding: adapt(16px, 1440px);
+	border-radius: adapt(8px, 1440px);
+	margin-bottom: adapt(24px, 1440px);
+
+	h3 {
+		margin: 0 0 adapt(12px, 1440px) 0;
+		font-size: adapt(16px, 1440px);
+		color: #333;
+	}
+
+	ul {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+
+		li {
+			padding: adapt(8px, 1440px) 0;
+			font-size: adapt(14px, 1440px);
+			color: #555;
+		}
+	}
+}
+
+.okButton {
+	width: 100%;
+	padding: adapt(12px, 1440px) adapt(24px, 1440px);
+	background: linear-gradient(135deg, #3498db, #2980b9);
+	color: white;
+	border: none;
+	border-radius: adapt(8px, 1440px);
+	font-size: adapt(16px, 1440px);
+	font-weight: 600;
+	cursor: pointer;
+	transition: transform 0.2s, box-shadow 0.2s;
+
+	&:hover {
+		transform: translateY(adapt(-2px, 1440px));
+		box-shadow: 0 adapt(4px, 1440px) adapt(12px, 1440px) rgba(52, 152, 219, 0.4);
+	}
+
+	&:active {
+		transform: translateY(0);
+	}
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes slideUp {
+	from {
+		transform: translateY(adapt(20px, 1440px));
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
+}
+
+@media (max-width: 900px) {
+	.block__tabs {
+		width: 100%;
+		overflow-x: auto;
+		flex-wrap: nowrap;
+		gap: 16px;
+		font-size: 0.95rem;
+		padding-bottom: 8px;
+		-webkit-overflow-scrolling: touch;
+
+		> .tab__button {
+			flex-shrink: 0;
+			white-space: nowrap;
+			padding: 8px 4px;
+		}
+	}
+
+	.block__content {
+		padding-top: 16px;
+		padding-right: 0;
+		gap: 12px;
+
+		> .block__field {
+			position: static;
+			max-width: 100%;
+			width: 100%;
+			margin-bottom: 8px;
+		}
 	}
 }

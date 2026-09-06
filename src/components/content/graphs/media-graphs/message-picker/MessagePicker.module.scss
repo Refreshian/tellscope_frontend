@@ -1,0 +1,94 @@
+@import '@st/variables';
+
+.picker {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	width: min(320px, calc(100% - 24px));
+	max-height: calc(100% - 24px);
+	overflow: auto;
+	z-index: 6;
+	background: $color_white;
+	border-radius: 12px;
+	box-shadow: 0 10px 28px rgba($color_black, 0.16);
+	padding: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.pickerHead {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 8px;
+
+	strong {
+		display: block;
+		font-size: 0.92rem;
+		line-height: 1.3;
+		color: $color_black;
+	}
+}
+
+.pickerKicker,
+.pickerMeta,
+.pickerHint {
+	margin: 0;
+	color: rgba($color_black, 0.62);
+	font-size: 0.74rem;
+	line-height: 1.35;
+}
+
+.pickerKicker {
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	font-size: 0.66rem;
+	margin-bottom: 2px;
+}
+
+.pickerClose {
+	width: 28px;
+	height: 28px;
+	border-radius: 8px;
+	background: $color_very_light_blue;
+	color: $color_black;
+	font-size: 1.1rem;
+	line-height: 1;
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.pickerList {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+
+	button {
+		width: 100%;
+		text-align: left;
+		border-radius: 8px;
+		padding: 8px;
+		background: $color_very_light_blue;
+		cursor: pointer;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	strong {
+		font-size: 0.8rem;
+		font-weight: 500;
+		color: $color_black;
+	}
+
+	span,
+	em {
+		font-size: 0.72rem;
+		color: rgba($color_black, 0.55);
+		font-style: normal;
+	}
+}

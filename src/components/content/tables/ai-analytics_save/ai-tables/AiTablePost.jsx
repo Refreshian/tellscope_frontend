@@ -180,8 +180,8 @@ const AiTablePost = () => {
 										style={{ cursor: 'pointer' }}
 									>
 										{cellEl.column.id === 'Текст'
-											? truncateDescription(rowEl.original.text, 150)
-											: truncateDescription(rowEl.original.llm_text, 150)}
+											? truncateDescription(rowEl.original.text, 300)
+											: truncateDescription(rowEl.original.llm_text, 300)}
 									</td>
 								);
 							})}

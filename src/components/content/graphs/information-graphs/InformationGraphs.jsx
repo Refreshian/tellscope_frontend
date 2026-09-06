@@ -5,7 +5,7 @@ import PanelTargetGraph from '@/components/ui/panel-target-graph/PanelTargetGrap
 import { useSaveImageGraph } from '@/hooks/useSaveImageGraph';
 import styles from './InformationGraphs.module.scss';
 import BarInformation from './bar-information/BarInformation';
-import Bubbles from './bubbles/Bubbles';
+import SpreadFlow from './spread-flow/SpreadFlow';
 import ScatterChart from './scatter-chart/ScatterChart';
 import { informationButtons } from '@/data/panel.data';
 
@@ -13,6 +13,7 @@ const InformationGraphs = ({ data }) => {
   const { pathname } = useLocation();
   const [isViewSource, setIsViewSource] = useState(true);
   const [activeButton, setActiveButton] = useState('Граф. распространения информации');
+  const [showSingles, setShowSingles] = useState(false);
 
   const handleDownloadImage = useSaveImageGraph();
 
@@ -49,11 +50,19 @@ const InformationGraphs = ({ data }) => {
       <div className={styles.container__graph} id='graph-for-download'>
         <Suspense fallback={<Loader />}>
           {activeButton === 'Граф. распространения информации' ? (
-            <Bubbles data={data} />
+            <SpreadFlow data={data} />
           ) : activeButton === 'Динамика распространения' ? (
-            <BarInformation data={data} />
+            <BarInformation
+              data={data}
+              showSingles={showSingles}
+              onShowSingles={setShowSingles}
+            />
           ) : (
-            <ScatterChart data={data} />
+            <ScatterChart
+              data={data}
+              showSingles={showSingles}
+              onShowSingles={setShowSingles}
+            />
           )}
         </Suspense>
       </div>

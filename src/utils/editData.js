@@ -212,14 +212,43 @@ export const funksTonality = {
 		negHubs.forEach(hub => { negativeAuthors[hub.name] = []; });
 		posHubs.forEach(hub => { positiveAuthors[hub.name] = []; });
 		
-		// Отладочная информация
-		console.log("Негативные хабы:", negHubs.map(h => h.name));
-		console.log("Позитивные хабы:", posHubs.map(h => h.name));
-		console.log("Негативные авторы группы:", arrNegAuthor);
-		console.log("Позитивные авторы группы:", arrPosAuthor);
-		
-		// Функция для распределения авторов по источникам
-		const processAuthors = (authorGroups, authorsByHub, isNegative) => {
+		const metric = value => {
+			const n = Number(value);
+			return Number.isFinite(n) ? n : 0;
+		};
+
+		const toMessage = (text, fallbackUrl = '') => ({
+			url: text?.url || fallbackUrl || '',
+			hub: text?.hub || '',
+			views: metric(text?.viewsCount),
+			likes: metric(text?.likesCount),
+			audience: metric(text?.audienceCount),
+		});
+
+		const addAuthorToHub = (authorsByHub, hubName, author, messages) => {
+			const list = authorsByHub[hubName];
+			if (!list) return;
+			const incoming = (messages || []).filter(item => item.url);
+			let existing = list.find(item => item.name === author.fullname);
+			if (!existing) {
+				existing = {
+					name: author.fullname,
+					hub: hubName,
+					value: author.count_texts || 1,
+					messages: [],
+					url: author.url || '',
+				};
+				list.push(existing);
+			}
+			incoming.forEach(item => {
+				if (item.url && !existing.messages.some(msg => msg.url === item.url)) {
+					existing.messages.push(item);
+				}
+			});
+			if (existing.messages.length) existing.value = existing.messages.length;
+		};
+
+		const processAuthors = (authorGroups, authorsByHub) => {
 			authorGroups.forEach(group => {
 				if (!group.author_data || !Array.isArray(group.author_data)) {
 					console.warn("Некорректные данные автора:", group);
@@ -229,25 +258,20 @@ export const funksTonality = {
 				group.author_data.forEach(author => {
 					let hubAssigned = false;
 					
-					// Проверяем тексты автора для определения источника
 					if (author.texts && author.texts.length > 0) {
 						author.texts.forEach(text => {
 							if (text.hub && authorsByHub[text.hub]) {
-								// Проверяем, не добавили ли мы уже этого автора
-								if (!authorsByHub[text.hub].some(a => a.name === author.fullname)) {
-									authorsByHub[text.hub].push({
-										name: author.fullname,
-										value: author.count_texts || 1,
-										url: author.url
-									});
-									hubAssigned = true;
-									console.log(`Автор ${author.fullname} добавлен к хабу ${text.hub}`);
-								}
+								addAuthorToHub(
+									authorsByHub,
+									text.hub,
+									author,
+									[toMessage(text)],
+								);
+								hubAssigned = true;
 							}
 						});
 					}
 					
-					// Если автор не привязан к источнику через тексты, пробуем через URL
 					if (!hubAssigned && author.url) {
 						Object.keys(authorsByHub).forEach(hubName => {
 							const authorUrl = author.url.toLowerCase();
@@ -255,14 +279,12 @@ export const funksTonality = {
 							
 							if (authorUrl.includes(hubLower) || 
 								(hubLower.length > 4 && authorUrl.includes(hubLower.substring(0, 4)))) {
-								if (!authorsByHub[hubName].some(a => a.name === author.fullname)) {
-									authorsByHub[hubName].push({
-										name: author.fullname,
-										value: author.count_texts || 1,
-										url: author.url
-									});
-									console.log(`Автор ${author.fullname} добавлен к хабу ${hubName} через URL`);
-								}
+								addAuthorToHub(
+									authorsByHub,
+									hubName,
+									author,
+									[toMessage({ url: author.url, hub: hubName })],
+								);
 							}
 						});
 					}
@@ -271,12 +293,8 @@ export const funksTonality = {
 		};
 		
 		// Обрабатываем негативных и позитивных авторов
-		processAuthors(arrNegAuthor, negativeAuthors, true);
-		processAuthors(arrPosAuthor, positiveAuthors, false);
-		
-		// Выводим результаты для отладки
-		console.log("Распределение негативных авторов:", negativeAuthors);
-		console.log("Распределение позитивных авторов:", positiveAuthors);
+		processAuthors(arrNegAuthor, negativeAuthors);
+		processAuthors(arrPosAuthor, positiveAuthors);
 		
 		return [negativeAuthors, positiveAuthors];
 	},
@@ -292,68 +310,70 @@ export const funksTonality = {
 				id: 'root',
 				parent: '',
 				name: 'Тональность авторов',
+				role: 'root',
 			},
 			{
 				id: 'negative',
 				parent: 'root',
 				name: 'Негатив',
 				color: negativeColor,
+				role: 'side',
 			},
 			{
 				id: 'positive',
 				parent: 'root',
 				name: 'Позитив',
 				color: positiveColor,
+				role: 'side',
 			}
 		];
-	
-		// Добавляем источники негативных сообщений
-		negative.forEach((item, index) => {
+
+		const pushAuthor = (parentId, hubName, author, authorIndex) => {
+			const messages = author.messages || [];
 			transformedData.push({
-				id: `negative.${index + 1}`,
+				id: `${parentId}.${authorIndex + 1}`,
+				parent: parentId,
+				name: author.name,
+				value: author.value,
+				role: 'author',
+				hub: author.hub || hubName,
+				messages,
+				url: messages[0]?.url || author.url,
+			});
+		};
+	
+		negative.forEach((item, index) => {
+			const hubId = `negative.${index + 1}`;
+			transformedData.push({
+				id: hubId,
 				parent: 'negative',
 				name: item.name,
-				value: item.values
+				value: item.values,
+				role: 'hub',
 			});
 	
-			// Добавляем авторов, если они есть
 			const authors = childrenNegative[item.name] || [];
-			console.log(`Авторы для ${item.name} (негатив):`, authors);
 			authors.forEach((author, authorIndex) => {
-				transformedData.push({
-					id: `negative.${index + 1}.${authorIndex + 1}`,
-					parent: `negative.${index + 1}`,
-					name: author.name,
-					value: author.value,
-					url: author.url // Добавляем URL для возможного перехода
-				});
+				pushAuthor(hubId, item.name, author, authorIndex);
 			});
 		});
 	
-		// Добавляем источники позитивных сообщений
 		positive.forEach((item, index) => {
+			const hubId = `positive.${index + 1}`;
 			transformedData.push({
-				id: `positive.${index + 1}`,
+				id: hubId,
 				parent: 'positive',
 				name: item.name,
-				value: item.values
+				value: item.values,
+				role: 'hub',
 			});
 	
-			// Добавляем авторов, если они есть
 			const authors = childrenPositive[item.name] || [];
-			console.log(`Авторы для ${item.name} (позитив):`, authors);
 			authors.forEach((author, authorIndex) => {
-				transformedData.push({
-					id: `positive.${index + 1}.${authorIndex + 1}`,
-					parent: `positive.${index + 1}`,
-					name: author.name,
-					value: author.value,
-					url: author.url
-				});
+				pushAuthor(hubId, item.name, author, authorIndex);
 			});
 		});
 	
-		console.log('Transformed sunburst data:', transformedData);
 		return transformedData;
 	},
 };

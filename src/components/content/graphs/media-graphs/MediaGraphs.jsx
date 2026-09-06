@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useState } from 'react';
+import { memo, Suspense, useCallback, useState } from 'react';
 import Loader from '@/components/loading/loader/Loader';
 import PanelTargetGraph from '@/components/ui/panel-target-graph/PanelTargetGraph';
 import { useSaveImageGraph } from '@/hooks/useSaveImageGraph';
@@ -6,24 +6,30 @@ import styles from './MediaGraphs.module.scss';
 import BubbleChart from './bubble-chart/BubbleChart';
 import SplitBubble from './split-bubble/SplitBubble';
 import { mediaButtons } from '@/data/panel.data';
-import Highcharts from 'highcharts';
-import HighchartsReact from 'highcharts-react-official';
 
-// ПРИНИМАЕМ ПРОПСЫ!
-const MediaGraphs = ({ originalData, filteredData, selectedIndexRange }) => {
+const TAB_TO_BUTTON = {
+  rating: 'Рейтинг тональности в СМИ',
+  dynamics: 'Динамика в СМИ',
+};
+
+const MediaGraphs = ({ filteredData, tab = 'rating', onTabChange }) => {
   const handleDownloadImage = useSaveImageGraph();
-  const [activeButton, setActiveButton] = useState('Рейтинг тональности в СМИ');
+  const [localTab, setLocalTab] = useState(tab);
+  const activeTab = onTabChange ? tab : localTab;
+  const activeButton = TAB_TO_BUTTON[activeTab] || TAB_TO_BUTTON.rating;
 
   const handleClick = useCallback(button => {
-    setActiveButton(button);
-  }, []);
+    const next = button === 'Динамика в СМИ' ? 'dynamics' : 'rating';
+    if (onTabChange) onTabChange(next);
+    else setLocalTab(next);
+  }, [onTabChange]);
 
   return (
     <div className={styles.block__graph}>
       <div className={styles.block__title}>
         <PanelTargetGraph
           handleClick={handleClick}
-          dataButtons={mediaButtons} 
+          dataButtons={mediaButtons}
           activeButton={activeButton}
         />
         <div className={styles.block__settings}>
@@ -50,4 +56,4 @@ const MediaGraphs = ({ originalData, filteredData, selectedIndexRange }) => {
   );
 };
 
-export default MediaGraphs;
+export default memo(MediaGraphs);

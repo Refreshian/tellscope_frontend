@@ -1,0 +1,179 @@
+.topPanel {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: linear-gradient(135deg, #f5f7ff 0%, #ffffff 60%, #f8fafc 100%);
+  padding: 14px 18px 18px;
+  margin: 0 -8px 28px;
+  border-radius: 10px;
+  border: 1px solid #e0e4f5;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+}
+
+.header {
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #666;
+  max-width: 720px;
+}
+
+.controls {
+  margin: 10px 0 10px;
+}
+
+.controlRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-end;
+  margin-bottom: 8px;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  gap: 4px;
+  min-width: 210px;
+  flex: 0 0 210px;
+}
+
+.select,
+.numberInput {
+  min-width: 200px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #d0d7e6;
+  font-size: 14px;
+}
+
+.generateButton {
+  padding: 8px 16px !important;
+  font-size: 14px !important;
+  height: auto !important;
+  min-width: 110px;
+}
+
+.portrait {
+  margin-bottom: 24px;
+  padding: 10px 14px;
+  border-radius: 20px;
+  background: #f5f7fb;
+  border: 1px solid #e0e4f0;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.portrait h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.portraitInfo {
+  display: inline-flex;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.error {
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: #ffe5e5;
+  color: #b00020;
+}
+
+.examples {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+}
+
+.exampleCard {
+  border-radius: 6px;
+  border: 1px solid #d6deff;
+  padding: 16px 18px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+}
+
+.exampleHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.exampleMeta {
+  color: #555;
+}
+
+.sourceLink {
+  font-size: 13px;
+  color: #3366ff;
+  text-decoration: none;
+}
+
+.sourceLink:hover {
+  text-decoration: underline;
+}
+
+.topic {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.generated {
+  font-size: 13px;
+}
+
+.generated :global(textarea) {
+  min-height: 80px;
+}
+
+.noExamples {
+  font-size: 14px;
+  color: #777;
+}
+
+.customTopicToggle {
+  margin-top: 12px;
+}
+
+.customTopicButton {
+  border-radius: 16px;
+  border: 1px solid #d0d7e6;
+  background: #ffffff;
+  color: #3366ff;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 10px;
+  line-height: 1.2;
+}
+
+.customTopicButton:hover {
+  color: #2544aa;
+}
+
+.customTopicBlock {
+  margin-top: 8px;
+}
+
+.customTopicBlock :global(textarea) {
+  min-height: 90px;
+}
+
