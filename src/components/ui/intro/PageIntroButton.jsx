@@ -68,7 +68,7 @@ const PageIntroButton = () => {
 					display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
 				}} onClick={() => setOpen(false)}>
 					<div
-						style={{ background: '#fff', borderRadius: 14, width: 'min(1000px, 100%)', overflow: 'hidden', boxShadow: '0 18px 50px rgba(0,0,0,.3)' }}
+						style={{ background: '#fff', borderRadius: 14, width: 'min(1400px, calc(100% - 24px))', overflow: 'hidden', boxShadow: '0 18px 50px rgba(0,0,0,.3)' }}
 						onClick={e => e.stopPropagation()}
 					>
 						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '1px solid #e6eaf0' }}>
@@ -76,7 +76,7 @@ const PageIntroButton = () => {
 							<button type='button' onClick={() => setOpen(false)} style={{ border: 0, background: 'none', fontSize: 22, lineHeight: 1, cursor: 'pointer', color: '#475467' }} aria-label='Закрыть'>×</button>
 						</div>
 						<div key={idx} style={{ position: 'relative', background: '#0b1220', animation: 'introFade .6s ease' }}>
-							<img src={slide.img} alt={slide.caption} style={{ width: '100%', height: 'min(58vh, 520px)', objectFit: 'contain', display: 'block' }} />
+							<img src={slide.img} alt={slide.caption} style={{ width: '100%', height: 'min(82vh, 900px)', objectFit: 'contain', display: 'block' }} />
 							{marksPlaced.map((m, i) => {
 								const below = m.anchor === 'below';
 								return (
@@ -102,7 +102,7 @@ const PageIntroButton = () => {
 									</div>
 								);
 							})}
-							<div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '22px 20px', background: 'linear-gradient(transparent, rgba(0,0,0,.78))', color: '#fff', fontSize: 14.5, lineHeight: 1.5 }}>
+							<div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '22px 20px', background: 'linear-gradient(transparent, rgba(0,0,0,.78))', color: '#fff', fontSize: 16, lineHeight: 1.55 }}>
 								{slide.caption}
 							</div>
 						</div>
