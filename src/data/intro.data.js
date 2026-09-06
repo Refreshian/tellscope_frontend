@@ -1,28 +1,51 @@
 export const INTRO_SLIDES = {
 	'data-set': {
 		title: 'Наборы данных и Brand Analytics',
-		video: '/videos/intro-data-set.mp4',
-		poster: '/intro/data-set-root.png',
 		slides: [
-			{ img: '/intro/data-set-root.png', caption: 'Здесь лежат ваши папки-наборы данных. Нажмите «Brand Analytics: доступно тем…», чтобы указать аккаунт BA и посмотреть доступные темы.' },
-			{ img: '/intro/data-set-ba-open.png', caption: 'Внутри — аккаунт BA и актуальные темы (кнопка «Обновить»).' },
-			{ img: '/intro/data-set-folder.png', caption: 'В папке: период данных и время получения у файлов, загрузка и импорт из Brand Analytics.' },
+			{
+				img: '/intro/data-set-root.png',
+				caption: 'Раздел «Наборы данных»: папки-датасеты и импорт Brand Analytics.',
+				marks: [{ x: 52.8, y: 15.4, text: 'Раскрыть блок тем BA' }],
+			},
+			{
+				img: '/intro/data-set-ba-open.png',
+				caption: 'Внутри блока: аккаунт BA, актуальные темы и кнопка «Обновить».',
+				marks: [
+					{ x: 47, y: 24.3, text: 'Логин BA и пароль' },
+					{ x: 74, y: 15.5, text: '«Обновить» темы' },
+				],
+			},
+			{
+				img: '/intro/data-set-panel.png',
+				caption: 'В папке темы — файлы с периодом и временем получения. «Загрузить из Brand Analytics» открывает выбор темы и периода.',
+				marks: [
+					{ x: 71.5, y: 21.8, text: 'Нажмите здесь' },
+					{ x: 73, y: 32.4, text: 'Период и «Получить данные»' },
+				],
+			},
 		],
 	},
 	'user-tonality': {
 		title: 'Тональный ландшафт',
-		video: '/videos/intro-tonality.mp4',
-		poster: '/intro/tonality.png',
 		slides: [
-			{ img: '/intro/tonality.png', caption: 'Выберите набор данных слева — появятся графики тональности, динамика и источники.' },
+			{
+				img: '/intro/tonality.png',
+				caption: '«Тональный ландшафт»: выберите набор данных слева — появятся графики тональности, динамика и источники.',
+				marks: [],
+			},
 		],
 	},
 	admin: {
 		title: 'Администрирование',
-		video: '/videos/intro-admin.mp4',
-		poster: '/intro/admin.png',
 		slides: [
-			{ img: '/intro/admin.png', caption: 'Создание пользователей, доступы к папкам и управление аккаунтами.' },
+			{
+				img: '/intro/admin.png',
+				caption: 'Пользователи, доступы к папкам и действия с аккаунтами.',
+				marks: [
+					{ x: 56.6, y: 39.4, text: '«Сделать админом»' },
+					{ x: 86, y: 39.4, text: '«Удалить аккаунт»' },
+				],
+			},
 		],
 	},
 };
