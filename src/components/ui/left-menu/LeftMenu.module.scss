@@ -222,3 +222,7 @@
 .menu__item_active {
 	transition: none !important;
 }
+.menu__item_active {
+	background: linear-gradient(90deg, rgba(108, 92, 231, 0.16), rgba(34, 184, 240, 0.10));
+	box-shadow: inset 0 0 0 1px rgba(108, 92, 231, 0.18);
+}

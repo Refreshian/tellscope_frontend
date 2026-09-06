@@ -140,3 +140,14 @@
 		padding: 12px 16px;
 	}
 }
+.block__auth {
+	background: rgba(255, 255, 255, 0.92);
+	border: 1px solid rgba(11, 27, 59, 0.08);
+	border-radius: 18px;
+	box-shadow: 0 14px 40px rgba(11, 27, 59, 0.12);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+}
+.block__auth > .title {
+	color: $ink-cosmic;
+}
