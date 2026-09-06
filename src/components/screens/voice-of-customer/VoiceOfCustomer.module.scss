@@ -1253,3 +1253,10 @@
 	box-shadow: none;
 	border-radius: 0;
 }
+.block__configureSearch {
+	gap: adapt(15px, 1440px);
+}
+.block__configureSearch > * {
+	margin-left: 0 !important;
+	margin-right: 0 !important;
+}
