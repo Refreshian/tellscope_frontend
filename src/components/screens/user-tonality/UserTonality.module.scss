@@ -565,3 +565,32 @@
     max-height: none;
   }
 }
+.block__configureSearch,
+.tableSection,
+.tableWrapper,
+.dataTableContainer,
+.filterInfo,
+.countCard {
+	background: rgba(255, 255, 255, 0.78);
+	border: 1px solid rgba(11, 27, 59, 0.06);
+	border-radius: 14px;
+	box-shadow: 0 6px 20px rgba(11, 27, 59, 0.05);
+}
+.showTableButton,
+.tableSwitchButton,
+.tableTab,
+.tableToggleHeader {
+	background: rgba(255, 255, 255, 0.9);
+	border: 1px solid rgba(11, 27, 59, 0.1);
+	border-radius: 10px;
+	color: #152A5A;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.showTableButton:hover,
+.tableSwitchButton:hover,
+.tableTab:hover,
+.tableToggleHeader:hover {
+	border-color: rgba(108, 92, 231, 0.5);
+	box-shadow: 0 4px 12px rgba(108, 92, 231, 0.15);
+	background: #ffffff;
+}
