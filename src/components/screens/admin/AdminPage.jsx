@@ -75,6 +75,18 @@ const card = {
 	margin: '10px 0',
 	background: '#fff',
 };
+const tabButton = active => ({
+	padding: '8px 18px',
+	borderRadius: 999,
+	border: active ? '1px solid rgba(108,92,231,.0)' : '1px solid #d0d7e2',
+	background: active ? 'linear-gradient(135deg, #6C5CE7 0%, #22B8F0 100%)' : '#fff',
+	color: active ? '#fff' : '#344054',
+	cursor: 'pointer',
+	fontSize: 13,
+	fontWeight: active ? 600 : 400,
+	fontFamily: 'inherit',
+	boxShadow: active ? '0 4px 14px rgba(108,92,231,.28)' : 'none',
+});
 
 const AdminPage = () => {
 	const [ok, setOk] = useState(null); // null=loading,false=forbidden,true=admin
@@ -86,6 +98,7 @@ const AdminPage = () => {
 	const [actUser, setActUser] = useState(null);
 	const [actDays, setActDays] = useState([]);
 	const [actLoading, setActLoading] = useState(false);
+	const [tab, setTab] = useState('users');
 
 
 	// user create form
@@ -103,12 +116,19 @@ const AdminPage = () => {
 	const [llmUsage, setLlmUsage] = useState([]);
 	const [llmDays, setLlmDays] = useState([]);
 
-	const reload = async () => {
-		const [us, sh, lu, ld] = await Promise.all([
-			api('/admin/users'), api('/admin/shares'), api('/admin/llm-usage'), api('/admin/llm-usage/days?days=30'),
+	const loadLlm = async () => {
+		const [lu, ld] = await Promise.all([
+			api('/admin/llm-usage'), api('/admin/llm-usage/days?days=30'),
 		]);
 		setLlmUsage(lu && lu.rows ? lu.rows : []);
 		setLlmDays(ld && ld.rows ? llmDaySums(ld.rows) : []);
+	};
+
+	const reload = async () => {
+		const [us, sh] = await Promise.all([
+			api('/admin/users'), api('/admin/shares'),
+		]);
+		await loadLlm();
 		setUsers(us);
 		setShares(sh.shares || []);
 		setOwners(us);
@@ -216,12 +236,20 @@ const AdminPage = () => {
 			<LeftMenu />
 			<Content alignStart style={{ width: '100%', overflowY: 'auto', alignItems: 'flex-start', justifyContent: 'flex-start', paddingBottom: 28 }}>
 		<div style={{ width: '100%', maxWidth: 1500, margin: '0 auto', padding: '18px 28px', fontFamily: 'inherit', boxSizing: 'border-box' }}>
-			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
-				<h2 style={{ margin: 0 }}>Пользователи и доступ</h2>
-				<span style={{ color: '#98a2b3', fontSize: 12 }}>Управление пользователями, доступом к наборам данных и аккаунтами</span>
+			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 2 }}>
+				<h2 style={{ margin: 0 }}>{tab === 'users' ? 'Пользователи и доступ' : 'Потребление ИИ (LLM-токены)'}</h2>
+				<span style={{ color: '#98a2b3', fontSize: 12 }}>
+					{tab === 'users' ? 'Управление пользователями, доступом к наборам данных и аккаунтами' : 'Учёт запросов и токенов по аккаунтам, страницам и моделям'}
+				</span>
+			</div>
+			<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '10px 0 2px' }}>
+				<button type='button' onClick={() => setTab('users')} style={tabButton(tab === 'users')}>Пользователи</button>
+				<button type='button' onClick={() => { setTab('llm'); loadLlm(); }} style={tabButton(tab === 'llm')}>Потребление ИИ (LLM-токены)</button>
 			</div>
 			{err && <div style={{ color: '#c53030', marginBottom: 8 }}>{err}</div>}
 
+			{tab === 'users' && (
+			<>
 			<div style={card}>
 				<b>Создать пользователя</b>
 				<div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -276,12 +304,11 @@ const AdminPage = () => {
 					</tbody>
 				</table>
 			</div>
+			</>
+			)}
 
+			{tab === 'llm' && (
 			<div style={card}>
-				<b>Потребление ИИ (LLM-токены)</b>
-				<div style={{ color: '#667085', fontSize: 12, marginTop: 4 }}>
-					Учёт запросов и токенов по аккаунтам, страницам и моделям.
-				</div>
 				{llmUsage.length === 0 && (
 					<div style={{ color: '#98a2b3', marginTop: 8, fontSize: 13 }}>Пока нет данных — токены появятся после первого запроса к ИИ</div>
 				)}
@@ -366,7 +393,10 @@ const AdminPage = () => {
 					</div>
 				)}
 			</div>
+			)}
 
+			{tab === 'users' && (
+			<>
 			<div style={card}>
 				<b>Выдать доступ к папке</b>
 				<div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
@@ -400,6 +430,8 @@ const AdminPage = () => {
 					</div>
 				))}
 			</div>
+			</>
+			)}
 
 
 		</div>
