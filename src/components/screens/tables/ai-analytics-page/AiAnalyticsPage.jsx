@@ -103,6 +103,9 @@ const AiAnalyticsPage = () => {
 	// 	return <NotFound error={error_props} />;
 	// }
 
+	const [showGuide, setShowGuide] = useState(() => !sessionStorage.getItem('ai-analytics-guide-seen'));
+	const closeGuide = () => { sessionStorage.setItem('ai-analytics-guide-seen', '1'); setShowGuide(false); };
+
 	const [isNoData, setIsNoData] = useState(false);
 	useEffect(() => {
 		if (isError_aiAnalyticsGET) {
@@ -144,6 +147,37 @@ const AiAnalyticsPage = () => {
 				</>
 			)}
 			<Content>
+				{showGuide && (
+					<div
+						style={{
+							position: 'relative',
+							width: 'min(96%, 980px)',
+							boxSizing: 'border-box',
+							margin: '12px auto 0',
+							padding: '12px 42px 12px 16px',
+							background: 'rgba(108, 92, 231, 0.07)',
+							border: '1px solid rgba(108, 92, 231, 0.25)',
+							borderRadius: 12,
+							fontSize: 13,
+							lineHeight: 1.55,
+							color: '#152A5A',
+							boxShadow: '0 4px 14px rgba(11, 27, 59, 0.06)',
+							textAlign: 'left',
+						}}
+					>
+						<b>Как работает ИИ-аналитика:</b>
+						<ol style={{ margin: '4px 0 0', paddingLeft: 20 }}>
+							<li>Настройте тему, период и запрос и нажмите <b>«Запуск»</b> — появится таблица с текстами.</li>
+							<li>Отметьте до 5 текстов и нажмите <b>«Тестировать»</b>, чтобы проверить, как ИИ отвечает на ваш запрос.</li>
+							<li>Если ответ устроил — запустите <b>полный расчёт по всем текстам</b> (идёт в фоне). Прогресс и результат будут в «Статусе расчёта данных» на странице «Наборы данных».</li>
+						</ol>
+						<button
+							type='button'
+							onClick={closeGuide}
+							style={{ position: 'absolute', top: 6, right: 10, border: 0, background: 'none', fontSize: 18, lineHeight: 1, cursor: 'pointer', color: '#5A6A8A' }}
+						>×</button>
+					</div>
+				)}
 				<div
 					className={styles.block__pageName}
 					style={isSuccess_aiAnalyticsGET ? {} : { alignSelf: 'center' }}
