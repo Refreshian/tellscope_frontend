@@ -218,3 +218,7 @@
 		width: auto;
 	}
 }
+.menu__item,
+.menu__item_active {
+	transition: none !important;
+}

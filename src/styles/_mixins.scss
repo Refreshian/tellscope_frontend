@@ -53,6 +53,8 @@
 
 	> img {
 		width: adapt(20px, 1440px);
+		height: adapt(20px, 1440px);
+		object-fit: contain;
 	}
 
 	&:hover {
