@@ -863,7 +863,7 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
         }
         const url = d.primary_url || d.url;
         if (!url) {
-          message.warning('У узла нет ссылки на сообщение');
+          // Узлы-кластеры не ссылаются на одно сообщение — просто игнорируем
           return;
         }
         window.open(url, '_blank', 'noopener,noreferrer');
