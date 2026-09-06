@@ -278,40 +278,6 @@ const AdminPage = () => {
 			</div>
 
 			<div style={card}>
-				<b>Выдать доступ к папке</b>
-				<div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-					<select style={input} value={ownerId} onChange={e => pickOwner(e.target.value)}>
-						<option value=''>Владелец данных…</option>
-						{users.map(u => <option key={u.id} value={u.id}>{u.email}</option>)}
-					</select>
-					<select style={input} value={folder} onChange={e => setFolder(e.target.value)}>
-						<option value=''>Папка…</option>
-						{ownerFolders.map(f => <option key={f.name} value={f.name}>{f.name} ({f.files})</option>)}
-					</select>
-					<select style={input} value={targetId} onChange={e => setTargetId(e.target.value)}>
-						<option value=''>Кому…</option>
-						{users.map(u => <option key={u.id} value={u.id}>{u.email}</option>)}
-					</select>
-					<select style={input} value={access} onChange={e => setAccess(e.target.value)}>
-						<option value='read'>только чтение</option>
-						<option value='write'>чтение и редактирование</option>
-					</select>
-					<button style={btn} onClick={grant}>Выдать</button>
-				</div>
-			</div>
-
-			<div style={card}>
-				<b>Выданные доступы</b>
-				{shares.length === 0 && <div style={{ color: '#98a2b3', marginTop: 6 }}>Пока нет выданных доступов</div>}
-				{shares.map((s, i) => (
-					<div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '6px 0', borderBottom: '1px dashed #e6eaf0', fontSize: 13 }}>
-						<span>владелец #{s.owner_user_id} · папка «{s.folder}» · пользователь #{s.user_id} · {s.access === 'read' ? 'чтение' : 'чтение+запись'}</span>
-						<button style={{ border: 0, background: 'none', color: '#c53030', cursor: 'pointer' }} onClick={() => revoke(s)}>забрать</button>
-					</div>
-				))}
-			</div>
-
-			<div style={card}>
 				<b>Потребление ИИ (LLM-токены)</b>
 				<div style={{ color: '#667085', fontSize: 12, marginTop: 4 }}>
 					Учёт запросов и токенов по аккаунтам, страницам и моделям (задел под биллинг).
@@ -400,6 +366,42 @@ const AdminPage = () => {
 					</div>
 				)}
 			</div>
+
+			<div style={card}>
+				<b>Выдать доступ к папке</b>
+				<div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+					<select style={input} value={ownerId} onChange={e => pickOwner(e.target.value)}>
+						<option value=''>Владелец данных…</option>
+						{users.map(u => <option key={u.id} value={u.id}>{u.email}</option>)}
+					</select>
+					<select style={input} value={folder} onChange={e => setFolder(e.target.value)}>
+						<option value=''>Папка…</option>
+						{ownerFolders.map(f => <option key={f.name} value={f.name}>{f.name} ({f.files})</option>)}
+					</select>
+					<select style={input} value={targetId} onChange={e => setTargetId(e.target.value)}>
+						<option value=''>Кому…</option>
+						{users.map(u => <option key={u.id} value={u.id}>{u.email}</option>)}
+					</select>
+					<select style={input} value={access} onChange={e => setAccess(e.target.value)}>
+						<option value='read'>только чтение</option>
+						<option value='write'>чтение и редактирование</option>
+					</select>
+					<button style={btn} onClick={grant}>Выдать</button>
+				</div>
+			</div>
+
+			<div style={card}>
+				<b>Выданные доступы</b>
+				{shares.length === 0 && <div style={{ color: '#98a2b3', marginTop: 6 }}>Пока нет выданных доступов</div>}
+				{shares.map((s, i) => (
+					<div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '6px 0', borderBottom: '1px dashed #e6eaf0', fontSize: 13 }}>
+						<span>владелец #{s.owner_user_id} · папка «{s.folder}» · пользователь #{s.user_id} · {s.access === 'read' ? 'чтение' : 'чтение+запись'}</span>
+						<button style={{ border: 0, background: 'none', color: '#c53030', cursor: 'pointer' }} onClick={() => revoke(s)}>забрать</button>
+					</div>
+				))}
+			</div>
+
+
 		</div>
 
 			{actUser && (
