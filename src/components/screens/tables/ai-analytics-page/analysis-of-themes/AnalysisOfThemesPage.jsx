@@ -268,7 +268,7 @@ const AnalysisOfThemesPage = () => {
                                 position: 'relative' // Добавьте это
                             }}
                             className="analysisThemesSelector"
-                            dropdownStatic={true}
+                            dropdownStatic={false}
                             showHtmlFiles={true}
                             onDeleteFile={handleDeleteTheme}
                             />
