@@ -249,7 +249,7 @@ const AnalysisOfThemesPage = () => {
             {pathname !== '/home' && active_menu ? <LeftMenuActive /> : <LeftMenu />}
                 <Content
                 style={{
-                    ...(isSuccess_llm ? {} : { alignItems: 'start', justifyContent: 'start' }),
+                    ...(isSuccess_llm ? {} : { alignItems: 'center', justifyContent: 'start' }),
                     position: 'relative',
                     zIndex: 1
                 }}
