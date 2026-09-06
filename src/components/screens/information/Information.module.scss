@@ -973,6 +973,7 @@ table tbody tr:hover {
   
   > * {
     margin: 0 !important;
+    flex-shrink: 0;
   }
   
   @media (max-width: 768px) {
