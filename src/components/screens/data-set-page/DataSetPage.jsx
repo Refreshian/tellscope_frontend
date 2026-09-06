@@ -343,6 +343,7 @@ const DataSetPage = () => {
     const [baOpen, setBaOpen] = useState(false);
     const [baRefreshing, setBaRefreshing] = useState(false);
     const [baThemes, setBaThemes] = useState([]);
+    const [baConfigured, setBaConfigured] = useState(false);
     const [baTheme, setBaTheme] = useState('');
     const [baFrom, setBaFrom] = useState('');
     const [baTo, setBaTo] = useState('');
@@ -371,7 +372,7 @@ const DataSetPage = () => {
     const loadBaThemes = uid => {
         fetch('/api/ba/themes' + (uid ? '?user_id=' + uid : ''), { headers: authHeaders() })
             .then(r => r.json())
-            .then(d => setBaThemes(d.themes || []))
+            .then(d => { setBaConfigured(Boolean(d.account_configured)); setBaThemes(d.themes || []); })
             .catch(() => {});
     };
 
@@ -541,7 +542,7 @@ const DataSetPage = () => {
                     <details style={{ width: '100%', margin: '6px 0', fontSize: 12 }}>
                         <summary style={{ cursor: 'pointer', color: '#667085' }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-                                <span>Brand Analytics: доступно тем: {baThemes.length}</span>
+                                <span>Brand Analytics: {baConfigured ? ('доступно тем: ' + baThemes.length) : 'аккаунт не настроен'}</span>
                                 <button
                                     type='button'
                                     title='Обновить список тем из Brand Analytics'
