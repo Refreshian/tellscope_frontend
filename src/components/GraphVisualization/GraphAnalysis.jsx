@@ -55,7 +55,7 @@ const FileSelect = ({ folders, value, onSelect, onDeleteFile, loading }) => {
           {selected ? (
             <p className={styles.selectedOption}>{truncateName(selected.displayName, 32)}</p>
           ) : (
-            <h2>Выберите файл</h2>
+            <h2>Выберите тему</h2>
           )}
         </div>
         <img
@@ -292,7 +292,7 @@ const GraphAnalysis = () => {
 
   const buildGraph = async (type = graphType) => {
     if (!selectedFile) {
-      message.warning('Выберите CSV файл для построения графа');
+      message.warning('Сначала выберите тему для построения графа');
       return;
     }
 
@@ -383,7 +383,7 @@ const GraphAnalysis = () => {
             <Button
               style={launchButtonStyle}
               onClick={() => buildGraph(graphType)}
-              disabled={!selectedFile || isLoading}
+              disabled={isLoading}
             >
               Построить граф
             </Button>
