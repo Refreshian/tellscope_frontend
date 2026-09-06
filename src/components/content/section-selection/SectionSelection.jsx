@@ -1,10 +1,32 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import styles from './SectionSelection.module.scss';
 import SectionInfo from './section-info/SectionInfo';
 import { menuPageData } from '@/data/menuPage.data';
 
 const SectionSelection = () => {
+	const [me, setMe] = useState(null);
+	const navigate = useNavigate();
+
+	useEffect(() => {
+		let on = true;
+		(async () => {
+			try {
+				const m = document.cookie.split('; ').find(x => x.startsWith('token='));
+				const tok = m ? decodeURIComponent(m.slice('token='.length)) : '';
+				if (!tok) return;
+				const r = await fetch('/api/me', { headers: { Authorization: 'Bearer ' + tok } });
+				if (r.ok && on) setMe(await r.json());
+			} catch (e) {}
+		})();
+		return () => { on = false; };
+	}, []);
+
+	const isAdmin = me && me.is_superuser;
+
 	return (
-		<>
+		<div className={styles.page}>
 			{/* <img
 				className={styles.logo}
 				src='/images/full_logo.svg'
@@ -27,8 +49,20 @@ const SectionSelection = () => {
 					return <SectionInfo key={elemInfo.id} elemInfo={elemInfo} />;
 				})}
 			</div>
-		</>
+			{isAdmin && (
+				<button
+					type='button'
+					className={styles.adminBtn}
+					onClick={() => navigate('/admin')}
+					title='Администрирование'
+				>
+					<img src='/images/icons/admin.svg' alt='' />
+					<span>Администрирование</span>
+				</button>
+			)}
+		</div>
 	);
 };
 
 export default SectionSelection;
+

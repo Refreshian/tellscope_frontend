@@ -80,3 +80,42 @@
 		gap: 10px;
 	}
 }
+
+.page {
+	position: relative;
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.adminBtn {
+	position: absolute;
+	top: adapt(14px, 1440px);
+	right: adapt(16px, 1440px);
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 14px;
+	background: #ffffff;
+	border: 1px solid #d0d5dd;
+	border-radius: 8px;
+	font-family: inherit;
+	font-size: 0.8125rem;
+	line-height: 1.2;
+	color: $color_blue;
+	cursor: pointer;
+	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	z-index: 5;
+}
+
+.adminBtn:hover {
+	border-color: $color_blue;
+	box-shadow: 0 2px 8px rgba(16, 24, 40, 0.14);
+}
+
+.adminBtn img {
+	width: 16px;
+	height: 16px;
+}
