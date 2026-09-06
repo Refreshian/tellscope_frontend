@@ -53,8 +53,14 @@ const PageIntroButton = () => {
 
 	return (
 		<>
-			<button type='button' className={styles.floating} title='Введение: как пользоваться страницей' onClick={() => { setIdx(0); setPlaying(true); setOpen(true); }}>
-				▶ Введение
+			<button
+				type='button'
+				className={styles.floating}
+				title='Видео-инструкция по странице'
+				aria-label='Видео-инструкция по странице'
+				onClick={() => { setIdx(0); setPlaying(true); setOpen(true); }}
+			>
+				▶
 			</button>
 			{open && (
 				<div style={{

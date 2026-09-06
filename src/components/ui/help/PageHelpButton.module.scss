@@ -1,7 +1,7 @@
 .button {
 	position: fixed;
 	right: 24px;
-	bottom: 24px;
+	bottom: calc(84px + env(safe-area-inset-bottom));
 	z-index: 990;
 	width: 46px;
 	height: 46px;
@@ -34,7 +34,7 @@
 
 	@media (max-width: 900px) {
 		right: 14px;
-		bottom: calc(14px + env(safe-area-inset-bottom));
+		bottom: calc(74px + env(safe-area-inset-bottom));
 		width: 42px;
 		height: 42px;
 		font-size: 20px;
