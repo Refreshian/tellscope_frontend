@@ -218,7 +218,7 @@ const AdminPage = () => {
 			<div style={card}>
 				<b>Пользователи</b>
 				<table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 6, fontSize: 13 }}>
-					<thead><tr><th style={th}>ID</th><th style={th}>Email</th><th style={th}>Имя</th><th style={th}>Админ</th><th style={th}>Активен</th><th style={th}>Действия</th></tr></thead>
+					<thead><tr><th style={th}>ID</th><th style={th}>Email</th><th style={th}>Имя</th><th style={th}>Админ</th><th style={th}>Активен</th><th style={th}>Активность</th><th style={th}>Действия</th><th style={th}>Дата выдачи</th></tr></thead>
 					<tbody>
 						{users.map(u => (
 							<tr key={u.id}>
@@ -227,6 +227,7 @@ const AdminPage = () => {
 								<td style={td}>{u.username}</td>
 								<td style={td}>{u.is_superuser ? 'да' : ''}</td>
 								<td style={td}>{u.is_active ? 'да' : 'нет'}</td>
+								<td style={td}><div style={{ fontSize: 11, color: '#667085', lineHeight: 1.5, whiteSpace: 'nowrap' }}>заходов: {u.login_count || 0}<br />последний вход: {fmtDate(u.last_login)}<br />в системе: {fmtDur(u.total_seconds)}</div></td>
 							<td style={td}>
 							<div style={{ display: 'flex', flexWrap: 'nowrap', gap: 6, alignItems: 'flex-start' }}>
 							{u.id !== meId && (u.is_superuser ? (
@@ -249,6 +250,7 @@ const AdminPage = () => {
 							<button style={redBtn} onClick={() => delUser(u)}>удалить аккаунт</button>
 						)}
 						</div></td>
+						<td style={td}><div style={{ whiteSpace: 'nowrap' }}>{fmtDate(u.registered_at)}</div></td>
 					</tr>
 						))}
 					</tbody>
@@ -293,6 +295,25 @@ const AdminPage = () => {
 		</Layout>
 	);
 };
+
+const fmtDate = v => {
+	if (!v) return '—';
+	const s = String(v).includes('T') ? String(v) : String(v).replace(' ', 'T');
+	const d = new Date(s + (String(v).includes('Z') || String(v).includes('+') ? '' : 'Z'));
+	if (isNaN(d.getTime())) return String(v);
+	const dd = String(d.getDate()).padStart(2, '0');
+	const mm = String(d.getMonth() + 1).padStart(2, '0');
+	return dd + '.' + mm + '.' + d.getFullYear() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+};
+
+const fmtDur = sec => {
+	sec = Number(sec) || 0;
+	const h = Math.floor(sec / 3600);
+	const m = Math.floor((sec % 3600) / 60);
+	if (h <= 0 && m <= 0) return 'менее 1 мин';
+	return (h > 0 ? h + ' ч ' : '') + m + ' мин';
+};
+
 
 const th = { textAlign: 'left', borderBottom: '1px solid #e6eaf0', padding: 6 };
 const td = { padding: 6, borderBottom: '1px solid #f0f2f5' };
