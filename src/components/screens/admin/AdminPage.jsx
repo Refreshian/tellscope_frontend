@@ -83,6 +83,10 @@ const AdminPage = () => {
 	const [owners, setOwners] = useState([]);
 	const [err, setErr] = useState('');
 	const [meId, setMeId] = useState(null);
+	const [actUser, setActUser] = useState(null);
+	const [actDays, setActDays] = useState([]);
+	const [actLoading, setActLoading] = useState(false);
+
 
 	// user create form
 	const [uEmail, setUEmail] = useState('');
@@ -137,6 +141,16 @@ const AdminPage = () => {
 			await reload();
 		} catch (e) { setErr(String((e && e.message) || e)); }
 	};
+
+	const openActivity = async u => {
+		setActUser(u); setActDays([]); setActLoading(true);
+		try {
+			const d = await api('/admin/user-days/' + u.id);
+			setActDays(d.days || []);
+		} catch (e) { setActDays([]); }
+		setActLoading(false);
+	};
+	const closeActivity = () => { setActUser(null); setActDays([]); };
 
 	const pickOwner = async id => {
 		setOwnerId(id);
@@ -227,7 +241,7 @@ const AdminPage = () => {
 								<td style={td}>{u.username}</td>
 								<td style={td}>{u.is_superuser ? 'да' : ''}</td>
 								<td style={td}>{u.is_active ? 'да' : 'нет'}</td>
-								<td style={td}><div style={{ fontSize: 11, color: '#667085', lineHeight: 1.5, whiteSpace: 'nowrap' }}>заходов: {u.login_count || 0}<br />последний вход: {fmtDate(u.last_login)}<br />в системе: {fmtDur(u.total_seconds)}</div></td>
+								<td style={td}><div style={{ fontSize: 11, color: '#667085', lineHeight: 1.5, whiteSpace: 'nowrap' }}><button type='button' onClick={() => openActivity(u)} title='Показать время в системе по дням' style={{ border: 0, background: 'none', padding: 0, color: '#1760e8', cursor: 'pointer', fontSize: 11, textDecoration: 'underline', fontFamily: 'inherit' }}>заходов: {u.login_count || 0}</button><br />последний вход: {fmtDate(u.last_login)}<br />в системе: {fmtDur(u.total_seconds)}</div></td>
 							<td style={td}>
 							<div style={{ display: 'flex', flexWrap: 'nowrap', gap: 6, alignItems: 'flex-start' }}>
 							{u.id !== meId && (u.is_superuser ? (
@@ -291,6 +305,26 @@ const AdminPage = () => {
 				))}
 			</div>
 		</div>
+
+			{actUser && (
+				<div style={{ position: 'fixed', inset: 0, background: 'rgba(16,24,40,.45)', zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }} onClick={closeActivity}>
+					<div style={{ background: '#fff', borderRadius: 12, padding: '18px 22px', width: 'min(94vw, 780px)', maxHeight: '85vh', overflow: 'auto', boxShadow: '0 12px 32px rgba(16,24,40,.28)' }} onClick={e => e.stopPropagation()}>
+						<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+							<b style={{ fontSize: 15, wordBreak: 'break-all' }}>Активность: {actUser.email}</b>
+							<button type='button' onClick={closeActivity} style={{ border: 0, background: 'none', fontSize: 20, lineHeight: 1, cursor: 'pointer', color: '#667085' }}>×</button>
+						</div>
+						<div style={{ color: '#667085', fontSize: 12, marginBottom: 10 }}>Время в системе по дням{actUser.login_count ? ' · всего заходов: ' + actUser.login_count : ''}</div>
+						{actLoading ? (
+							<div style={{ padding: 24, color: '#98a2b3' }}>Загрузка…</div>
+						) : actDays.length === 0 ? (
+							<div style={{ padding: 24, color: '#98a2b3' }}>Нет данных за эти дни — время в системе начнёт учитываться, когда пользователь откроет сайт</div>
+						) : (
+							<ActivityChart days={actDays} />
+						)}
+					</div>
+				</div>
+			)}
+
 			</Content>
 		</Layout>
 	);
@@ -314,6 +348,39 @@ const fmtDur = sec => {
 	return (h > 0 ? h + ' ч ' : '') + m + ' мин';
 };
 
+
+
+const ActivityChart = ({ days }) => {
+	const data = (days || []).slice(-45);
+	if (!data.length) return null;
+	const max = Math.max(1, ...data.map(d => Number(d.seconds) || 0));
+	const fmtV = sec => {
+		sec = Number(sec) || 0;
+		const m = Math.round(sec / 60);
+		if (sec > 0 && m < 1) return '<1 мин';
+		if (m >= 60) return Math.floor(m / 60) + ' ч ' + (m % 60) + ' мин';
+		return m + ' мин';
+	};
+	const dlabel = day => {
+		const p = String(day).split('-');
+		return p.length === 3 ? p[2] + '.' + p[1] : day;
+	};
+	return (
+		<div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, minHeight: 195, paddingTop: 8, overflowX: 'auto' }}>
+			{data.map(d => {
+				const sec = Number(d.seconds) || 0;
+				const h = sec <= 0 ? 2 : Math.max(6, Math.round((sec / max) * 140));
+				return (
+					<div key={d.day} title={dlabel(d.day) + ' — ' + fmtV(sec)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', flex: '1 1 0', minWidth: 42 }}>
+						<div style={{ fontSize: 10, color: '#344054', marginBottom: 3, whiteSpace: 'nowrap' }}>{sec <= 0 ? '' : (sec >= 60 ? Math.round(sec / 60) + ' м' : sec + ' с')}</div>
+						<div style={{ width: 28, height: h, background: sec <= 0 ? '#eef1f5' : '#1760e8', borderRadius: '4px 4px 0 0' }} />
+						<div style={{ fontSize: 10, color: '#98a2b3', marginTop: 4, whiteSpace: 'nowrap' }}>{dlabel(d.day)}</div>
+					</div>
+				);
+			})}
+		</div>
+	);
+};
 
 const th = { textAlign: 'left', borderBottom: '1px solid #e6eaf0', padding: 6 };
 const td = { padding: 6, borderBottom: '1px solid #f0f2f5' };
