@@ -39,7 +39,7 @@ const Content = ({ children, graph, style, alignStart }) => {
 
 	return (
 		<div
-			className={`${styles.wrapper_content}${isAiBotPath ? ` ${styles.fill}` : ''}${isWorkspacePath && !isAiBotPath ? ` ${styles.workspace}` : ''}${alignStart ? ` ${styles.start}` : ''}`}
+			className={`${styles.wrapper_content}${isAiBotPath ? ` ${styles.fill}` : ''}${isWorkspacePath && !isAiBotPath ? ` ${styles.workspace}` : ''}${isHomePath ? ` ${styles.home}` : ''}${alignStart ? ` ${styles.start}` : ''}`}
 			style={styleCSS}
 			onClick={() => {
 				if (active_menu) defaultActiveMenu('');
