@@ -103,8 +103,9 @@ const AiAnalyticsPage = () => {
 	// 	return <NotFound error={error_props} />;
 	// }
 
-	const [showGuide, setShowGuide] = useState(() => !sessionStorage.getItem('ai-analytics-guide-seen'));
-	const closeGuide = () => { sessionStorage.setItem('ai-analytics-guide-seen', '1'); setShowGuide(false); };
+	const [showGuide, setShowGuide] = useState(false);
+	const toggleGuide = () => setShowGuide(s => !s);
+	const closeGuide = () => setShowGuide(false);
 
 	const [isNoData, setIsNoData] = useState(false);
 	useEffect(() => {
@@ -147,11 +148,10 @@ const AiAnalyticsPage = () => {
 				</>
 			)}
 			<Content style={isSuccess_aiAnalyticsGET ? { justifyContent: 'flex-start', alignItems: 'center' } : undefined}>
-				{!showGuide && (
-					<div style={{ width: 'min(96%, 980px)', margin: '12px auto 0', textAlign: 'center', boxSizing: 'border-box' }}>
+				<div style={{ width: 'min(96%, 980px)', margin: '12px auto 0', textAlign: 'center', boxSizing: 'border-box' }}>
 						<button
 							type='button'
-							onClick={() => setShowGuide(true)}
+							onClick={toggleGuide}
 							style={{
 								background: 'rgba(108, 92, 231, 0.07)',
 								border: '1px solid rgba(108, 92, 231, 0.3)',
@@ -163,8 +163,7 @@ const AiAnalyticsPage = () => {
 								cursor: 'pointer',
 							}}
 						>Как работает ИИ-анализ</button>
-					</div>
-				)}
+				</div>
 				{showGuide && (
 					<div
 						style={{
@@ -185,9 +184,9 @@ const AiAnalyticsPage = () => {
 					>
 						<b>Как работает ИИ-аналитика:</b>
 						<ol style={{ margin: '4px 0 0', paddingLeft: 20 }}>
-							<li>Выберите тему (и при необходимости период и запрос), затем нажмите <b>«Запуск»</b> — появится таблица с текстами.</li>
-							<li>Отметьте до 5 текстов и нажмите <b>«Тестировать»</b>, чтобы проверить, как ИИ отвечает на ваш запрос.</li>
-							<li>Если ответ устроил — запустите <b>полный расчёт по всем текстам</b> (идёт в фоне). Прогресс и результат будут в «Статусе расчёта данных» на странице «Наборы данных».</li>
+							<li>Выберите тему → <b>«Запуск»</b> → таблица с текстами.</li>
+							<li>Отметьте до 5 текстов → <b>«Тестировать»</b> — проверьте ответ ИИ.</li>
+							<li>Если ок → <b>«Запустить ИИ»</b> — полный расчёт по всем текстам (в фоне). Результат — в «Статус расчёта данных» (Наборы данных).</li>
 						</ol>
 						<button
 							type='button'
