@@ -12,6 +12,7 @@ import { getDocForPath } from '@/data/docs.data';
 
 import HelpDrawer from './HelpDrawer';
 import PageHelpButton from './PageHelpButton';
+import PageIntroButton from '../intro/PageIntroButton';
 
 const HelpContext = createContext(null);
 
@@ -56,6 +57,7 @@ const HelpProvider = ({ children }) => {
 			{children}
 			<HelpDrawer doc={doc} onClose={close} />
 			<PageHelpButton />
+			<PageIntroButton />
 		</HelpContext.Provider>
 	);
 };
