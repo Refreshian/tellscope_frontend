@@ -148,7 +148,7 @@ const AiAnalyticsPage = () => {
 				</>
 			)}
 			<Content style={isSuccess_aiAnalyticsGET ? { justifyContent: 'flex-start', alignItems: 'center' } : undefined}>
-				<div style={{ position: 'fixed', right: 26, bottom: 90, zIndex: 70, textAlign: 'center' }}>
+				<div style={{ position: 'fixed', right: 110, bottom: 92, zIndex: 70, textAlign: 'center' }}>
 						<button
 							type='button'
 							onClick={toggleGuide}
