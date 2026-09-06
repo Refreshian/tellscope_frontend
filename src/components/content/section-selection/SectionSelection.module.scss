@@ -88,34 +88,41 @@
 	flex-direction: column;
 	align-items: center;
 }
-
 .adminBtn {
-	position: absolute;
-	top: adapt(14px, 1440px);
-	right: adapt(16px, 1440px);
+	position: fixed;
+	top: adapt(28px, 1440px);
+	right: adapt(48px, 1440px);
 	display: inline-flex;
 	align-items: center;
-	gap: 8px;
-	padding: 8px 14px;
-	background: #ffffff;
-	border: 1px solid #d0d5dd;
-	border-radius: 8px;
+	gap: 5px;
+	padding: 4px 8px;
+	background: transparent;
+	border: none;
+	border-radius: 6px;
 	font-family: inherit;
-	font-size: 0.8125rem;
+	font-size: 0.75rem;
+	font-weight: 400;
 	line-height: 1.2;
-	color: $color_blue;
+	color: #64707d;
 	cursor: pointer;
-	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
-	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	transition: color 0.15s ease, background-color 0.15s ease;
 	z-index: 5;
 }
-
 .adminBtn:hover {
-	border-color: $color_blue;
-	box-shadow: 0 2px 8px rgba(16, 24, 40, 0.14);
+	color: $color_blue;
+	background: rgba(16, 24, 40, 0.05);
 }
-
 .adminBtn img {
-	width: 16px;
-	height: 16px;
+	width: 14px;
+	height: 14px;
+	opacity: 0.7;
+}
+.adminBtn:hover img {
+	opacity: 1;
+}
+@media (max-width: 900px) {
+	.adminBtn {
+		top: calc(60px + env(safe-area-inset-top));
+		right: 12px;
+	}
 }
