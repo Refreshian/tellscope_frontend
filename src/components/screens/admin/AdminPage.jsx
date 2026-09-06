@@ -101,10 +101,14 @@ const AdminPage = () => {
 	const [targetId, setTargetId] = useState('');
 	const [access, setAccess] = useState('read');
 	const [llmUsage, setLlmUsage] = useState([]);
+	const [llmDays, setLlmDays] = useState([]);
 
 	const reload = async () => {
-		const [us, sh, lu] = await Promise.all([api('/admin/users'), api('/admin/shares'), api('/admin/llm-usage')]);
+		const [us, sh, lu, ld] = await Promise.all([
+			api('/admin/users'), api('/admin/shares'), api('/admin/llm-usage'), api('/admin/llm-usage/days?days=30'),
+		]);
 		setLlmUsage(lu && lu.rows ? lu.rows : []);
+		setLlmDays(ld && ld.rows ? llmDaySums(ld.rows) : []);
 		setUsers(us);
 		setShares(sh.shares || []);
 		setOwners(us);
@@ -357,6 +361,44 @@ const AdminPage = () => {
 						</table>
 					</div>
 				)}
+
+				{llmDays.length > 0 && (
+					<div style={{ marginTop: 16 }}>
+						<b style={{ fontSize: 13, color: '#152A5A' }}>По дням (30 дней)</b>
+						<div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, marginTop: 8, minHeight: 96, overflowX: 'auto', paddingBottom: 2 }}>
+							{llmDays.slice(-30).map(x => {
+								const max = Math.max(1, ...llmDays.slice(-30).map(y => y.total_tokens));
+								const h = Math.max(4, Math.round((x.total_tokens / max) * 70));
+								const k = Math.round(x.total_tokens / 1000);
+								return (
+									<div key={x.day} title={x.day + ' · ' + x.total_tokens.toLocaleString('ru-RU') + ' токенов · $' + Number(x.cost_usd).toFixed(4)} style={{ flex: '0 0 auto', textAlign: 'center' }}>
+										<div style={{ width: 18, height: h, background: 'linear-gradient(180deg, #7C8CFF, #38C6FF)', borderRadius: '3px 3px 0 0', margin: '0 auto' }} />
+										<div style={{ fontSize: 9, color: '#98a2b3', marginTop: 3 }}>{k >= 1 ? k + 'k' : ''}</div>
+									</div>
+								);
+							})}
+						</div>
+						<table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, marginTop: 8 }}>
+							<thead>
+								<tr>
+									<th style={th}>Дата</th><th style={th}>Запросы</th><th style={th}>Токены in</th><th style={th}>Токены out</th><th style={th}>Всего</th><th style={th}>Стоимость, $</th>
+								</tr>
+							</thead>
+							<tbody>
+								{llmDays.slice(-30).slice().reverse().map(x => (
+									<tr key={x.day}>
+										<td style={td}>{x.day}</td>
+										<td style={td}>{x.requests}</td>
+										<td style={td}>{x.prompt_tokens.toLocaleString('ru-RU')}</td>
+										<td style={td}>{x.completion_tokens.toLocaleString('ru-RU')}</td>
+										<td style={td}>{x.total_tokens.toLocaleString('ru-RU')}</td>
+										<td style={td}>{Number(x.cost_usd).toFixed(4)}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				)}
 			</div>
 		</div>
 
@@ -450,6 +492,20 @@ const caseLabel = c => {
 		'graph-analysis': 'Анализ графа связей',
 	};
 	return map[c] || c || '—';
+};
+
+const llmDaySums = rows => {
+	const m = new Map();
+	rows.forEach(r => {
+		const cur = m.get(r.day) || { day: r.day, requests: 0, prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cost_usd: 0 };
+		cur.requests += r.requests || 0;
+		cur.prompt_tokens += r.prompt_tokens || 0;
+		cur.completion_tokens += r.completion_tokens || 0;
+		cur.total_tokens += r.total_tokens || 0;
+		cur.cost_usd += r.cost_usd || 0;
+		m.set(r.day, cur);
+	});
+	return [...m.values()].sort((a, b) => (a.day < b.day ? -1 : 1));
 };
 
 const th = { textAlign: 'left', borderBottom: '1px solid #e6eaf0', padding: 6 };
