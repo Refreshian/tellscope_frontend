@@ -24,7 +24,7 @@
 }
 
 .analyzeButton {
-  background-color: #007bff;
+  background-color: #6C5CE7;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -34,7 +34,7 @@
   transition: background-color 0.3s ease;
   
   &:hover {
-    background-color: #0056b3;
+    background-color: #5A4BD6;
   }
 }
 
@@ -64,7 +64,7 @@
   
   &:focus {
     outline: none;
-    border-color: #007bff;
+    border-color: #6C5CE7;
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
   }
 }
@@ -377,9 +377,9 @@
   }
 
   &.active {
-    background-color: #007bff;
+    background-color: #6C5CE7;
     color: white;
-    border-color: #007bff;
+    border-color: #6C5CE7;
   }
 }
 

@@ -303,7 +303,7 @@
 
 // Кнопки
 .analyzeButton, .sendButton {
-  background-color: #007bff; // основной цвет кнопок
+  background-color: #6C5CE7; // основной цвет кнопок
   color: white;
   border: none;
   padding: 10px 20px;
@@ -313,7 +313,7 @@
   transition: background-color 0.3s ease;
 
   &:hover {
-    background-color: #0056b3; // затемненный цвет при наведении
+    background-color: #5A4BD6; // затемненный цвет при наведении
   }
 }
 
@@ -388,7 +388,7 @@
 
 
 .analyzeButton {
-  background-color: #007bff;
+  background-color: #6C5CE7;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -398,7 +398,7 @@
   transition: background-color 0.3s ease;
   
   &:hover {
-    background-color: #0056b3;
+    background-color: #5A4BD6;
   }
   
   &:disabled {
@@ -492,7 +492,7 @@
     white-space: nowrap;
     
     a {
-      color: #007bff;
+      color: #6C5CE7;
       text-decoration: none;
       
       &:hover {
@@ -565,7 +565,7 @@
 // Стили для лоадера
 .loader {
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #007bff;
+  border-top: 4px solid #6C5CE7;
   border-radius: 50%;
   width: 24px;
   height: 24px;
@@ -1100,12 +1100,12 @@
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
-  background: #007bff;
+  background: #6C5CE7;
   color: #fff;
   border: none;
   box-shadow: none !important;
   transition: background 0.2s;
-  &:hover { background: #0056b3; }
+  &:hover { background: #5A4BD6; }
 }
 
 // Поле поиска - подправить кастомный Input, если требуется

@@ -71,3 +71,9 @@
 		linear-gradient(180deg, #FBFDFF 0%, #F4F7FF 100%);
 	background-attachment: fixed;
 }
+.workspace {
+	background:
+		radial-gradient(1000px 520px at 92% -8%, rgba(108, 92, 231, 0.10), transparent 60%),
+		radial-gradient(900px 460px at -6% 108%, rgba(34, 184, 240, 0.08), transparent 58%),
+		linear-gradient(180deg, #FCFDFF 0%, #F4F7FF 100%);
+}
