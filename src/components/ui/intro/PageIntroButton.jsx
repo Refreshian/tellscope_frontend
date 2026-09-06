@@ -34,6 +34,18 @@ const PageIntroButton = () => {
 	if (!intro || intro.slides.length === 0) return null;
 
 	const slide = intro.slides[idx];
+
+	const marksPlaced = (slide.marks || []).map((m, i) => {
+		let anchor = m.anchor || 'auto';
+		if (anchor === 'auto') {
+			const near = (slide.marks || []).slice(0, i).some(
+				prev => Math.abs((prev.x || 0) - (m.x || 0)) < 22 && Math.abs((prev.y || 0) - (m.y || 0)) < 10,
+			);
+			if (near) anchor = 'below';
+		}
+		return { ...m, anchor };
+	});
+
 	const go = i => {
 		if (intro.slides.length === 0) return;
 		setIdx((i + intro.slides.length) % intro.slides.length);
@@ -59,23 +71,31 @@ const PageIntroButton = () => {
 						</div>
 						<div key={idx} style={{ position: 'relative', background: '#0b1220', animation: 'introFade .6s ease' }}>
 							<img src={slide.img} alt={slide.caption} style={{ width: '100%', height: 'min(58vh, 520px)', objectFit: 'contain', display: 'block' }} />
-							{(slide.marks || []).map((m, i) => (
-								<div key={i} style={{ position: 'absolute', left: m.x + '%', top: m.y + '%' }}>
-									<span style={{
-										position: 'absolute', left: -5, top: -5, width: 10, height: 10, borderRadius: 10,
-										background: '#ff3b30', border: '2px solid #fff', boxShadow: '0 0 0 3px rgba(255,59,48,.35)',
-										animation: 'pulseRing 1.6s infinite',
-									}} />
-									<div style={{
-										position: 'absolute', transform: 'translate(-50%, calc(-100% - 20px))', minWidth: 150, maxWidth: 260,
-										background: '#ff3b30', color: '#fff', borderRadius: 10, padding: '7px 10px', fontSize: 13, lineHeight: 1.3,
-										textAlign: 'center', boxShadow: '0 6px 16px rgba(0,0,0,.35)', pointerEvents: 'none',
-									}}>
-										{m.text}
-										<div style={{ width: 0, height: 0, margin: '4px auto 0', borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderTop: '8px solid #ff3b30' }} />
+							{marksPlaced.map((m, i) => {
+								const below = m.anchor === 'below';
+								return (
+									<div key={i} data-intro-mark='1' style={{ position: 'absolute', left: m.x + '%', top: m.y + '%' }}>
+										<span style={{
+											position: 'absolute', left: -5, top: -5, width: 10, height: 10, borderRadius: 10,
+											background: '#ff3b30', border: '2px solid #fff', boxShadow: '0 0 0 3px rgba(255,59,48,.35)',
+											animation: 'pulseRing 1.6s infinite',
+										}} />
+										<div style={{
+											position: 'absolute',
+											transform: below ? 'translate(-50%, 20px)' : 'translate(-50%, calc(-100% - 18px))',
+											minWidth: 150, maxWidth: 250,
+											background: '#ff3b30', color: '#fff', borderRadius: 10, padding: '7px 10px', fontSize: 13, lineHeight: 1.3,
+											textAlign: 'center', boxShadow: '0 6px 16px rgba(0,0,0,.35)', pointerEvents: 'none',
+										}}>
+											{m.text}
+											<div style={below
+												? { width: 0, height: 0, margin: '0 auto 4px', borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderBottom: '8px solid #ff3b30' }
+												: { width: 0, height: 0, margin: '4px auto 0', borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderTop: '8px solid #ff3b30' }}
+											/>
+										</div>
 									</div>
-								</div>
-							))}
+								);
+							})}
 							<div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '22px 20px', background: 'linear-gradient(transparent, rgba(0,0,0,.78))', color: '#fff', fontSize: 14.5, lineHeight: 1.5 }}>
 								{slide.caption}
 							</div>
