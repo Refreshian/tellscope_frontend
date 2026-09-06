@@ -248,8 +248,13 @@ const AnalysisOfThemesPage = () => {
             )}
             {pathname !== '/home' && active_menu ? <LeftMenuActive /> : <LeftMenu />}
                 <Content
+                alignStart={statusBarStart && !isSuccess_llm}
                 style={{
-                    ...(isSuccess_llm ? {} : { alignItems: 'center', justifyContent: 'start' }),
+                    ...(statusBarStart && !isSuccess_llm
+                        ? {}
+                        : isSuccess_llm
+                        ? {}
+                        : { alignItems: 'center', justifyContent: 'start' }),
                     position: 'relative',
                     zIndex: 1
                 }}
@@ -308,7 +313,7 @@ const AnalysisOfThemesPage = () => {
                             {finalStatus
                                 ? 'Выберите вверху нужный файл и нажмите запуск, при необходимости (если не видите файл) обновите данные'
                                 : <>
-                                    Вы можете покинуть страницу, расчет продожится в фоновом режиме, результаты анализа будут доступны на странице{' '}
+                                    Вы можете покинуть страницу, расчет продолжится в фоновом режиме, результаты анализа будут доступны на странице{' '}
                                     <a
                                     href="https://tellscope40.headsmade.com/ai-analytics/analysis-of-themes"
                                     target="_blank"
