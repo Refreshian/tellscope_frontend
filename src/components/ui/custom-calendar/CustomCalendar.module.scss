@@ -17,6 +17,9 @@
 }
 
 .block__data {
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
 	border-radius: 12px;
 	border-color: rgba(16, 24, 40, 0.1);
 	padding: 8px 14px 8px 16px;
