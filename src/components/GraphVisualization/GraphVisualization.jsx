@@ -1612,7 +1612,7 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
               icon={<ExpandOutlined />}
               onClick={restoreOverview}
             >
-              Весь граф
+              Сбросить
             </Button>
           </div>
           {activeCluster && (
