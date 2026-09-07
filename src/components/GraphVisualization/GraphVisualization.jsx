@@ -1087,6 +1087,17 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
 
   const msgScore = (m) => Number(m.audience || 0) + Number(m.views || 0)
     + Number(m.likes || 0) * 50 + Number(m.comments || 0) * 200;
+  // Какая метрика дала основной вклад в важность сообщения
+  const importantCause = (m) => {
+    const parts = [
+      { key: 'aud', val: Number(m.audience || 0) },
+      { key: 'views', val: Number(m.views || 0) },
+      { key: 'likes', val: Number(m.likes || 0) * 50 },
+      { key: 'comm', val: Number(m.comments || 0) * 200 },
+    ];
+    const best = parts.reduce((a, b) => (b.val > a.val ? b : a), parts[0]);
+    return best && best.val > 0 ? best.key : null;
+  };
   // Ключи (url/text) самых важных сообщений кластера для подсветки
   const importantKeys = useMemo(() => {
     return new Set(
@@ -1912,16 +1923,40 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
                   <ul className="node-messages__list">
                     {visibleMessages.map((m, idx) => {
                       const imp = importantKeys.has(m.url || m.text);
-                      const tags = [];
-                      if (m.audience > 0) tags.push(`охват ${formatReach(m.audience)}`);
-                      if (m.views > 0) tags.push(`просм. ${Number(m.views).toLocaleString('ru-RU')}`);
-                      if (m.likes > 0) tags.push(`♥ ${Number(m.likes).toLocaleString('ru-RU')}`);
-                      if (m.comments > 0) tags.push(`комм. ${Number(m.comments).toLocaleString('ru-RU')}`);
+                      const causeKey = importantCause(m);
+                      const chips = [];
+                      if (m.audience > 0) chips.push({ key: 'aud', text: `охват ${formatReach(m.audience)}` });
+                      if (m.views > 0) chips.push({ key: 'views', text: `просм. ${Number(m.views).toLocaleString('ru-RU')}` });
+                      if (m.likes > 0) chips.push({ key: 'likes', text: `♥ ${Number(m.likes).toLocaleString('ru-RU')}` });
+                      if (m.comments > 0) chips.push({ key: 'comm', text: `комм. ${Number(m.comments).toLocaleString('ru-RU')}` });
                       const meta = (
                         <span className="node-messages__meta">
                           {m.author}
                           {m.time ? ` · ${m.time}` : ''}
                         </span>
+                      );
+                      const renderMeta = (inner) => (
+                        <>
+                          {meta}
+                          <span className="node-messages__text">{m.text}</span>
+                          {chips.length > 0 && (
+                            <span className="node-messages__metrics">
+                              {chips.map((chip) => {
+                                const isCause = imp && chip.key === causeKey;
+                                return (
+                                  <span
+                                    key={chip.key}
+                                    className={`metric metric--${chip.key}${isCause ? ' is-cause' : ''}`}
+                                    title={isCause ? 'Почему сообщение важное' : undefined}
+                                  >
+                                    {isCause && <span className="metric__star">★</span>}
+                                    {chip.text}
+                                  </span>
+                                );
+                              })}
+                            </span>
+                          )}
+                        </>
                       );
                       return (
                         <li key={idx} className={`node-messages__item${imp ? ' is-important' : ''}`}>
@@ -1933,20 +1968,10 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
                               className="node-messages__link"
                               title="Открыть сообщение-источник"
                             >
-                              {meta}
-                              <span className="node-messages__text">{m.text}</span>
-                              {tags.length > 0 && (
-                                <span className="node-messages__tags">{tags.join(' · ')}</span>
-                              )}
+                              {renderMeta()}
                             </a>
                           ) : (
-                            <>
-                              {meta}
-                              <span className="node-messages__text">{m.text}</span>
-                              {tags.length > 0 && (
-                                <span className="node-messages__tags">{tags.join(' · ')}</span>
-                              )}
-                            </>
+                            renderMeta()
                           )}
                           {imp && <span className="node-messages__badge">важное</span>}
                         </li>
