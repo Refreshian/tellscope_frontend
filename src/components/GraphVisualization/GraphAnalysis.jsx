@@ -20,12 +20,6 @@ import LeftMenuActive from '@/components/ui/left-menu/left-menu-active/LeftMenuA
 
 import styles from './GraphAnalysis.module.scss';
 
-const GRAPH_TYPES = [
-  { value: 'author', label: 'Авторы' },
-  { value: 'topic', label: 'Темы' },
-  { value: 'geo', label: 'География' },
-];
-
 const launchButtonStyle = {
   width: 'calc(220/1440*100vw)',
   height: 'calc(56/1440*100vw)',
@@ -100,22 +94,6 @@ const FileSelect = ({ folders, value, onSelect, onDeleteFile, loading }) => {
     </div>
   );
 };
-
-const TypeTabs = ({ value, onChange, disabled }) => (
-  <div className={styles.typeTabs}>
-    {GRAPH_TYPES.map((item) => (
-      <button
-        key={item.value}
-        type='button'
-        disabled={disabled}
-        className={`${styles.typeTab} ${item.value === value ? styles.typeTabActive : ''}`}
-        onClick={() => onChange(item.value)}
-      >
-        {item.label}
-      </button>
-    ))}
-  </div>
-);
 
 const GraphAnalysis = () => {
   useInitUserData();
@@ -329,16 +307,6 @@ const GraphAnalysis = () => {
                 <p>{statsLine}</p>
               </div>
               <div className={styles.topBarRight}>
-                <TypeTabs
-                  value={graphType}
-                  onChange={(type) => {
-                    if (type !== graphType) {
-                      setGraphType(type);
-                      buildGraph(type);
-                    }
-                  }}
-                  disabled={isLoading}
-                />
                 <button
                   type='button'
                   className={styles.changeThemeBtn}
