@@ -850,6 +850,12 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
         clickTimerRef.current = setTimeout(() => {
           setSelectedNode(d);
           if (onNodeClick) onNodeClick(d);
+          // Клик по узлу = выбор его кластера: показываем описание кластера слева,
+          // как при клике по тегу «Кластеры» сверху.
+          if (d.cluster_id) {
+            setFocusedNodeId(null);
+            setFocusedClusterId(Number(d.cluster_id));
+          }
           highlight(d);
           zoomToNode(d);
           clickTimerRef.current = null;
