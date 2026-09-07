@@ -262,6 +262,7 @@ const AnalysisOfThemesPage = () => {
                 <div className={styles.block__pageName} style={{ height: 'auto' }}>
                     <h3 className={styles.pageName__title}>Анализ тем</h3>
                 </div>
+                {(!statusBarStart || finalStatus || isSuccess_llm) && (
                 <div className={styles.block__configureSearch}>
                     <div className={styles.searchAndButtonsContainer}>
                             <DataForSearch
@@ -296,6 +297,7 @@ const AnalysisOfThemesPage = () => {
                         </div>
                     </div>
                 </div>
+                )}
 
                 {statusBarStart && !isSuccess_llm && (
                     <>
