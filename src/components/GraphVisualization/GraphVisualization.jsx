@@ -1863,9 +1863,6 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
               {selectedNode.cluster_id ? (
                 <span className="fact fact__cluster">
                   <i>Кластер</i>{selectedNode.cluster_id}
-                  <button type="button" className="fact__link" onClick={() => setFocusedClusterId(selectedNode.cluster_id)}>
-                    показать на графе
-                  </button>
                 </span>
               ) : null}
             </div>
