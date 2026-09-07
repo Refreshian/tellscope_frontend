@@ -1803,35 +1803,7 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
                   Профиль автора
                 </Button>
               )}
-              {selectedNode.cluster_id ? (
-                <Button
-                  loading={clusterJob?.status === 'running' && Number(clusterJob.clusterId) === Number(selectedNode.cluster_id)}
-                  onClick={() => handleClusterSummary(selectedNode.cluster_id)}
-                >
-                  Сводка кластера
-                </Button>
-              ) : null}
             </Space>
-
-            {clusterJob && Number(clusterJob.clusterId) === Number(selectedNode.cluster_id) && (
-              <div className="cluster-summary">
-                {clusterJob.status === 'running' && (
-                  <>
-                    <Progress percent={Math.max(6, Number(clusterJob.progress?.percent) || 6)} size="small" />
-                    <p>{clusterJob.message || 'Готовим сводку…'}</p>
-                  </>
-                )}
-                {clusterJob.status === 'error' && <p style={{ color: '#cf1322' }}>{clusterJob.error || clusterJob.message}</p>}
-                {clusterJob.memo && (
-                  <div
-                    className="cluster-summary__text"
-                    dangerouslySetInnerHTML={{
-                      __html: formatClusterMemo(clusterJob.memo, clusterAuthorNodes(selectedNode.cluster_id)),
-                    }}
-                  />
-                )}
-              </div>
-            )}
             
             {selectedNode.topics && selectedNode.topics.length > 0 && (
               <div>
