@@ -274,9 +274,13 @@
   // Нижняя секция: AI + детали
   .bottom-section {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 1fr;
     gap: 20px;
-    
+
+    &.with-details {
+      grid-template-columns: 2fr 1fr;
+    }
+
     @media (max-width: 1200px) {
       grid-template-columns: 1fr;
     }

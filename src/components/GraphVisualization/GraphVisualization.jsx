@@ -1687,7 +1687,7 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
       </div>
 
       {/* AI Ассистент под графом */}
-      <div className="bottom-section" id="graph-ai-assistant">
+      <div className={`bottom-section${selectedNode ? ' with-details' : ''}`} id="graph-ai-assistant">
         <Card 
           className="ai-assistant" 
           title={
