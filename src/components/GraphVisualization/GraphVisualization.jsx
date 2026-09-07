@@ -235,6 +235,7 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
   const [enabledLinkTypes, setEnabledLinkTypes] = useState(() => new Set(ALL_LINK_TYPES));
   const [clusterJob, setClusterJob] = useState(null);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const clickTimerRef = useRef(null);
   const pendingZoomRef = useRef(null);
   const focusedClusterIdRef = useRef(null);
@@ -756,11 +757,11 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
       .force('link', d3.forceLink(layoutLinks)
         .id(d => d.id)
         .distance(d => 80 / Math.max(d.weight || 1, 0.6)))
-      .force('charge', d3.forceManyBody().strength(-160).distanceMax(280).theta(1.15))
+      .force('charge', d3.forceManyBody().strength(-240).distanceMax(380).theta(1.2))
       .force('center', d3.forceCenter(width / 2, height / 2).strength(0.12))
-      .force('collision', d3.forceCollide().radius(d => radiusScale(d.audience || d.count || 0) + 10).iterations(1))
-      .alphaDecay(0.28)
-      .velocityDecay(0.45)
+      .force('collision', d3.forceCollide().radius(d => radiusScale(d.audience || d.count || 0) + 16).iterations(3))
+      .alphaDecay(0.18)
+      .velocityDecay(0.35)
       .stop();
     simulationRef.current = simulation;
     
@@ -879,8 +880,8 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
         hideTooltip();
       });
     
-    simulation.alpha(hasLayout ? 0.08 : 0.85);
-    const ticks = hasLayout ? 6 : 28;
+    simulation.alpha(hasLayout ? 0.15 : 0.95);
+    const ticks = hasLayout ? 8 : 48;
     for (let i = 0; i < ticks; i += 1) simulation.tick();
     const byId = new Map(nodes.map((n) => [n.id, n]));
     allLinks.forEach((item) => {
@@ -1384,6 +1385,21 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
           </Space>
         </div>
 
+        <button
+          type="button"
+          className={`filters-toggle ${filtersOpen ? 'is-open' : ''}`}
+          onClick={() => setFiltersOpen(v => !v)}
+        >
+          <span className="filters-toggle__label">
+            Фильтры и связи
+            {activeFiltersCount > 0 && (
+              <span className="filters-toggle__count">{activeFiltersCount}</span>
+            )}
+          </span>
+          <span className="filters-toggle__icon">{filtersOpen ? '▲' : '▼'}</span>
+        </button>
+
+        <div className={`filters-collapse${filtersOpen ? ' is-open' : ''}`}>
         {focusedNodeId && (
           <div className="focus-box">
             <Space>
@@ -1573,6 +1589,7 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
               }
             />
           </div>
+        </div>
         </div>
       </div>
 

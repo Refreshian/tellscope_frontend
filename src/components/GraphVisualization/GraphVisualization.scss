@@ -4,7 +4,7 @@
   gap: 20px;
   
   .filters-section {
-    padding: 12px 16px 8px;
+    padding: 8px 16px 8px;
     background: #fff;
     border-bottom: 1px solid #e8eaef;
     
@@ -366,3 +366,64 @@
 .cluster-summary__link:hover {
   border-bottom-color: #1760e8;
 }
+
+  // Компактный переключатель "Фильтры и связи"
+  .filters-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    border: 0;
+    background: #f6f8fc;
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin: 4px 0 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    color: #344054;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: #eef2fb;
+    }
+
+    &.is-open {
+      background: #eef2fb;
+      .filters-toggle__icon {
+        transform: rotate(0deg);
+      }
+    }
+
+    .filters-toggle__label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: #152A5A;
+    }
+
+    .filters-toggle__count {
+      background: linear-gradient(135deg, #6C5CE7, #22B8F0);
+      color: #fff;
+      border-radius: 999px;
+      font-size: 11px;
+      padding: 1px 8px;
+      font-weight: 600;
+    }
+
+    .filters-toggle__icon {
+      color: #98a2b3;
+      transition: transform 0.15s ease;
+      transform: rotate(180deg);
+      font-size: 11px;
+    }
+  }
+
+  .filters-collapse {
+    display: none;
+
+    &.is-open {
+      display: block;
+    }
+  }

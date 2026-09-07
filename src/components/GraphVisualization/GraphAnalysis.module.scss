@@ -203,3 +203,92 @@
 	backdrop-filter: blur(8px);
 	-webkit-backdrop-filter: blur(8px);
 }
+
+/* ===== Analysis top bar: title left, type tabs right ===== */
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  flex-wrap: wrap;
+
+  .block__pageName {
+    margin: 0;
+    flex: 1 1 auto;
+    min-width: 240px;
+  }
+
+  .topBarRight {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+.typeTabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(11, 27, 59, 0.06);
+  border: 1px solid rgba(11, 27, 59, 0.08);
+  border-radius: 999px;
+  padding: 3px;
+  flex: 0 0 auto;
+}
+
+.typeTab {
+  border: 0;
+  background: transparent;
+  color: #5a6a8a;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.2;
+  padding: 7px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    color: #152A5A;
+    background: rgba(108, 92, 231, 0.08);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.typeTabActive {
+  background: linear-gradient(135deg, #6C5CE7 0%, #22B8F0 100%);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.28);
+
+  &:hover:not(:disabled) {
+    color: #fff;
+    background: linear-gradient(135deg, #6C5CE7 0%, #22B8F0 100%);
+  }
+}
+
+.changeThemeBtn {
+  border: 1px solid rgba(11, 27, 59, 0.12);
+  background: rgba(255, 255, 255, 0.85);
+  color: #344054;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: rgba(108, 92, 231, 0.4);
+    color: #152A5A;
+  }
+}

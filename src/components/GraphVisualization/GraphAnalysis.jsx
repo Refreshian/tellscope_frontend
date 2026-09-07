@@ -21,8 +21,8 @@ import LeftMenuActive from '@/components/ui/left-menu/left-menu-active/LeftMenuA
 import styles from './GraphAnalysis.module.scss';
 
 const GRAPH_TYPES = [
-  { value: 'author', label: 'Граф авторов' },
-  { value: 'topic', label: 'Граф тем' },
+  { value: 'author', label: 'Авторы' },
+  { value: 'topic', label: 'Темы' },
   { value: 'geo', label: 'География' },
 ];
 
@@ -101,48 +101,21 @@ const FileSelect = ({ folders, value, onSelect, onDeleteFile, loading }) => {
   );
 };
 
-const TypeSelect = ({ value, onChange, disabled }) => {
-  const [open, setOpen] = useState(false);
-  const ref = useClickOutside(() => setOpen(false));
-  const current = GRAPH_TYPES.find((item) => item.value === value) || GRAPH_TYPES[0];
-
-  return (
-    <div className={`${styles.wrapper_select} ${styles.wrapper_type}`} ref={ref}>
-      <div
-        className={`${styles.block__data} ${open ? styles.active : ''}`}
-        onClick={() => {
-          if (!disabled) setOpen(!open);
-        }}
+const TypeTabs = ({ value, onChange, disabled }) => (
+  <div className={styles.typeTabs}>
+    {GRAPH_TYPES.map((item) => (
+      <button
+        key={item.value}
+        type='button'
+        disabled={disabled}
+        className={`${styles.typeTab} ${item.value === value ? styles.typeTabActive : ''}`}
+        onClick={() => onChange(item.value)}
       >
-        <div className={styles.block__description}>
-          <h2>Тип графа</h2>
-          <p>{current.label}</p>
-        </div>
-        <img
-          className={styles.data__arrow}
-          src="/images/icons/arrow_for_search.svg"
-          alt="arrow"
-        />
-      </div>
-      {open && (
-        <div className={styles.block__options}>
-          {GRAPH_TYPES.map((item) => (
-            <div
-              key={item.value}
-              className={`${styles.option} ${item.value === value ? styles.active : ''}`}
-              onClick={() => {
-                onChange(item.value);
-                setOpen(false);
-              }}
-            >
-              <p className={styles.optionText}>{item.label}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+        {item.label}
+      </button>
+    ))}
+  </div>
+);
 
 const GraphAnalysis = () => {
   useInitUserData();
@@ -348,46 +321,57 @@ const GraphAnalysis = () => {
       {pathname !== '/home' && active_menu ? <LeftMenuActive /> : <LeftMenu />}
 
       <Content alignStart={isGraphBuilt}>
-        <div
-          className={styles.stickyTop}
-        >
-          <div
-            className={styles.block__pageName}
-            style={isGraphBuilt ? {} : { alignSelf: 'center' }}
-          >
-            {isGraphBuilt && graphData ? (
-              <>
+        <div className={styles.stickyTop}>
+          {isGraphBuilt && graphData ? (
+            <div className={styles.topBar}>
+              <div className={styles.block__pageName}>
                 <h3 className={styles.pageName__title}>Анализ графа связей</h3>
                 <p>{statsLine}</p>
-              </>
-            ) : (
-              <BeforeSearch title="Анализ графа связей" />
-            )}
-          </div>
-          <div
-            className={styles.block__configureSearch}
-            style={isGraphBuilt ? {} : { alignSelf: 'center' }}
-          >
-            <FileSelect
-              folders={csvTreeData}
-              value={selectedFile?.fullPath}
-              onSelect={handleFileSelect}
-              onDeleteFile={handleDeleteFile}
-              loading={isLoadingFolders}
-            />
-            <TypeSelect
-              value={graphType}
-              onChange={setGraphType}
-              disabled={isLoading}
-            />
-            <Button
-              style={launchButtonStyle}
-              onClick={() => buildGraph(graphType)}
-              disabled={isLoading}
-            >
-              Построить граф
-            </Button>
-          </div>
+              </div>
+              <div className={styles.topBarRight}>
+                <TypeTabs
+                  value={graphType}
+                  onChange={(type) => {
+                    if (type !== graphType) {
+                      setGraphType(type);
+                      buildGraph(type);
+                    }
+                  }}
+                  disabled={isLoading}
+                />
+                <button
+                  type='button'
+                  className={styles.changeThemeBtn}
+                  onClick={() => { setIsGraphBuilt(false); setGraphData(null); setSelectedFile(null); }}
+                  title='Выбрать другую тему'
+                >
+                  ← Другая тема
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className={styles.block__pageName} style={{ alignSelf: 'center' }}>
+                <BeforeSearch title="Анализ графа связей" />
+              </div>
+              <div className={styles.block__configureSearch} style={{ alignSelf: 'center' }}>
+                <FileSelect
+                  folders={csvTreeData}
+                  value={selectedFile?.fullPath}
+                  onSelect={handleFileSelect}
+                  onDeleteFile={handleDeleteFile}
+                  loading={isLoadingFolders}
+                />
+                <Button
+                  style={launchButtonStyle}
+                  onClick={() => buildGraph(graphType)}
+                  disabled={isLoading}
+                >
+                  Построить граф
+                </Button>
+              </div>
+            </>
+          )}
         </div>
 
         {isGraphBuilt && graphData?.graph?.nodes?.length > 0 && (
