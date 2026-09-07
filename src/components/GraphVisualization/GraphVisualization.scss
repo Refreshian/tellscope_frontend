@@ -431,3 +431,131 @@
       display: block;
     }
   }
+
+
+/* ===== Сообщения кластера в карточке узла ===== */
+.node-messages {
+  margin-top: 6px;
+
+  &__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    border: 0;
+    background: #f6f8fc;
+    border-radius: 10px;
+    padding: 9px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #152A5A;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: #eef2fb;
+    }
+
+    &.is-open {
+      background: #eef2fb;
+    }
+  }
+
+  &__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__count {
+    background: linear-gradient(135deg, #6C5CE7, #22B8F0);
+    color: #fff;
+    border-radius: 999px;
+    font-size: 11px;
+    padding: 1px 8px;
+    font-weight: 600;
+  }
+
+  &__arrow {
+    color: #98a2b3;
+    font-size: 11px;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    max-height: 340px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__item {
+    position: relative;
+    border: 1px solid #edf0f5;
+    border-left: 4px solid #d6dbe5;
+    border-radius: 10px;
+    padding: 8px 10px;
+    background: #fff;
+    transition: border-color 0.15s ease, background 0.15s ease;
+
+    &:hover {
+      border-color: #c9d2e0;
+    }
+
+    &.is-important {
+      border-left-color: #f5a623;
+      background: linear-gradient(90deg, rgba(255, 240, 204, 0.55), rgba(255, 255, 255, 0) 55%);
+    }
+  }
+
+  &__link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+      .node-messages__text {
+        color: #1760e8;
+        text-decoration: underline;
+      }
+    }
+  }
+
+  &__meta {
+    display: block;
+    font-size: 11px;
+    color: #98a2b3;
+    margin-bottom: 3px;
+  }
+
+  &__text {
+    display: block;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: #1e2430;
+  }
+
+  &__tags {
+    display: block;
+    margin-top: 5px;
+    font-size: 11px;
+    color: #6d7686;
+  }
+
+  &__badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #b26a00;
+    background: rgba(255, 200, 87, 0.25);
+    border-radius: 999px;
+    padding: 1px 8px;
+    letter-spacing: 0.01em;
+  }
+}

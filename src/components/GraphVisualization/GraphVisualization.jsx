@@ -235,6 +235,7 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
   const [enabledLinkTypes, setEnabledLinkTypes] = useState(() => new Set(ALL_LINK_TYPES));
   const [clusterJob, setClusterJob] = useState(null);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [messagesOpen, setMessagesOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const clickTimerRef = useRef(null);
   const pendingZoomRef = useRef(null);
@@ -1048,6 +1049,55 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
 
   const activeCluster = clusters.find(item => Number(item.id) === Number(focusedClusterId)) || null;
 
+  // Закрываем список сообщений при смене выбранного узла
+  useEffect(() => {
+    setMessagesOpen(false);
+  }, [selectedNode]);
+
+  // Все сообщения авторов кластера, отсортированы по времени (старые -> новые)
+  const collectClusterMessages = (clusterId) => {
+    const authors = clusterAuthorNodes(clusterId);
+    const out = [];
+    authors.forEach((node) => {
+      const items = Array.isArray(node.topics) ? node.topics : [];
+      items.forEach((tp) => {
+        if (typeof tp === 'string') {
+          out.push({ author: node.label, text: tp, url: node.primary_url || node.url || null,
+            time: '', ts: 0, audience: 0, views: 0, likes: 0, comments: 0, hubtype: node.hubtype || '' });
+          return;
+        }
+        const rawTime = tp.time || node.period_start || '';
+        const ts = rawTime ? new Date(String(rawTime).replace(' ', 'T')).getTime() : 0;
+        out.push({
+          author: node.label, text: tp.text || '', url: tp.url || node.primary_url || node.url || null,
+          time: rawTime, ts: Number.isFinite(ts) ? ts : 0,
+          audience: Number(tp.audience) || 0, views: Number(tp.views) || 0,
+          likes: Number(tp.likes) || 0, comments: Number(tp.comments) || 0,
+          hubtype: tp.hubtype || node.hubtype || '',
+        });
+      });
+    });
+    return out.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  };
+
+  const clusterMessages = selectedNode?.cluster_id
+    ? collectClusterMessages(selectedNode.cluster_id)
+    : [];
+
+  const msgScore = (m) => Number(m.audience || 0) + Number(m.views || 0)
+    + Number(m.likes || 0) * 50 + Number(m.comments || 0) * 200;
+  // Ключи (url/text) самых важных сообщений кластера для подсветки
+  const importantKeys = useMemo(() => {
+    return new Set(
+      clusterMessages
+        .filter((m) => msgScore(m) > 0)
+        .sort((a, b) => msgScore(b) - msgScore(a))
+        .slice(0, 3)
+        .map((m) => m.url || m.text)
+    );
+  }, [clusterMessages, selectedNode?.cluster_id]);
+
+
   const handlePhraseToggle = (phrase) => {
     setExcludedPhrases(prev => {
       const newSet = new Set(prev);
@@ -1805,29 +1855,91 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
               )}
             </Space>
             
-            {selectedNode.topics && selectedNode.topics.length > 0 && (
-              <div>
-                <strong>Сообщения и темы:</strong>
-                <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
-                  {selectedNode.topics.map((topic, idx) => {
-                    const text = typeof topic === 'string' ? topic : topic.text;
-                    const url = typeof topic === 'string' ? null : topic.url;
-                    const extra = typeof topic === 'string' ? '' : [topic.hubtype, topic.time].filter(Boolean).join(' · ');
-                    return (
-                      <li key={idx} style={{ marginBottom: '8px' }}>
-                        {url ? (
-                          <a href={url} target="_blank" rel="noopener noreferrer">
-                            {text}
-                          </a>
-                        ) : (
-                          <span>{text}</span>
-                        )}
-                        {extra ? <div style={{ color: '#8c8c8c', fontSize: 11 }}>{extra}</div> : null}
-                      </li>
-                    );
-                  })}
-                </ul>
+            {clusterMessages.length > 0 ? (
+              <div className="node-messages">
+                <button
+                  type="button"
+                  className={`node-messages__toggle${messagesOpen ? ' is-open' : ''}`}
+                  onClick={() => setMessagesOpen((v) => !v)}
+                >
+                  <span className="node-messages__label">
+                    Сообщения кластера
+                    <span className="node-messages__count">{clusterMessages.length}</span>
+                  </span>
+                  <span className="node-messages__arrow">{messagesOpen ? '▲' : '▼'}</span>
+                </button>
+                {messagesOpen && (
+                  <ul className="node-messages__list">
+                    {clusterMessages.map((m, idx) => {
+                      const imp = importantKeys.has(m.url || m.text);
+                      const tags = [];
+                      if (m.audience > 0) tags.push(`охват ${formatReach(m.audience)}`);
+                      if (m.views > 0) tags.push(`просм. ${Number(m.views).toLocaleString('ru-RU')}`);
+                      if (m.likes > 0) tags.push(`♥ ${Number(m.likes).toLocaleString('ru-RU')}`);
+                      if (m.comments > 0) tags.push(`комм. ${Number(m.comments).toLocaleString('ru-RU')}`);
+                      const meta = (
+                        <span className="node-messages__meta">
+                          {m.author}
+                          {m.time ? ` · ${m.time}` : ''}
+                        </span>
+                      );
+                      return (
+                        <li key={idx} className={`node-messages__item${imp ? ' is-important' : ''}`}>
+                          {m.url ? (
+                            <a
+                              href={m.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="node-messages__link"
+                              title="Открыть сообщение-источник"
+                            >
+                              {meta}
+                              <span className="node-messages__text">{m.text}</span>
+                              {tags.length > 0 && (
+                                <span className="node-messages__tags">{tags.join(' · ')}</span>
+                              )}
+                            </a>
+                          ) : (
+                            <>
+                              {meta}
+                              <span className="node-messages__text">{m.text}</span>
+                              {tags.length > 0 && (
+                                <span className="node-messages__tags">{tags.join(' · ')}</span>
+                              )}
+                            </>
+                          )}
+                          {imp && <span className="node-messages__badge">важное</span>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
+            ) : (
+              selectedNode.topics && selectedNode.topics.length > 0 && (
+                <div>
+                  <strong>Сообщения автора:</strong>
+                  <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
+                    {selectedNode.topics.map((topic, idx) => {
+                      const text = typeof topic === 'string' ? topic : topic.text;
+                      const url = typeof topic === 'string' ? null : topic.url;
+                      const extra = typeof topic === 'string' ? '' : [topic.hubtype, topic.time].filter(Boolean).join(' · ');
+                      return (
+                        <li key={idx} style={{ marginBottom: '8px' }}>
+                          {url ? (
+                            <a href={url} target="_blank" rel="noopener noreferrer">
+                              {text}
+                            </a>
+                          ) : (
+                            <span>{text}</span>
+                          )}
+                          {extra ? <div style={{ color: '#8c8c8c', fontSize: 11 }}>{extra}</div> : null}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )
             )}
           </Card>
         )}
