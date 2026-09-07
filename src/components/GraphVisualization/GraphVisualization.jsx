@@ -236,6 +236,7 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
   const [clusterJob, setClusterJob] = useState(null);
   const [isZoomed, setIsZoomed] = useState(false);
   const [messagesOpen, setMessagesOpen] = useState(false);
+  const [messagesSort, setMessagesSort] = useState('time'); // time | important
   const [filtersOpen, setFiltersOpen] = useState(false);
   const clickTimerRef = useRef(null);
   const pendingZoomRef = useRef(null);
@@ -1097,6 +1098,19 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
     );
   }, [clusterMessages, selectedNode?.cluster_id]);
 
+  // Отсортированный список: по времени (старые -> новые) или сначала важные
+  const visibleMessages = useMemo(() => {
+    const arr = [...clusterMessages];
+    if (messagesSort === 'important') {
+      return arr.sort((a, b) => {
+        const sa = msgScore(a); const sb = msgScore(b);
+        if (sb !== sa) return sb - sa;
+        return (a.ts || 0) - (b.ts || 0);
+      });
+    }
+    return arr.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  }, [clusterMessages, messagesSort]);
+
 
   const handlePhraseToggle = (phrase) => {
     setExcludedPhrases(prev => {
@@ -1806,40 +1820,46 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
             className="node-details" 
             title={`Автор: ${selectedNode.label}`}
           >
-            <p><strong>Тип:</strong> {selectedNode.type || '—'}</p>
-            {selectedNode.hubtype && (
-              <p><strong>Площадка:</strong> {selectedNode.hubtype}{selectedNode.hub ? ` · ${selectedNode.hub}` : ''}</p>
-            )}
-            {selectedNode.audience ? (
-              <p><strong>Аудитория:</strong> {Number(selectedNode.audience).toLocaleString('ru-RU')}</p>
-            ) : null}
-            {selectedNode.posts_count ? (
-              <p><strong>Сообщений:</strong> {selectedNode.posts_count}</p>
-            ) : null}
-            {(selectedNode.likes || selectedNode.views || selectedNode.comments) ? (
-              <p>
-                <strong>Вовлечение:</strong>{' '}
-                {selectedNode.likes ? `лайки ${Number(selectedNode.likes).toLocaleString('ru-RU')}` : ''}
-                {selectedNode.comments ? ` · комм. ${Number(selectedNode.comments).toLocaleString('ru-RU')}` : ''}
-                {selectedNode.views ? ` · просмотры ${Number(selectedNode.views).toLocaleString('ru-RU')}` : ''}
-              </p>
-            ) : null}
-            {selectedNode.period_start && (
-              <p><strong>Период:</strong> {selectedNode.period_start}{selectedNode.period_end && selectedNode.period_end !== selectedNode.period_start ? ` — ${selectedNode.period_end}` : ''}</p>
-            )}
-            {(selectedNode.region || selectedNode.city) && (
-              <p><strong>Гео:</strong> {[selectedNode.region, selectedNode.city].filter(Boolean).join(', ')}</p>
-            )}
-            {selectedNode.cluster_id ? (
-              <p>
-                <strong>Кластер:</strong> {selectedNode.cluster_id}
-                <Button type="link" size="small" onClick={() => setFocusedClusterId(selectedNode.cluster_id)}>
-                  показать на графе
-                </Button>
-              </p>
-            ) : null}
+            <div className="node-facts">
+              {selectedNode.type && (
+                <span className="fact"><i>Тип</i>{selectedNode.type}</span>
+              )}
+              {selectedNode.hubtype && (
+                <span className="fact"><i>Площадка</i>{selectedNode.hubtype}{selectedNode.hub ? ` · ${selectedNode.hub}` : ''}</span>
+              )}
+              {Number(selectedNode.audience) > 0 && (
+                <span className="fact"><i>Аудитория</i>{Number(selectedNode.audience).toLocaleString('ru-RU')}</span>
+              )}
+              {Number(selectedNode.posts_count) > 0 && (
+                <span className="fact"><i>Сообщений</i>{selectedNode.posts_count}</span>
+              )}
+              {(selectedNode.likes || selectedNode.comments || selectedNode.views) ? (
+                <span className="fact"><i>Вовлечение</i>
+                  {selectedNode.likes ? `♥ ${Number(selectedNode.likes).toLocaleString('ru-RU')}` : ''}
+                  {selectedNode.comments ? ` · комм ${Number(selectedNode.comments).toLocaleString('ru-RU')}` : ''}
+                  {selectedNode.views ? ` · просм ${Number(selectedNode.views).toLocaleString('ru-RU')}` : ''}
+                </span>
+              ) : null}
+              {selectedNode.period_start && (
+                <span className="fact"><i>Период</i>
+                  {selectedNode.period_start}
+                  {selectedNode.period_end && selectedNode.period_end !== selectedNode.period_start ? ` — ${selectedNode.period_end}` : ''}
+                </span>
+              )}
+              {(selectedNode.region || selectedNode.city) ? (
+                <span className="fact"><i>Гео</i>{[selectedNode.region, selectedNode.city].filter(Boolean).join(', ')}</span>
+              ) : null}
+              {selectedNode.cluster_id ? (
+                <span className="fact fact__cluster">
+                  <i>Кластер</i>{selectedNode.cluster_id}
+                  <button type="button" className="fact__link" onClick={() => setFocusedClusterId(selectedNode.cluster_id)}>
+                    показать на графе
+                  </button>
+                </span>
+              ) : null}
+            </div>
 
-            <Space wrap style={{ marginBottom: 12 }}>
+            <Space wrap style={{ margin: '6px 0 10px' }}>
               <Button
                 type="primary"
                 icon={<LinkOutlined />}
@@ -1857,20 +1877,40 @@ const GraphVisualization = ({ data, onNodeClick, graphType = 'author', userId })
             
             {clusterMessages.length > 0 ? (
               <div className="node-messages">
-                <button
-                  type="button"
-                  className={`node-messages__toggle${messagesOpen ? ' is-open' : ''}`}
-                  onClick={() => setMessagesOpen((v) => !v)}
-                >
-                  <span className="node-messages__label">
-                    Сообщения кластера
-                    <span className="node-messages__count">{clusterMessages.length}</span>
-                  </span>
-                  <span className="node-messages__arrow">{messagesOpen ? '▲' : '▼'}</span>
-                </button>
+                <div className="node-messages__head">
+                  <button
+                    type="button"
+                    className={`node-messages__toggle${messagesOpen ? ' is-open' : ''}`}
+                    onClick={() => setMessagesOpen((v) => !v)}
+                  >
+                    <span className="node-messages__label">
+                      Сообщения кластера
+                      <span className="node-messages__count">{clusterMessages.length}</span>
+                    </span>
+                    <span className="node-messages__arrow">{messagesOpen ? '▲' : '▼'}</span>
+                  </button>
+                  <div className="node-messages__sort">
+                    <button
+                      type="button"
+                      className={`node-messages__sortBtn${messagesSort === 'time' ? ' is-active' : ''}`}
+                      onClick={() => setMessagesSort('time')}
+                      title="От старых к новым"
+                    >
+                      По времени
+                    </button>
+                    <button
+                      type="button"
+                      className={`node-messages__sortBtn${messagesSort === 'important' ? ' is-active' : ''}`}
+                      onClick={() => setMessagesSort('important')}
+                      title="Сначала самые важные"
+                    >
+                      Сначала важные
+                    </button>
+                  </div>
+                </div>
                 {messagesOpen && (
                   <ul className="node-messages__list">
-                    {clusterMessages.map((m, idx) => {
+                    {visibleMessages.map((m, idx) => {
                       const imp = importantKeys.has(m.url || m.text);
                       const tags = [];
                       if (m.audience > 0) tags.push(`охват ${formatReach(m.audience)}`);

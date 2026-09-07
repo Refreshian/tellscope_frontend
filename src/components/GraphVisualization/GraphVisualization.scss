@@ -559,3 +559,103 @@
     letter-spacing: 0.01em;
   }
 }
+
+
+/* ===== Компактные факты об узле ===== */
+.node-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+
+  .fact {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #f6f8fc;
+    border: 1px solid #eef1f6;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: #1e2430;
+    white-space: nowrap;
+    max-width: 100%;
+
+    > i {
+      font-style: normal;
+      font-size: 10.5px;
+      color: #98a2b3;
+      text-transform: none;
+    }
+
+    &__cluster {
+      background: rgba(108, 92, 231, 0.07);
+      border-color: rgba(108, 92, 231, 0.18);
+    }
+  }
+
+  .fact__link {
+    border: 0;
+    background: none;
+    padding: 0;
+    margin-left: 2px;
+    color: #1760e8;
+    font-family: inherit;
+    font-size: 11.5px;
+    cursor: pointer;
+    text-decoration: underline;
+
+    &:hover {
+      text-decoration: none;
+    }
+  }
+}
+
+/* ===== Шапка сообщений: заголовок + сортировка ===== */
+.node-messages {
+  .node-messages__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .node-messages__toggle {
+    flex: 1 1 auto;
+    min-width: 180px;
+  }
+
+  .node-messages__sort {
+    display: inline-flex;
+    align-items: center;
+    background: #eef1f6;
+    border-radius: 999px;
+    padding: 2px;
+    flex: 0 0 auto;
+  }
+
+  .node-messages__sortBtn {
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    font-size: 11px;
+    color: #5a6a8a;
+    border-radius: 999px;
+    padding: 4px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+
+    &:hover {
+      color: #152A5A;
+    }
+
+    &.is-active {
+      background: #fff;
+      color: #152A5A;
+      font-weight: 600;
+      box-shadow: 0 1px 4px rgba(11, 27, 59, 0.12);
+    }
+  }
+}
