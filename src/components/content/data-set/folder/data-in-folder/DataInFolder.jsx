@@ -14,6 +14,64 @@ import {
 import styles from './DataInFolder.module.scss';
 import { useLazyFileLoadQuery } from '@/services/dataSet.service';
 
+const uploadStatusLabel = status => {
+	switch (status) {
+		case 'pending':
+			return 'Подготовка...';
+		case 'processing':
+		case 'uploading':
+			return 'Обработка...';
+		case 'completed':
+		case 'success':
+			return 'Готово!';
+		case 'failed':
+			return 'Ошибка';
+		default:
+			return status || '';
+	}
+};
+
+const uploadStatusColor = status => {
+	switch (status) {
+		case 'completed':
+		case 'success':
+			return '#52c41a';
+		case 'failed':
+			return '#ff4d4f';
+		default:
+			return '#1890ff';
+	}
+};
+
+const uploadStageLabel = stage => {
+	switch (stage) {
+		case 'starting':
+			return 'Начало обработки';
+		case 'excel_conversion':
+			return 'Конвертация Excel → JSON';
+		case 'elasticsearch_preparation':
+			return 'Подготовка к загрузке в Elasticsearch';
+		case 'chunking':
+			return 'Разбивка текста на фрагменты';
+		case 'embedding':
+			return 'Построение эмбеддингов (смысл текста)...';
+		case 'preparing':
+			return 'Подготовка к индексации';
+		case 'qdrant_preparation':
+			return 'Подготовка векторной базы';
+		case 'qdrant_upload':
+			return 'Загрузка эмбеддингов в векторную базу';
+		case 'indexing':
+			return 'Индексация в Elasticsearch';
+		case 'completed':
+			return 'Обработка завершена';
+		case 'failed':
+			return 'Ошибка обработки';
+		default:
+			return '';
+	}
+};
+
 const DataInFolder = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -153,6 +211,7 @@ const DataInFolder = () => {
     dragging,
     buildEmbeddings,
     setBuildEmbeddings,
+    uploads,
   } = useDataInFolder();
 
   if (!data || !allData || !processedData) {
@@ -182,6 +241,89 @@ const DataInFolder = () => {
         </div>
       </div>
       <div className={styles.block__files} style={style.block__files}>
+        {uploads.length > 0 && (
+          <>
+            {uploads.map(up => {
+              const safeProgress = Math.max(
+                0,
+                Math.min(100, parseFloat(up.progress) || 0),
+              );
+              const color = uploadStatusColor(up.status);
+              const detail = up.stage_details || uploadStageLabel(up.stage);
+              return (
+                <div key={up.key} className={styles.file__group}>
+                  <div
+                    className={styles.file}
+                    style={{
+                      cursor: 'default',
+                      flexWrap: 'wrap',
+                      borderColor:
+                        up.status === 'failed'
+                          ? 'rgba(255,77,79,0.4)'
+                          : undefined,
+                    }}
+                  >
+                    <p className={styles.name}>{up.filename}</p>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 10,
+                        alignItems: 'center',
+                        marginLeft: 'auto',
+                        fontSize: 12,
+                        color: '#667085',
+                      }}
+                    >
+                      <span style={{ color, fontWeight: 600 }}>
+                        {uploadStatusLabel(up.status)}
+                      </span>
+                      {up.status !== 'completed' &&
+                        up.status !== 'success' &&
+                        up.status !== 'failed' && (
+                          <span style={{ color: '#667085' }}>
+                            {Math.round(safeProgress)}%
+                          </span>
+                        )}
+                    </div>
+                    <div
+                      style={{
+                        flexBasis: '100%',
+                        height: 6,
+                        marginTop: 6,
+                        borderRadius: 4,
+                        background: 'rgba(16,24,40,0.07)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: '100%',
+                          width: `${safeProgress}%`,
+                          background: color,
+                          transition: 'width 0.3s ease-in-out',
+                        }}
+                      />
+                    </div>
+                    {detail ? (
+                      <div
+                        style={{
+                          flexBasis: '100%',
+                          marginTop: 4,
+                          fontSize: 12,
+                          color: '#667085',
+                        }}
+                      >
+                        {detail}
+                        {up.error ? ` (${up.error})` : ''}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
         {allFiles.length > 0 ? (
           <>
             {files
@@ -337,25 +479,38 @@ const DataInFolder = () => {
                 />
                 <p className={styles.choice}>Выбрать файл</p>
               </div>
-              <label
+              <div
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 7,
-                  marginTop: 10,
+                  marginTop: 12,
+                  maxWidth: 480,
                   fontSize: 13,
                   color: '#344054',
-                  cursor: 'pointer',
+                  lineHeight: 1.45,
                 }}
-                title='Для файлов больше ~150 тыс. записей построение эмбеддингов может занять часы — обычно его пропускаем'
               >
-                <input
-                  type='checkbox'
-                  checked={buildEmbeddings === true}
-                  onChange={e => setBuildEmbeddings(e.target.checked ? true : null)}
-                />
-                <span>Построить эмбеддинги (семантика/ИИ-поиск)</span>
-              </label>
+                <label
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'flex-start',
+                    gap: 7,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <input
+                    type='checkbox'
+                    style={{ marginTop: 2 }}
+                    checked={buildEmbeddings === true}
+                    onChange={e => setBuildEmbeddings(e.target.checked ? true : null)}
+                  />
+                  <span style={{ fontWeight: 600 }}>Включить ИИ-анализ (эмбеддинги)</span>
+                </label>
+                <div style={{ marginTop: 4, fontSize: 12, color: '#667085' }}>
+                  Система распознаёт <b>смысл</b> сообщений, а не только совпадение слов. Это включит: <b>ИИ-анализ и Анализ тем</b> (темы и тематики всплесков), <b>Граф связей</b>, <b>AI-бот (Ассистент)</b> и <b>смысловой поиск</b> по датасету.
+                  <br />
+                  Для больших файлов (сотни тысяч записей) обработка может занять часы —
+                  обычно её оставляют выключенной.
+                </div>
+              </div>
             </div>
           </div>
         )}
