@@ -67,7 +67,7 @@ export const dataSetService = createApi({
 			},
 		}),
 		dataAddFile: builder.mutation({
-			query: ({ data, name, user }) => {
+			query: ({ data, name, user, buildEmbeddings }) => {
 				console.log(data, name, user);
 				if (!data || !name || !user) {
 					console.error('Ошибка: data или name или user не переданы в query');
@@ -76,6 +76,11 @@ export const dataSetService = createApi({
 
 				const formData = new FormData();
 				formData.append('uploaded_file', data.uploaded_file); // 'uploaded_file' — ключ, ожидаемый сервером
+				if (buildEmbeddings === true || buildEmbeddings === '1') {
+					formData.append('build_embeddings', '1');
+				} else if (buildEmbeddings === false || buildEmbeddings === '0') {
+					formData.append('build_embeddings', '0');
+				}
 
 				return {
 					url: `/add-file/${user}/${encodeURIComponent(name)}`,

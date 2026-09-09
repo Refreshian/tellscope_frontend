@@ -18,6 +18,7 @@ export const useDataInFolder = () => {
 		addTitle_PopupDelete,
 	} = useActions();
 	const [dragging, setDragging] = useState(false);
+	const [buildEmbeddings, setBuildEmbeddings] = useState(null); // null=auto, true=force, false=only ES
 	const { data } = useSelector(state => state.folderTarget);
 	const { buttonTarget } = useSelector(state => state.popupDelete);
 	const urlPathSeg = location.pathname.split('/').filter(Boolean);
@@ -139,6 +140,7 @@ export const useDataInFolder = () => {
 				name: activeFolderName,
 				fileName: droppedFiles[0].name,
 				user: data_getUserId,
+				buildEmbeddings,
 			}).unwrap();
 			refetch();
 		}
@@ -155,6 +157,7 @@ export const useDataInFolder = () => {
 				name: activeFolderName,
 				fileName: selectedFile.name,
 				user: data_getUserId,
+				buildEmbeddings,
 			}).unwrap();
 			refetch();
 		}
@@ -177,5 +180,7 @@ export const useDataInFolder = () => {
 		handleDragLeave,
 		handleDragOver,
 		dragging,
+		buildEmbeddings,
+		setBuildEmbeddings,
 	};
 };

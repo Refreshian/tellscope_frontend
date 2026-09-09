@@ -151,6 +151,8 @@ const DataInFolder = () => {
     handleDragLeave,
     handleDragOver,
     dragging,
+    buildEmbeddings,
+    setBuildEmbeddings,
   } = useDataInFolder();
 
   if (!data || !allData || !processedData) {
@@ -335,6 +337,25 @@ const DataInFolder = () => {
                 />
                 <p className={styles.choice}>Выбрать файл</p>
               </div>
+              <label
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  marginTop: 10,
+                  fontSize: 13,
+                  color: '#344054',
+                  cursor: 'pointer',
+                }}
+                title='Для файлов больше ~150 тыс. записей построение эмбеддингов может занять часы — обычно его пропускаем'
+              >
+                <input
+                  type='checkbox'
+                  checked={buildEmbeddings === true}
+                  onChange={e => setBuildEmbeddings(e.target.checked ? true : null)}
+                />
+                <span>Построить эмбеддинги (семантика/ИИ-поиск)</span>
+              </label>
             </div>
           </div>
         )}
