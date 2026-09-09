@@ -161,7 +161,7 @@ const DataSetPage = () => {
                 setTimeout(() => {
                     setFileUploads(prev => prev.filter((_, idx) => idx !== fileIndex));
                     refetch();
-                }, 3000);
+                }, 6000);
             } else {
                 setTimeout(() => checkUploadProgress(taskId, fileIndex), 1000);
             }
@@ -192,11 +192,11 @@ const DataSetPage = () => {
         }
 
         const isAdmin = ['1', '13'].includes(data_getUserId);
-        const maxSize = isAdmin ? 10 * 1024 * 1024 * 1024 : 100 * 1024 * 1024;
+        const maxSize = 10 * 1024 * 1024 * 1024; // единый лимит для всех пользователей (бэкенд: 10 ГБ)
 
         const validFiles = files.filter(file => file.size <= maxSize);
         if (validFiles.length !== files.length) {
-            alert(`Некоторые файлы превышают максимальный размер (${isAdmin ? '10 ГБ' : '100 МБ'})`);
+            alert(`Некоторые файлы превышают максимальный размер (10 ГБ)`);
         }
         const newUploads = files.map(file => ({
             filename: file.name,
