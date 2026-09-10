@@ -130,6 +130,8 @@ const GraphAnalysis = () => {
   const [chainPhrase, setChainPhrase] = useState('');
   const [chainStats, setChainStats] = useState(null);
   const [isChainLoading, setIsChainLoading] = useState(false);
+  const [hooks, setHooks] = useState([]);
+  const [isHooksLoading, setIsHooksLoading] = useState(false);
 
   useEffect(() => {
     const token = Cookies.get(TOKEN);
@@ -296,9 +298,27 @@ const GraphAnalysis = () => {
     }
   };
 
-  const buildChain = async () => {
-    if (!chainPhrase || !chainPhrase.trim()) {
-      message.warning('Введите тему (фразу) для построения цепочки');
+  const loadHooks = async (idx) => {
+    if (!idx) return;
+    setIsHooksLoading(true);
+    try {
+      const response = await api.get('/popular-hooks', { params: { index: idx, limit: 18 } });
+      setHooks(response.data?.values || []);
+    } catch (e) {
+      setHooks([]);
+    } finally {
+      setIsHooksLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (mode === 'chain' && chainIndex) loadHooks(chainIndex);
+  }, [mode, chainIndex]);
+
+  const buildChain = async (phraseOverride) => {
+    const phrase = (phraseOverride || chainPhrase || '').trim();
+    if (!phrase) {
+      message.warning('Введите тему (фразу) или выберите подсказку');
       return;
     }
     if (!chainIndex) {
@@ -308,7 +328,7 @@ const GraphAnalysis = () => {
     setIsChainLoading(true);
     try {
       const response = await api.get('/chain-graph', {
-        params: { index: chainIndex, phrase: chainPhrase.trim() },
+        params: { index: chainIndex, phrase },
       });
       const d = response.data;
       if (!d || !d.graph || !d.graph.nodes || !d.graph.nodes.length) {
@@ -421,7 +441,7 @@ const GraphAnalysis = () => {
                     />
                     <Button
                       style={launchButtonStyle}
-                      onClick={buildChain}
+                      onClick={() => buildChain()}
                       disabled={isChainLoading}
                     >
                       {isChainLoading ? 'Строим…' : 'Построить цепочку'}
@@ -430,10 +450,35 @@ const GraphAnalysis = () => {
                 )}
               </div>
               {mode === 'chain' && (
-                <p style={{ alignSelf: 'center', maxWidth: 760, textAlign: 'center', color: '#5A6A8A', fontSize: 13, marginTop: 6 }}>
-                  Цепочка строит сеть распространения конкретного сюжета: в центре — автор первого сообщения, далее — те, кто растиражировал текст.
-                  Под графом появятся параметры цепочки и динамика по часам.
-                </p>
+                <div style={{ alignSelf: 'center', maxWidth: 900, marginTop: 10, textAlign: 'center' }}>
+                  <p style={{ color: '#5A6A8A', fontSize: 13, margin: '0 0 8px' }}>
+                    Цепочка строит сеть распространения конкретного сюжета: в центре — автор первого сообщения, далее — те, кто растиражировал текст.
+                    Под графом появятся параметры цепочки, ссылки на распространителей и динамика по часам.
+                  </p>
+                  <p style={{ fontSize: 13, color: '#344054', margin: '0 0 6px' }}>
+                    <b>Популярные инфоповоды в датасете</b>{isHooksLoading ? ' (загружаем…)' : ''} — нажмите, чтобы построить цепочку:
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+                    {hooks.map(h => (
+                      <button
+                        key={h.phrase}
+                        type='button'
+                        onClick={() => { setChainPhrase(h.phrase); buildChain(h.phrase); }}
+                        style={{
+                          border: '1px solid rgba(108,92,231,0.35)', background: '#fff', color: '#4B4BA8',
+                          borderRadius: 999, padding: '7px 14px', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
+                        }}
+                      >
+                        {h.phrase} · {formatCount(h.count)}
+                      </button>
+                    ))}
+                    {!isHooksLoading && hooks.length === 0 && (
+                      <span style={{ color: '#8A94A6', fontSize: 13 }}>
+                        подсказки появятся после выбора датасета
+                      </span>
+                    )}
+                  </div>
+                </div>
               )}
             </>
           )}
