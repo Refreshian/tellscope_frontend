@@ -271,6 +271,16 @@ const AgentMode = () => {
     }
   }, [connectStream]);
 
+  // Открытие конкретного запуска по ссылке вида /agent-mode?run=<id>
+  const runParamRef = useRef(null);
+  useEffect(() => {
+    const requested = new URLSearchParams(location.search).get('run');
+    if (requested && requested !== runParamRef.current) {
+      runParamRef.current = requested;
+      openRun(requested);
+    }
+  }, [location.search, openRun]);
+
   const downloadArtifact = useCallback(async art => {
     try {
       const res = await $axios.get(apiPath(art.url), { responseType: 'blob' });

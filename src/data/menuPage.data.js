@@ -112,6 +112,14 @@ export const menuPageData = [
 		sidebarOnly: true,
 	},
 	{
+		id: 13,
+		title: 'Мои агенты',
+		text: 'Мои агенты',
+		src: '/images/icons/menu/agents.svg',
+		src_active: '/images/icons/menu/agents_active.svg',
+		path: '/agents',
+	},
+	{
 		id: 12,
 		title: 'Агентный режим',
 		text: 'Агентный режим',
