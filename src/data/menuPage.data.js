@@ -111,7 +111,14 @@ export const menuPageData = [
 		path: '/mosinform-rating',
 		sidebarOnly: true,
 	},
-	// НОВЫЙ ЭЛЕМЕНТ
+	{
+		id: 12,
+		title: 'Агентный режим',
+		text: 'Агентный режим',
+		src: '/images/icons/menu/AI.png',
+		src_active: '/images/icons/menu/AI.png',
+		path: '/agent-mode',
+	},
 ];
 
 export const menuSettings = [

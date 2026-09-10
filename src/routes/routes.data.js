@@ -13,6 +13,7 @@ import AIBot from '@/components/content/tables/ai-bot/AIBot';
 import ChatLLM from '@/components/screens/ai-test/ChatLLM.jsx';
 import GraphAnalysis from "../components/GraphVisualization/GraphAnalysis.jsx";
 import SmartAgent from '@/components/screens/smart-agent/SmartAgent';
+import AgentMode from '@/components/screens/agent-mode/AgentMode';
 import MetaphorExamples from '../components/screens/metaphor-examples/MetaphorExamples.jsx';
 import Configs from '@/components/screens/configs/Configs';
 import MosinformRating from '@/components/screens/mosinform-rating/MosinformRating';
@@ -120,6 +121,11 @@ export const routes = [
 	{
 		path: '/configs',
 		component: Configs,
+		isAuth: true,
+	},
+	{
+		path: '/agent-mode',
+		component: AgentMode,
 		isAuth: true,
 	},
 	{
