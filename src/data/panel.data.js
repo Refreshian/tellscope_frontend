@@ -89,6 +89,11 @@ export const dataSetButtons = [
 		isCount: false,
 		title: 'Статус расчета данных',
 	},
+	{
+		id: 3,
+		isCount: false,
+		title: 'Отчёты',
+	},
 ];
 
 export const analysisOfThemesButtons = [

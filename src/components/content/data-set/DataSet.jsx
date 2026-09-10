@@ -17,6 +17,7 @@ import Folder from './folder/Folder';
 import HistoryCard from './history-card/HistoryCard';
 import MosinformArchive from './MosinformArchive';
 import MlopsQueue from './MlopsQueue';
+import Reports from './Reports';
 import NoData from './no-data/NoData';
 import { dataSetButtons } from '@/data/panel.data';
 
@@ -193,6 +194,8 @@ const DataSet = () => {
 					</div>
 				</div>
 			);
+		} else if (activeButton === 'Отчёты') {
+			return <Reports filterText={filterText} />;
 		} else if (activeButton === MOSINFORM_TAB) {
 			return <MosinformArchive filterText={filterText} />;
 		} else if (activeButton === QUEUE_TAB) {
@@ -201,7 +204,10 @@ const DataSet = () => {
 	};
 
 	const hasFiles = allData && allData.length !== 0;
-	const isArchive = activeButton === MOSINFORM_TAB || activeButton === QUEUE_TAB;
+	const isArchive =
+		activeButton === MOSINFORM_TAB ||
+		activeButton === QUEUE_TAB ||
+		activeButton === 'Отчёты';
 	const styleContent = {
 		justifyContent: hasFiles || isArchive ? '' : 'center',
 		alignItems: hasFiles || isArchive ? '' : 'center',
