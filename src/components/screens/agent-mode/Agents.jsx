@@ -40,7 +40,7 @@ const Agents = () => {
   const { addData, addMinDate, addMaxDate, addIndex } = useActions();
   const { active_menu } = useSelector(store => store.booleanValues);
   const dataForRequest = useSelector(state => state.dataForRequest);
-  const { json_files_directory: dataUser } = useSelector(store => state.dataUsersSlice);
+  const { json_files_directory: dataUser } = useSelector(state => state.dataUsersSlice);
 
   const { data: data_getUserId } = useGetUserIdQuery();
   const { data, isError, isLoading, isSuccess } = useGetUserFoldersQuery(data_getUserId);
