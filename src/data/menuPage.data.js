@@ -115,8 +115,8 @@ export const menuPageData = [
 		id: 12,
 		title: 'Агентный режим',
 		text: 'Агентный режим',
-		src: '/images/icons/menu/AI.png',
-		src_active: '/images/icons/menu/AI.png',
+		src: '/images/icons/menu/agent.svg',
+		src_active: '/images/icons/menu/agent_active.svg',
 		path: '/agent-mode',
 	},
 ];
