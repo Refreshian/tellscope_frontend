@@ -124,6 +124,12 @@ const GraphAnalysis = () => {
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [csvTreeData, setCsvTreeData] = useState([]);
+  const [mode, setMode] = useState('file'); // 'file' | 'chain'
+  const [jsonDatasets, setJsonDatasets] = useState([]);
+  const [chainIndex, setChainIndex] = useState(null);
+  const [chainPhrase, setChainPhrase] = useState('');
+  const [chainStats, setChainStats] = useState(null);
+  const [isChainLoading, setIsChainLoading] = useState(false);
 
   useEffect(() => {
     const token = Cookies.get(TOKEN);
@@ -147,6 +153,17 @@ const GraphAnalysis = () => {
       } else {
         setCsvTreeData([]);
       }
+      const jsonDir = (response.data && response.data.json_files_directory) || {};
+      const flat = [];
+      Object.entries(jsonDir).forEach(([folder, files]) => {
+        (Array.isArray(files) ? files : []).forEach(item => {
+          if (item && item.index_number !== undefined) {
+            flat.push({ folder, file: item.file, index: item.index_number });
+          }
+        });
+      });
+      setJsonDatasets(flat);
+      setChainIndex(prev => (prev === null && flat.length ? flat[0].index : prev));
     } catch (error) {
       console.error('❌ Error fetching user folders:', error);
       if (error.response?.status === 404) {
@@ -279,6 +296,36 @@ const GraphAnalysis = () => {
     }
   };
 
+  const buildChain = async () => {
+    if (!chainPhrase || !chainPhrase.trim()) {
+      message.warning('Введите тему (фразу) для построения цепочки');
+      return;
+    }
+    if (!chainIndex) {
+      message.warning('Выберите датасет');
+      return;
+    }
+    setIsChainLoading(true);
+    try {
+      const response = await api.get('/chain-graph', {
+        params: { index: chainIndex, phrase: chainPhrase.trim() },
+      });
+      const d = response.data;
+      if (!d || !d.graph || !d.graph.nodes || !d.graph.nodes.length) {
+        message.warning('По этой теме сообщений не найдено — попробуйте другую формулировку');
+        return;
+      }
+      setGraphData(d);
+      setChainStats(d.stats || null);
+      setGraphType('author');
+      setIsGraphBuilt(true);
+    } catch (error) {
+      message.error(`Ошибка построения цепочки: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setIsChainLoading(false);
+    }
+  };
+
   const nodesCount = graphData?.graph?.nodes?.length || 0;
   const linksCount = graphData?.graph?.links?.length || 0;
   const clustersCount = graphData?.graph?.clusters?.length || 0;
@@ -322,25 +369,118 @@ const GraphAnalysis = () => {
               <div className={styles.block__pageName} style={{ alignSelf: 'center' }}>
                 <BeforeSearch title="Анализ графа связей" />
               </div>
-              <div className={styles.block__configureSearch} style={{ alignSelf: 'center' }}>
-                <FileSelect
-                  folders={csvTreeData}
-                  value={selectedFile?.fullPath}
-                  onSelect={handleFileSelect}
-                  onDeleteFile={handleDeleteFile}
-                  loading={isLoadingFolders}
-                />
-                <Button
-                  style={launchButtonStyle}
-                  onClick={() => buildGraph(graphType)}
-                  disabled={isLoading}
-                >
-                  Построить граф
-                </Button>
+              <div style={{ display: 'flex', gap: 10, alignSelf: 'center', marginBottom: 14 }}>
+                <button
+                  type='button'
+                  onClick={() => { setMode('file'); setIsGraphBuilt(false); setGraphData(null); setChainStats(null); }}
+                  style={{ border: '1px solid rgba(108,92,231,0.4)', borderRadius: 999, padding: '8px 16px', cursor: 'pointer', fontFamily: 'inherit',
+                           background: mode === 'file' ? '#6C5CE7' : '#fff', color: mode === 'file' ? '#fff' : '#5B5BD6' }}
+                >Граф по файлу</button>
+                <button
+                  type='button'
+                  onClick={() => { setMode('chain'); setIsGraphBuilt(false); setGraphData(null); setChainStats(null); }}
+                  style={{ border: '1px solid rgba(108,92,231,0.4)', borderRadius: 999, padding: '8px 16px', cursor: 'pointer', fontFamily: 'inherit',
+                           background: mode === 'chain' ? '#6C5CE7' : '#fff', color: mode === 'chain' ? '#fff' : '#5B5BD6' }}
+                >Цепочка по теме</button>
               </div>
+              <div className={styles.block__configureSearch} style={{ alignSelf: 'center' }}>
+                {mode === 'file' ? (
+                  <>
+                    <FileSelect
+                      folders={csvTreeData}
+                      value={selectedFile?.fullPath}
+                      onSelect={handleFileSelect}
+                      onDeleteFile={handleDeleteFile}
+                      loading={isLoadingFolders}
+                    />
+                    <Button
+                      style={launchButtonStyle}
+                      onClick={() => buildGraph(graphType)}
+                      disabled={isLoading}
+                    >
+                      Построить граф
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <select
+                      value={chainIndex || ''}
+                      onChange={e => setChainIndex(Number(e.target.value))}
+                      style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(11,27,59,0.15)', fontFamily: 'inherit', maxWidth: 320 }}
+                    >
+                      {jsonDatasets.map(d => (
+                        <option key={d.index} value={d.index}>{d.folder} · {d.file}</option>
+                      ))}
+                    </select>
+                    <input
+                      type='text'
+                      value={chainPhrase}
+                      onChange={e => setChainPhrase(e.target.value)}
+                      placeholder='Тема или фраза, например: Курочка с душком'
+                      style={{ width: 'calc(320/1440*100vw)', height: 'calc(52/1440*100vw)', borderRadius: 12, border: '1px solid rgba(11,27,59,0.15)', padding: '0 14px', fontFamily: 'inherit' }}
+                    />
+                    <Button
+                      style={launchButtonStyle}
+                      onClick={buildChain}
+                      disabled={isChainLoading}
+                    >
+                      {isChainLoading ? 'Строим…' : 'Построить цепочку'}
+                    </Button>
+                  </>
+                )}
+              </div>
+              {mode === 'chain' && (
+                <p style={{ alignSelf: 'center', maxWidth: 760, textAlign: 'center', color: '#5A6A8A', fontSize: 13, marginTop: 6 }}>
+                  Цепочка строит сеть распространения конкретного сюжета: в центре — автор первого сообщения, далее — те, кто растиражировал текст.
+                  Под графом появятся параметры цепочки и динамика по часам.
+                </p>
+              )}
             </>
           )}
         </div>
+
+        {isGraphBuilt && chainStats && (
+          <div style={{ width: '100%', maxWidth: 'calc(1180/1440*100vw)', alignSelf: 'center', margin: '6px auto 14px', background: '#fff',
+                        border: '1px solid rgba(11,27,59,0.08)', borderRadius: 16, padding: '14px 18px', boxShadow: '0 6px 18px rgba(11,27,59,0.06)' }}>
+            <h3 style={{ margin: '0 0 8px', color: '#0B1B3B', fontSize: 17 }}>Цепочка по теме «{chainStats.phrase}»</h3>
+            <p style={{ margin: '0 0 8px', color: '#152A5A', fontSize: 14 }}>
+              Найдено сообщений: <b>{formatCount(chainStats.found)}</b> · уникальных текстов: <b>{formatCount(chainStats.unique_texts)}</b>
+              {chainStats.first ? <> · первый пост: <b>{chainStats.first.author}</b> ({chainStats.first.hub})</> : null}
+            </p>
+            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', fontSize: 13, color: '#344054' }}>
+              <div>
+                <b>Площадки:</b>{' '}
+                {(chainStats.hubs || []).slice(0, 6).map(([hub, n]) => `${hub} — ${formatCount(n)}`).join(' · ')}
+              </div>
+            </div>
+            <div style={{ marginTop: 10, fontSize: 13, color: '#344054' }}>
+              <b>Топ-распространители:</b>{' '}
+              {(chainStats.top_authors || []).slice(0, 8).map(a => (
+                <a key={a.author} href={a.url} target='_blank' rel='noreferrer' style={{ color: '#5B5BD6', marginRight: 10 }}>
+                  {a.author} ({a.posts})
+                </a>
+              ))}
+            </div>
+            {Array.isArray(graphData?.timeline) && graphData.timeline.length > 1 && (
+              <div style={{ marginTop: 12 }}>
+                <b style={{ fontSize: 13, color: '#344054' }}>Динамика распространения (накопленные копии по часам):</b>
+                <svg viewBox='0 0 600 90' width='100%' height='90' style={{ marginTop: 6 }}>
+                  <polyline
+                    fill='none'
+                    stroke='#E5484D'
+                    strokeWidth='2'
+                    points={graphData.timeline.map((p, i) => {
+                      const maxCum = graphData.timeline[graphData.timeline.length - 1].cumulative || 1;
+                      const x = (i / Math.max(1, graphData.timeline.length - 1)) * 596 + 2;
+                      const y = 88 - (p.cumulative / maxCum) * 82;
+                      return `${x},${y}`;
+                    }).join(' ')}
+                  />
+                </svg>
+              </div>
+            )}
+          </div>
+        )}
 
         {isGraphBuilt && graphData?.graph?.nodes?.length > 0 && (
           <div className={styles.graphWrap}>
