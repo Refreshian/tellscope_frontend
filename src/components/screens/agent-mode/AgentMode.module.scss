@@ -157,6 +157,22 @@
   color: #667085;
 }
 
+.spendBox {
+  display: flex;
+  flex-direction: column;
+  gap: calc(2 / 1440 * 100vw);
+  padding: calc(8 / 1440 * 100vw) calc(10 / 1440 * 100vw);
+  background: #f9fafb;
+  border-radius: calc(8 / 1440 * 100vw);
+  font-size: calc(12 / 1440 * 100vw);
+  color: #667085;
+
+  b {
+    font-size: calc(16 / 1440 * 100vw);
+    color: #101828;
+  }
+}
+
 .statusLine {
   font-size: calc(13 / 1440 * 100vw);
   color: #344054;

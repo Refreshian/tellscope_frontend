@@ -52,7 +52,9 @@ const AgentMode = () => {
 
   const [catalog, setCatalog] = useState(null);
   const [selectedTools, setSelectedTools] = useState([]);
-  const [model, setModel] = useState('claude');
+  const [model, setModel] = useState('gpt');
+  const [budget, setBudget] = useState(120000);
+  const [spend, setSpend] = useState(null);
   const [folder, setFolder] = useState('Агент');
   const [task, setTask] = useState(
     'Собери аналитику по датасету: динамика сообщений, тональность, ключевые инфоповоды и площадки. Приведи примеры сообщений со ссылками и сделай отчёт.'
@@ -99,7 +101,8 @@ const AgentMode = () => {
       const { data: payload } = await $axios.get('/agent/tools');
       setCatalog(payload);
       setSelectedTools(payload.default_enabled || []);
-      setModel(payload.default_model || 'claude');
+      setModel(payload.default_model || 'gpt');
+      setBudget(payload.default_token_budget || 120000);
     } catch (err) {
       setError(err.response?.data?.detail || 'Не удалось загрузить список инструментов');
     }
@@ -109,6 +112,12 @@ const AgentMode = () => {
     try {
       const { data: payload } = await $axios.get('/agent/runs');
       setHistory(payload.runs || []);
+      setSpend({
+        tokens_today: payload.tokens_today || 0,
+        limit: payload.tokens_per_day_limit || 0,
+        runs_today: payload.runs_today || 0,
+        runs_limit: payload.limit_per_day || 0,
+      });
     } catch (err) {
       /* история не критична */
     }
@@ -235,6 +244,7 @@ const AgentMode = () => {
         tools: selectedTools,
         model,
         folder,
+        max_tokens: Number(budget) || undefined,
       });
       setRunId(payload.run_id);
       setRunState(payload);
@@ -243,7 +253,7 @@ const AgentMode = () => {
       setError(err.response?.data?.detail || 'Не удалось запустить агента');
       setIsRunning(false);
     }
-  }, [task, dataForRequest, selectedTools, model, folder, connectStream]);
+  }, [task, dataForRequest, selectedTools, model, folder, budget, connectStream]);
 
   const openRun = useCallback(async id => {
     try {
@@ -476,17 +486,47 @@ const AgentMode = () => {
               <label className={styles.field}>
                 <span>Модель</span>
                 <select value={model} onChange={e => setModel(e.target.value)} disabled={isRunning}>
-                  {(catalog?.models || [{ id: 'claude', label: 'Claude Sonnet 4.5' }]).map(item => (
+                  {(catalog?.models || [{ id: 'gpt', label: 'GPT-4.1 mini — дёшево' }]).map(item => (
                     <option key={item.id} value={item.id}>
                       {item.label}
+                      {item.price_in || item.price_out
+                        ? ` · $${item.price_in}/$${item.price_out} за 1M токенов`
+                        : ' · без оплаты'}
                     </option>
                   ))}
                 </select>
               </label>
               <label className={styles.field}>
+                <span>Бюджет прогона, токенов</span>
+                <input
+                  type="number"
+                  min="20000"
+                  max="2000000"
+                  step="10000"
+                  value={budget}
+                  onChange={e => setBudget(e.target.value)}
+                  disabled={isRunning}
+                />
+              </label>
+            </div>
+            <div className={styles.row}>
+              <label className={styles.field}>
                 <span>Папка отчётов</span>
                 <input value={folder} onChange={e => setFolder(e.target.value)} disabled={isRunning} />
               </label>
+              {spend && (
+                <div className={styles.spendBox}>
+                  <span>Расход токенов за сегодня</span>
+                  <b>
+                    {spend.tokens_today.toLocaleString('ru-RU')}
+                    {spend.limit ? ` / ${spend.limit.toLocaleString('ru-RU')}` : ''}
+                  </b>
+                  <span>
+                    запусков: {spend.runs_today}
+                    {spend.runs_limit ? ` / ${spend.runs_limit}` : ''}
+                  </span>
+                </div>
+              )}
             </div>
             <div className={styles.runRow}>
               <Button
@@ -567,9 +607,20 @@ const AgentMode = () => {
             <div className={styles.statsGrid}>
               <div><span>обращений к модели</span><b>{stats.llm_calls}</b></div>
               <div><span>вызовов инструментов</span><b>{stats.tool_calls}</b></div>
-              <div><span>токенов</span><b>{stats.tokens}</b></div>
+              <div>
+                <span>токенов</span>
+                <b>
+                  {stats.tokens}
+                  {stats.token_budget ? ` / ${stats.token_budget}` : ''}
+                </b>
+              </div>
+              <div>
+                <span>стоимость прогона</span>
+                <b>{stats.cost_usd ? `$${stats.cost_usd}` : 'бесплатно'}</b>
+              </div>
               <div><span>артефактов</span><b>{stats.artifacts}</b></div>
             </div>
+            {stats.model ? <div className={styles.statsTools}>Модель: {stats.model}</div> : null}
             {stats.tools_used?.length ? (
               <div className={styles.statsTools}>Использованы: {stats.tools_used.join(', ')}</div>
             ) : null}
@@ -608,6 +659,8 @@ const AgentMode = () => {
                   <span className={styles.historyMeta}>
                     {item.model_label} · инструментов {item.tools?.length || 0}
                     {item.dataset_name ? ` · ${item.dataset_name}` : ''}
+                    {item.stats?.tokens ? ` · ${item.stats.tokens} токенов` : ''}
+                    {item.cost_usd ? ` · $${item.cost_usd}` : ''}
                   </span>
                 </button>
               ))}
