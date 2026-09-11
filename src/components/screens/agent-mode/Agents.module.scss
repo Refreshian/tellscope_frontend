@@ -356,6 +356,118 @@
   gap: calc(16 / 1440 * 100vw);
 }
 
+/* ---------- конструктор шагов ---------- */
+
+.stepsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10 / 1440 * 100vw);
+  padding: calc(14 / 1440 * 100vw);
+  background: #fff;
+  border: 1px solid #e4e7ec;
+  border-radius: calc(10 / 1440 * 100vw);
+}
+
+.stepsHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: calc(16 / 1440 * 100vw);
+  flex-wrap: wrap;
+}
+
+.stepsTitle {
+  font-size: calc(15 / 1440 * 100vw);
+  font-weight: 600;
+  color: #101828;
+}
+
+.stepsHint {
+  max-width: calc(620 / 1440 * 100vw);
+  margin-top: calc(2 / 1440 * 100vw);
+  font-size: calc(12 / 1440 * 100vw);
+  line-height: 1.45;
+  color: #98a2b3;
+}
+
+.stepsActions {
+  display: flex;
+  align-items: center;
+  gap: calc(14 / 1440 * 100vw);
+  flex-wrap: wrap;
+}
+
+.stepsEmpty {
+  padding: calc(12 / 1440 * 100vw);
+  border: 1px dashed #d0d5dd;
+  border-radius: calc(8 / 1440 * 100vw);
+  font-size: calc(13 / 1440 * 100vw);
+  color: #98a2b3;
+}
+
+.stepCard {
+  border: 1px solid #eaecf0;
+  border-radius: calc(10 / 1440 * 100vw);
+  background: #fcfcfd;
+}
+
+.stepCardHead {
+  display: flex;
+  align-items: center;
+  gap: calc(10 / 1440 * 100vw);
+  padding: calc(8 / 1440 * 100vw) calc(10 / 1440 * 100vw);
+}
+
+.stepCardNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(22 / 1440 * 100vw);
+  height: calc(22 / 1440 * 100vw);
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #eef2ff;
+  color: #2f6bff;
+  font-size: calc(12 / 1440 * 100vw);
+  font-weight: 600;
+}
+
+.stepCardKind {
+  padding: calc(2 / 1440 * 100vw) calc(8 / 1440 * 100vw);
+  border-radius: calc(6 / 1440 * 100vw);
+  background: #f2f4f7;
+  color: #475467;
+  font-size: calc(11 / 1440 * 100vw);
+  white-space: nowrap;
+}
+
+.stepCardTitle {
+  flex: 1;
+  min-width: 0;
+  padding: calc(6 / 1440 * 100vw) calc(8 / 1440 * 100vw);
+  border: 1px solid transparent;
+  border-radius: calc(8 / 1440 * 100vw);
+  background: transparent;
+  font-size: calc(14 / 1440 * 100vw);
+  font-family: inherit;
+  color: #101828;
+
+  &:hover,
+  &:focus {
+    border-color: #d0d5dd;
+    background: #fff;
+    outline: none;
+  }
+}
+
+.stepCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10 / 1440 * 100vw);
+  padding: calc(4 / 1440 * 100vw) calc(10 / 1440 * 100vw) calc(12 / 1440 * 100vw);
+  border-top: 1px solid #f2f4f7;
+}
+
 /* ---------- сообщения ---------- */
 
 .errorBlock {

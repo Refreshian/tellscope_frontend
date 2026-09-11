@@ -50,6 +50,7 @@ const Agents = () => {
   const [catalog, setCatalog] = useState(null);
   const [meta, setMeta] = useState({
     models: [],
+    step_kinds: [],
     default_model: 'gpt',
     default_token_budget: 120000,
     tokens_today: 0,
@@ -63,6 +64,7 @@ const Agents = () => {
   // второстепенные блоки скрыты по умолчанию
   const [showPresets, setShowPresets] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [openStep, setOpenStep] = useState(null);
 
   useAddBaseAndDate(
     dataUser,
@@ -87,6 +89,7 @@ const Agents = () => {
       setPresets(list.presets || []);
       setMeta({
         models: list.models || [],
+        step_kinds: list.step_kinds || [],
         default_model: list.default_model || 'gpt',
         default_token_budget: list.default_token_budget || 120000,
         tokens_today: list.tokens_today || 0,
@@ -177,10 +180,94 @@ const Agents = () => {
         dataset_name: agent?.dataset_name || '',
         schedule: agent?.schedule ? { ...emptySchedule(), ...agent.schedule } : emptySchedule(),
         enabled: agent?.enabled ?? true,
+        steps: agent?.steps ? JSON.parse(JSON.stringify(agent.steps)) : [],
       });
       setShowAdvanced(false);
+      setOpenStep(null);
     },
     [catalog, meta, dataForRequest.index]
+  );
+
+  const stepDefaults = useCallback(
+    kind => {
+      if (kind === 'tool') {
+        return { kind, title: 'Собрать данные', tool: 'dataset_overview', args: { top_n: 10 }, save_as: `step${(editor?.steps?.length || 0) + 1}` };
+      }
+      if (kind === 'chart') {
+        return {
+          kind,
+          title: 'График',
+          from: '{{step1.monthly_dynamics}}',
+          label_field: 'month',
+          value_field: 'count',
+          chart_type: 'line',
+          series_name: 'Значение',
+          save_as: `step${(editor?.steps?.length || 0) + 1}`,
+        };
+      }
+      if (kind === 'llm') {
+        return {
+          kind,
+          title: 'Выводы ИИ',
+          prompt: 'Данные шагов:\n{{step1}}\n\nНапиши аналитический разбор: что видно по динамике, тональности, площадкам и инфоповодам, и какие выводы.',
+          save_as: `step${(editor?.steps?.length || 0) + 1}`,
+        };
+      }
+      return {
+        kind: 'report',
+        title: 'Собрать отчёт',
+        report_title: 'Аналитический отчёт',
+        subtitle: '',
+        sections: [{ heading: 'Аналитика и выводы', text: '{{step1.text}}', chart_ids: [] }],
+        save_as: `step${(editor?.steps?.length || 0) + 1}`,
+      };
+    },
+    [editor]
+  );
+
+  const addStep = useCallback(
+    kind => {
+      setEditor(prev => (prev ? { ...prev, steps: [...(prev.steps || []), stepDefaults(kind)] } : prev));
+      setOpenStep((editor?.steps?.length || 0));
+    },
+    [stepDefaults, editor]
+  );
+
+  const updateStep = useCallback((index, patch) => {
+    setEditor(prev => {
+      if (!prev) return prev;
+      const steps = [...(prev.steps || [])];
+      steps[index] = { ...steps[index], ...patch };
+      return { ...prev, steps };
+    });
+  }, []);
+
+  const removeStep = useCallback(index => {
+    setEditor(prev => (prev ? { ...prev, steps: (prev.steps || []).filter((_, i) => i !== index) } : prev));
+    setOpenStep(null);
+  }, []);
+
+  const moveStep = useCallback((index, delta) => {
+    setEditor(prev => {
+      if (!prev) return prev;
+      const steps = [...(prev.steps || [])];
+      const target = index + delta;
+      if (target < 0 || target >= steps.length) return prev;
+      [steps[index], steps[target]] = [steps[target], steps[index]];
+      return { ...prev, steps };
+    });
+    setOpenStep(null);
+  }, []);
+
+  const applyChain = useCallback(
+    presetId => {
+      const preset = presets.find(item => item.id === presetId);
+      if (!preset?.steps?.length) return;
+      setEditor(prev => (prev ? { ...prev, steps: JSON.parse(JSON.stringify(preset.steps)) } : prev));
+      setNotice(`Цепочка «${preset.name}» подставлена — проверьте параметры шагов`);
+      setOpenStep(null);
+    },
+    [presets]
   );
 
   const saveEditor = useCallback(async () => {
@@ -204,6 +291,7 @@ const Agents = () => {
         folder: editor.folder,
         schedule: editor.schedule,
         enabled: editor.enabled,
+        steps: editor.steps || [],
       });
       setEditor(null);
       setNotice('Агент сохранён');
@@ -338,6 +426,224 @@ const Agents = () => {
                 onChange={e => setEditor({ ...editor, instruction: e.target.value })}
               />
             </label>
+
+            <div className={styles.stepsBlock}>
+              <div className={styles.stepsHead}>
+                <div>
+                  <div className={styles.stepsTitle}>Шаги агента (цепочка)</div>
+                  <div className={styles.stepsHint}>
+                    Шаги выполняются по порядку: данные → графики → выводы ИИ → отчёт. В параметрах можно
+                    ссылаться на результат шага: {'{{step1}}'} или {'{{step1.monthly_dynamics}}'}.
+                    Если шагов нет, агент работает по инструкции выше и сам выбирает инструменты.
+                  </div>
+                </div>
+                <div className={styles.stepsActions}>
+                  {(presets || [])
+                    .filter(item => (item.steps || []).length)
+                    .map(item => (
+                      <button key={item.id} type='button' className={styles.linkBtn} onClick={() => applyChain(item.id)}>
+                        цепочка: {item.name}
+                      </button>
+                    ))}
+                  <select
+                    className={styles.inlineSelect}
+                    value=''
+                    onChange={e => {
+                      if (e.target.value) addStep(e.target.value);
+                    }}
+                  >
+                    <option value=''>+ добавить шаг…</option>
+                    {(meta.step_kinds || []).map(item => (
+                      <option key={item.id} value={item.id}>
+                        {item.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {(editor.steps || []).length === 0 && (
+                <div className={styles.stepsEmpty}>
+                  Шагов пока нет — используется режим с инструкцией.
+                </div>
+              )}
+
+              {(editor.steps || []).map((step, index) => (
+                <div key={`${step.save_as || 'step'}-${index}`} className={styles.stepCard}>
+                  <div className={styles.stepCardHead}>
+                    <span className={styles.stepCardNumber}>{index + 1}</span>
+                    <span className={styles.stepCardKind}>
+                      {(meta.step_kinds || []).find(item => item.id === step.kind)?.title || step.kind}
+                    </span>
+                    <input
+                      className={styles.stepCardTitle}
+                      value={step.title || ''}
+                      placeholder='название шага'
+                      onChange={e => updateStep(index, { title: e.target.value })}
+                    />
+                    <button type='button' className={styles.linkBtn} onClick={() => moveStep(index, -1)} title='выше'>
+                      ↑
+                    </button>
+                    <button type='button' className={styles.linkBtn} onClick={() => moveStep(index, 1)} title='ниже'>
+                      ↓
+                    </button>
+                    <button
+                      type='button'
+                      className={styles.linkBtn}
+                      onClick={() => setOpenStep(openStep === index ? null : index)}
+                    >
+                      {openStep === index ? 'скрыть параметры' : 'параметры'}
+                    </button>
+                    <button type='button' className={styles.linkBtnDanger} onClick={() => removeStep(index)}>
+                      удалить
+                    </button>
+                  </div>
+
+                  {openStep === index && (
+                    <div className={styles.stepCardBody}>
+                      {step.kind === 'tool' && (
+                        <>
+                          <div className={styles.row}>
+                            <label className={styles.field}>
+                              <span>Инструмент</span>
+                              <select value={step.tool || ''} onChange={e => updateStep(index, { tool: e.target.value })}>
+                                {(toolOptions || []).map(tool => (
+                                  <option key={tool.name} value={tool.name}>
+                                    {tool.title || tool.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className={styles.field}>
+                              <span>Имя результата (для ссылок {'{{имя}}'})</span>
+                              <input
+                                value={step.save_as || ''}
+                                onChange={e => updateStep(index, { save_as: e.target.value })}
+                              />
+                            </label>
+                          </div>
+                          <label className={styles.field}>
+                            <span>Аргументы инструмента (JSON)</span>
+                            <textarea
+                              rows={4}
+                              value={JSON.stringify(step.args || {}, null, 1)}
+                              onChange={e => {
+                                try {
+                                  updateStep(index, { args: JSON.parse(e.target.value || '{}') });
+                                } catch (err) {
+                                  /* некорректный JSON — не применяем, пока не исправят */
+                                }
+                              }}
+                            />
+                          </label>
+                        </>
+                      )}
+
+                      {step.kind === 'chart' && (
+                        <>
+                          <div className={styles.row}>
+                            <label className={styles.field}>
+                              <span>Откуда брать данные</span>
+                              <input value={step.from || ''} onChange={e => updateStep(index, { from: e.target.value })} />
+                            </label>
+                            <label className={styles.field}>
+                              <span>Тип графика</span>
+                              <select value={step.chart_type || 'bar'} onChange={e => updateStep(index, { chart_type: e.target.value })}>
+                                <option value='bar'>столбцы</option>
+                                <option value='hbar'>горизонтальные</option>
+                                <option value='line'>линия</option>
+                                <option value='area'>область</option>
+                                <option value='pie'>круговая</option>
+                              </select>
+                            </label>
+                          </div>
+                          <div className={styles.row}>
+                            <label className={styles.field}>
+                              <span>Поле подписи</span>
+                              <input value={step.label_field || ''} onChange={e => updateStep(index, { label_field: e.target.value })} />
+                            </label>
+                            <label className={styles.field}>
+                              <span>Поле значения</span>
+                              <input value={step.value_field || ''} onChange={e => updateStep(index, { value_field: e.target.value })} />
+                            </label>
+                            <label className={styles.field}>
+                              <span>Имя ряда</span>
+                              <input value={step.series_name || ''} onChange={e => updateStep(index, { series_name: e.target.value })} />
+                            </label>
+                          </div>
+                        </>
+                      )}
+
+                      {step.kind === 'llm' && (
+                        <>
+                          <label className={styles.field}>
+                            <span>Промпт (можно вставлять {'{{данные шагов}}'})</span>
+                            <textarea
+                              rows={7}
+                              value={step.prompt || ''}
+                              onChange={e => updateStep(index, { prompt: e.target.value })}
+                            />
+                          </label>
+                          <div className={styles.row}>
+                            <label className={styles.field}>
+                              <span>Имя результата</span>
+                              <input value={step.save_as || ''} onChange={e => updateStep(index, { save_as: e.target.value })} />
+                            </label>
+                            <label className={styles.field}>
+                              <span>Лимит ответа, токенов</span>
+                              <input
+                                type='number'
+                                min='200'
+                                max='4000'
+                                step='100'
+                                value={step.max_tokens || 1600}
+                                onChange={e => updateStep(index, { max_tokens: Number(e.target.value) || 1600 })}
+                              />
+                            </label>
+                          </div>
+                        </>
+                      )}
+
+                      {step.kind === 'report' && (
+                        <>
+                          <div className={styles.row}>
+                            <label className={styles.field}>
+                              <span>Заголовок отчёта</span>
+                              <input
+                                value={step.report_title || ''}
+                                onChange={e => updateStep(index, { report_title: e.target.value })}
+                              />
+                            </label>
+                            <label className={styles.field}>
+                              <span>Подзаголовок</span>
+                              <input value={step.subtitle || ''} onChange={e => updateStep(index, { subtitle: e.target.value })} />
+                            </label>
+                            <label className={styles.field}>
+                              <span>Папка отчётов</span>
+                              <input value={step.folder || ''} onChange={e => updateStep(index, { folder: e.target.value })} />
+                            </label>
+                          </div>
+                          <label className={styles.field}>
+                            <span>Разделы отчёта (JSON: heading, text, bullets, chart_ids)</span>
+                            <textarea
+                              rows={6}
+                              value={JSON.stringify(step.sections || [], null, 1)}
+                              onChange={e => {
+                                try {
+                                  updateStep(index, { sections: JSON.parse(e.target.value || '[]') });
+                                } catch (err) {
+                                  /* некорректный JSON — не применяем */
+                                }
+                              }}
+                            />
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
 
             <div className={styles.scheduleRow}>
               <label className={styles.checkbox}>
@@ -507,7 +813,7 @@ const Agents = () => {
                 </div>
                 <div className={styles.cardMuted}>
                   {agent.model === 'qwen' ? 'Qwen (локально)' : agent.model === 'claude' ? 'Claude' : 'GPT-4.1 mini'}
-                  {` · инструментов: ${agent.tools_count ?? (agent.tools || []).length}`}
+                  {agent.steps?.length ? ` · цепочка: ${agent.steps.length} шагов` : ' · режим: инструкция'}
                   {agent.last_run_at ? ` · последний запуск: ${agent.last_run_at}` : ''}
                 </div>
                 <div className={styles.cardButtons}>
