@@ -283,18 +283,8 @@
 
 .menu__item_agent,
 .menu__item_agentActive {
+	/* без подсветки: пункты выглядят как остальные, выделяет только бейдж AI */
 	position: relative;
-	background: linear-gradient(135deg, rgba(47, 107, 255, 0.14), rgba(122, 90, 248, 0.12));
-	box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.25);
-}
-
-.menu__item_agent:hover {
-	background: linear-gradient(135deg, rgba(47, 107, 255, 0.22), rgba(122, 90, 248, 0.18));
-}
-
-.menu__item_agentActive {
-	background: linear-gradient(135deg, rgba(47, 107, 255, 0.26), rgba(122, 90, 248, 0.2));
-	box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.45);
 }
 
 .menu__badge {
