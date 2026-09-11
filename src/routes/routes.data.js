@@ -19,6 +19,7 @@ import MetaphorExamples from '../components/screens/metaphor-examples/MetaphorEx
 import Configs from '@/components/screens/configs/Configs';
 import MosinformRating from '@/components/screens/mosinform-rating/MosinformRating';
 import AdminPage from '@/components/screens/admin/AdminPage';
+import DifyConstructor from '@/components/screens/dify-constructor/DifyConstructor';
 
 
 import AnalysisOfThemesPage from '../components/screens/tables/ai-analytics-page/analysis-of-themes/AnalysisOfThemesPage';
@@ -142,6 +143,11 @@ export const routes = [
 	{
 		path: '/admin',
 		component: AdminPage,
+		isAuth: true,
+	},
+	{
+		path: '/dify-constructor',
+		component: DifyConstructor,
 		isAuth: true,
 	}
 ];

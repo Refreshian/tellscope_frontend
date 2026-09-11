@@ -1,0 +1,111 @@
+.block__pageName {
+  padding: calc(10 / 1440 * 100vw) 0 calc(4 / 1440 * 100vw);
+}
+
+.lead {
+  max-width: calc(980 / 1440 * 100vw);
+  margin: 0 0 calc(14 / 1440 * 100vw);
+  font-size: calc(15 / 1440 * 100vw);
+  line-height: 1.55;
+  color: #475467;
+}
+
+.actionBar {
+  display: flex;
+  align-items: center;
+  gap: calc(18 / 1440 * 100vw);
+  flex-wrap: wrap;
+  margin-bottom: calc(14 / 1440 * 100vw);
+}
+
+.actionMuted {
+  font-size: calc(13 / 1440 * 100vw);
+  color: #98a2b3;
+}
+
+.linkBtn {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #2f6bff;
+  font-size: calc(13 / 1440 * 100vw);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.notice {
+  margin-bottom: calc(14 / 1440 * 100vw);
+  padding: calc(14 / 1440 * 100vw) calc(18 / 1440 * 100vw);
+  background: #f4f7ff;
+  border: 1px solid #d6e0ff;
+  border-radius: calc(12 / 1440 * 100vw);
+  font-size: calc(13 / 1440 * 100vw);
+  line-height: 1.6;
+  color: #344054;
+}
+
+.frameWrap {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - calc(280 / 1440 * 100vw));
+  min-height: calc(560 / 1440 * 100vw);
+  border: 1px solid #e4e7ec;
+  border-radius: calc(12 / 1440 * 100vw);
+  overflow: hidden;
+  background: #fff;
+}
+
+.frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+.frameLoader {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(12 / 1440 * 100vw);
+  padding: 0 calc(40 / 1440 * 100vw);
+  text-align: center;
+  font-size: calc(14 / 1440 * 100vw);
+  color: #667085;
+  background: #fff;
+}
+
+.spinner {
+  width: calc(28 / 1440 * 100vw);
+  height: calc(28 / 1440 * 100vw);
+  border: calc(3 / 1440 * 100vw) solid #d6e0ff;
+  border-top-color: #2f6bff;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 900px) {
+  .lead,
+  .notice,
+  .actionMuted,
+  .linkBtn {
+    font-size: 13px;
+  }
+
+  .frameWrap {
+    height: calc(100vh - 240px);
+    min-height: 420px;
+  }
+}

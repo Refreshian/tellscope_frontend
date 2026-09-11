@@ -348,6 +348,12 @@ const Agents = () => {
           >
             Создать агента
           </Button>
+          <Button
+            style={{ width: 'calc(250/1440*100vw)', height: 'calc(52/1440*100vw)' }}
+            onClick={() => navigate('/dify-constructor')}
+          >
+            Визуальный конструктор
+          </Button>
           <button type='button' className={styles.linkBtn} onClick={() => setShowPresets(v => !v)}>
             {showPresets ? 'скрыть готовые шаблоны' : `готовые шаблоны (${presets.length})`}
           </button>

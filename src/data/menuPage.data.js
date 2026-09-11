@@ -140,6 +140,17 @@ export const menuPageData = [
 		src_active: '/images/icons/menu/agent_active.svg',
 		path: '/agent-mode',
 	},
+	{
+		id: 14,
+		title: 'Конструктор Dify',
+		text: 'Конструктор Dify',
+		accent: true,
+		sidebarOnly: true,
+		badge: 'DIFY',
+		src: '/images/icons/menu/AI.svg',
+		src_active: '/images/icons/menu/AI_active.svg',
+		path: '/dify-constructor',
+	},
 ];
 
 // Пункты про ИИ-агентов выносятся в отдельный акцентный блок меню
