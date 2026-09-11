@@ -5,6 +5,7 @@ export const menuPageData = [
 		text: 'Тональный ландшафт',
 		src: '/images/icons/menu/user_tonality.svg',
 		src_active: '/images/icons/menu/user_tonality_active.svg',
+		badge: 'ТОН',
 		path: '/user-tonality',
 	},
 	{
@@ -13,6 +14,7 @@ export const menuPageData = [
 		text: 'Граф информации',
 		src: '/images/icons/menu/information_graph.svg',
 		src_active: '/images/icons/menu/information_graph_active.svg',
+		badge: 'ИНФ',
 		path: '/information-graf',
 	},
 	{
@@ -21,6 +23,7 @@ export const menuPageData = [
 		text: 'Медиа рейтинг',
 		src: '/images/icons/menu/media_rating.svg',
 		src_active: '/images/icons/menu/media_rating_active.svg',
+		badge: 'СМИ',
 		path: '/media-rating',
 	},
 	{
@@ -29,6 +32,7 @@ export const menuPageData = [
 		text: 'Голос клиента',
 		src: '/images/icons/menu/voice_of_customer.svg',
 		src_active: '/images/icons/menu/voice_of_customer_active.svg',
+		badge: 'ПРОД',
 		path: '/voice-of-customer',
 	},
 	// {
@@ -76,6 +80,7 @@ export const menuPageData = [
 		text: 'ИИ анализ',
 		src: '/images/icons/menu/AI.svg',
 		src_active: '/images/icons/menu/AI_active.svg',
+		badge: 'ТЕМ',
 		path: '/ai-analytics',
 		// path: '/none',
 	},
@@ -85,6 +90,7 @@ export const menuPageData = [
         text: 'Связи авторов',
         src: '/images/icons/menu/AI.png', // можно использовать существующую иконку или добавить новую
         src_active: '/images/icons/menu/AI.png',
+        badge: 'ГРАФ',
         path: '/graph-analysis'
     },
 	{
@@ -92,6 +98,7 @@ export const menuPageData = [
 		text: "ИИ-Бот", // название секции
 		src_active: "/images/icons/menu/chad_96011c3ae034462cbe830a422ef9c363.png", // путь к иконке
 		src: '/images/icons/menu/chad_96011c3ae034462cbe830a422ef9c363.png', // Путь к иконке (неактивное состояние)
+		badge: 'RAG',
 		path: '/ai-bot' // маршрут или "/none" если в разработке
 	},
 	{
@@ -100,6 +107,7 @@ export const menuPageData = [
 		text: 'Наборы данных',
 		src: '/images/icons/menu/show_data.svg',
 		src_active: '/images/icons/menu/show_data_active.svg',
+		badge: 'ДАН',
 		path: '/data-set',
 	},
 	{
@@ -108,6 +116,7 @@ export const menuPageData = [
 		text: 'Мосинформ.Рейтинг',
 		src: '/images/icons/menu/table.svg',
 		src_active: '/images/icons/menu/table_active.svg',
+		badge: 'ОИВ',
 		path: '/mosinform-rating',
 		sidebarOnly: true,
 	},
@@ -116,6 +125,7 @@ export const menuPageData = [
 		title: 'Мои агенты',
 		text: 'Мои агенты',
 		accent: true,
+		badge: 'AI',
 		src: '/images/icons/menu/agents.svg',
 		src_active: '/images/icons/menu/agents_active.svg',
 		path: '/agents',
@@ -125,6 +135,7 @@ export const menuPageData = [
 		title: 'Агентный режим',
 		text: 'Агентный режим',
 		accent: true,
+		badge: 'AI',
 		src: '/images/icons/menu/agent.svg',
 		src_active: '/images/icons/menu/agent_active.svg',
 		path: '/agent-mode',

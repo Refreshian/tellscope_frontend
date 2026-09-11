@@ -258,6 +258,7 @@
 }
 
 .menu__badge {
+	/* короткая метка раздела: в свёрнутом меню — в углу иконки */
 	position: absolute;
 	top: adapt(2px, 1440px);
 	right: adapt(2px, 1440px);
@@ -286,4 +287,12 @@
 		line-height: 16px;
 		padding: 0 6px;
 	}
+}
+
+.menu__badge {
+	background: rgba(11, 27, 59, 0.55);
+}
+
+.menu__badge_ai {
+	background: #2f6bff;
 }

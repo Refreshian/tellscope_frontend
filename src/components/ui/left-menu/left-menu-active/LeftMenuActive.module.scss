@@ -288,9 +288,9 @@
 }
 
 .menu__badge {
-	position: absolute;
-	top: adapt(2px, 1440px);
-	right: adapt(2px, 1440px);
+	/* в раскрытом меню метка стоит справа от подписи */
+	position: static;
+	margin-left: auto;
 	padding: 0 adapt(4px, 1440px);
 	border-radius: adapt(6px, 1440px);
 	background: #2f6bff;
@@ -316,4 +316,20 @@
 		line-height: 16px;
 		padding: 0 6px;
 	}
+}
+
+.menu__badge {
+	padding: adapt(1px, 1440px) adapt(7px, 1440px);
+	border-radius: adapt(7px, 1440px);
+	background: rgba(11, 27, 59, 0.5);
+	color: #fff;
+	font-size: adapt(10px, 1440px);
+	font-weight: 600;
+	letter-spacing: 0.03em;
+	line-height: adapt(16px, 1440px);
+	white-space: nowrap;
+}
+
+.menu__badge_ai {
+	background: #2f6bff;
 }

@@ -127,7 +127,9 @@ const LeftMenuActive = () => {
 									>
 										<img src={pathname === itemMenu.path ? itemMenu.src_active : itemMenu.src} alt={itemMenu.title} />
 										{itemMenu.title}
-										<span className={styles.menu__badge}>AI</span>
+										{itemMenu.badge ? (
+											<span className={`${styles.menu__badge} ${styles.menu__badge_ai}`}>{itemMenu.badge}</span>
+										) : null}
 									</Link>
 								))}
 								{menuPageData.filter(item => !item.accent).map(itemMenu => {
@@ -155,6 +157,9 @@ const LeftMenuActive = () => {
 												}
 												alt={itemMenu.title}
 											/>
+											{itemMenu.badge ? (
+												<span className={styles.menu__badge}>{itemMenu.badge}</span>
+											) : null}
 											{labelOf(itemMenu)}
 											{isDisabled &&
 												itemMenu.path &&

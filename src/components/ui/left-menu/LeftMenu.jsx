@@ -169,7 +169,9 @@ const LeftMenu = () => {
 									>
 										<img src={isActive ? itemMenu.src_active : itemMenu.src} alt={itemMenu.title} />
 										<span className={styles.menu__label}>{itemMenu.title}</span>
-										<span className={styles.menu__badge}>AI</span>
+										{itemMenu.badge ? (
+											<span className={`${styles.menu__badge} ${styles.menu__badge_ai}`}>{itemMenu.badge}</span>
+										) : null}
 									</li>
 								);
 							})}
@@ -195,6 +197,9 @@ const LeftMenu = () => {
 												src={isActive ? itemMenu.src_active : itemMenu.src}
 												alt={itemMenu.title}
 											/>
+											{itemMenu.badge ? (
+												<span className={styles.menu__badge}>{itemMenu.badge}</span>
+											) : null}
 											<span className={styles.menu__label}>
 												{labelOf(itemMenu)}
 											</span>
