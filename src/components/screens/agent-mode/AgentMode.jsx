@@ -22,16 +22,35 @@ import { useAddBaseAndDate } from '@/hooks/useAddBaseAndDate';
 import { useCheckAuth } from '@/hooks/useCheckAuth';
 import { useGetUserFoldersQuery, useGetUserIdQuery } from '@/services/other.service';
 
-import { API_URL, TOKEN } from '@/app.constants';
+import { TOKEN } from '@/app.constants';
 import { $axios } from '@/api';
 import styles from './AgentMode.module.scss';
 
 const STATUS_LABELS = {
   queued: 'В очереди',
   running: 'Работает',
-  completed: 'Завершён',
+  completed: 'Готово',
   failed: 'Ошибка',
 };
+
+const QUICK_TASKS = [
+  {
+    title: 'Подробный разбор темы',
+    task: 'Сделай подробный анализ темы: о чём пишут, на что жалуются, какие детали, приведи примеры со ссылками и собери отчёт.',
+  },
+  {
+    title: 'Сводный отчёт по бренду',
+    task: 'Собери сводный отчёт: динамика упоминаний, тональность, площадки, ключевые инфоповоды и выводы. С графиками.',
+  },
+  {
+    title: 'Негатив и жалобы',
+    task: 'Разбери негатив и жалобы: темы, площадки, города, конкретные примеры со ссылками и что с этим делать.',
+  },
+  {
+    title: 'Сравнить периоды',
+    task: 'Сравни два периода по объёму упоминаний, тональности и инфоповодам: что изменилось и почему.',
+  },
+];
 
 const apiPath = url => (url || '').replace(/^\/api/, '');
 
@@ -42,7 +61,7 @@ const AgentMode = () => {
   const { addData, addMinDate, addMaxDate, addIndex } = useActions();
   const { active_menu } = useSelector(store => store.booleanValues);
   const dataForRequest = useSelector(state => state.dataForRequest);
-  const { json_files_directory: dataUser } = useSelector(store => store.dataUsersSlice);
+  const { json_files_directory: dataUser } = useSelector(state => state.dataUsersSlice);
 
   const { data: data_getUserId } = useGetUserIdQuery();
   const { data, isError, isLoading, isSuccess } = useGetUserFoldersQuery(data_getUserId);
@@ -56,9 +75,7 @@ const AgentMode = () => {
   const [budget, setBudget] = useState(120000);
   const [spend, setSpend] = useState(null);
   const [folder, setFolder] = useState('Агент');
-  const [task, setTask] = useState(
-    'Собери аналитику по датасету: динамика сообщений, тональность, ключевые инфоповоды и площадки. Приведи примеры сообщений со ссылками и сделай отчёт.'
-  );
+  const [task, setTask] = useState('');
 
   const [runId, setRunId] = useState(null);
   const [runState, setRunState] = useState(null);
@@ -73,6 +90,12 @@ const AgentMode = () => {
   const [connectors, setConnectors] = useState([]);
   const [previews, setPreviews] = useState({});
   const [connectorForm, setConnectorForm] = useState({ name: '', type: 'http', url: '', description: '', token: '' });
+
+  // второстепенное скрыто по умолчанию
+  const [showTools, setShowTools] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showConnectors, setShowConnectors] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const scrollToBottom = useCallback(() => {
     if (!progressLogRef.current) return;
@@ -138,7 +161,6 @@ const AgentMode = () => {
     loadConnectors();
   }, [loadCatalog, loadHistory, loadConnectors]);
 
-  // Превью графиков: артефакты отдаются с проверкой прав, поэтому тянем blob
   useEffect(() => {
     if (!artifacts.length) {
       setPreviews({});
@@ -168,7 +190,6 @@ const AgentMode = () => {
     };
   }, [artifacts]);
 
-  // WebSocket-стрим шагов агента
   const connectStream = useCallback(id => {
     if (wsRef.current) {
       wsRef.current.close();
@@ -212,9 +233,7 @@ const AgentMode = () => {
       setError('Ошибка соединения с потоком агента');
       setIsRunning(false);
     };
-    ws.onclose = () => {
-      setIsRunning(false);
-    };
+    ws.onclose = () => setIsRunning(false);
   }, [loadHistory]);
 
   useEffect(() => {
@@ -271,7 +290,6 @@ const AgentMode = () => {
     }
   }, [connectStream]);
 
-  // Открытие конкретного запуска по ссылке вида /agent-mode?run=<id>
   const runParamRef = useRef(null);
   useEffect(() => {
     const requested = new URLSearchParams(location.search).get('run');
@@ -301,25 +319,13 @@ const AgentMode = () => {
     setSelectedTools(prev => (prev.includes(name) ? prev.filter(item => item !== name) : [...prev, name]));
   }, []);
 
-  const toggleGroup = useCallback((group, enable) => {
-    const names = (group.tools || []).map(tool => tool.name);
-    setSelectedTools(prev => {
-      const rest = prev.filter(item => !names.includes(item));
-      return enable ? [...rest, ...names] : rest;
-    });
-  }, []);
-
   const saveConnector = useCallback(async () => {
     if (!connectorForm.name.trim() || !connectorForm.url.trim()) {
       setError('Для коннектора нужны имя и адрес');
       return;
     }
     try {
-      const body = {
-        name: connectorForm.name,
-        type: connectorForm.type,
-        description: connectorForm.description,
-      };
+      const body = { name: connectorForm.name, type: connectorForm.type, description: connectorForm.description };
       if (connectorForm.type === 'mcp') body.url = connectorForm.url;
       else body.base_url = connectorForm.url;
       if (connectorForm.token) body.token = connectorForm.token;
@@ -342,6 +348,11 @@ const AgentMode = () => {
     }
   }, [loadConnectors, loadCatalog]);
 
+  const datasetChosen = dataForRequest.index !== null && dataForRequest.index !== undefined;
+  const models = catalog?.models || [{ id: 'gpt', label: 'GPT-4.1 mini — дёшево' }];
+  const reports = useMemo(() => artifacts.filter(item => item.kind === 'report'), [artifacts]);
+  const charts = useMemo(() => artifacts.filter(item => item.kind !== 'report'), [artifacts]);
+
   const renderEvent = (ev, index) => {
     const time = new Date(ev.ts || Date.now()).toLocaleTimeString();
     if (ev.type === 'tool_start') {
@@ -349,7 +360,7 @@ const AgentMode = () => {
         <div key={index} className={`${styles.event} ${styles.event_tool}`}>
           <span className={styles.eventTime}>{time}</span>
           <span className={styles.eventBody}>
-            <b>→ {ev.title || ev.name}</b>
+            <b>{ev.title || ev.name}</b>
             <code className={styles.eventArgs}>{JSON.stringify(ev.args || {})}</code>
           </span>
         </div>
@@ -357,10 +368,7 @@ const AgentMode = () => {
     }
     if (ev.type === 'tool_end') {
       return (
-        <div
-          key={index}
-          className={`${styles.event} ${ev.ok ? styles.event_ok : styles.event_error}`}
-        >
+        <div key={index} className={`${styles.event} ${ev.ok ? styles.event_ok : styles.event_error}`}>
           <span className={styles.eventTime}>{time}</span>
           <span className={styles.eventBody}>
             <b>{ev.ok ? '✓' : '✗'} {ev.title || ev.name}</b> — {ev.summary}
@@ -375,7 +383,7 @@ const AgentMode = () => {
         <div key={index} className={`${styles.event} ${styles.event_llm}`}>
           <span className={styles.eventTime}>{time}</span>
           <span className={styles.eventBody}>
-            шаг {ev.step}: {ev.final ? 'формирует ответ' : `выбирает инструменты: ${(ev.planned || []).join(', ')}`}
+            {ev.final ? 'формирует ответ' : `выбирает инструменты: ${(ev.planned || []).join(', ')}`}
           </span>
         </div>
       );
@@ -393,7 +401,7 @@ const AgentMode = () => {
         <div key={index} className={`${styles.event} ${styles.event_log}`}>
           <span className={styles.eventTime}>{time}</span>
           <span className={styles.eventBody}>
-            запуск: модель {ev.model}, инструментов доступно {ev.tools?.length || 0}
+            запуск: модель {ev.model}, инструментов доступно {(ev.tools || []).length}
           </span>
         </div>
       );
@@ -409,8 +417,6 @@ const AgentMode = () => {
     return null;
   };
 
-  const toolCount = useMemo(() => (catalog?.total ? `${catalog.total}` : '—'), [catalog]);
-
   return (
     <Layout>
       {isLoading && (
@@ -422,26 +428,96 @@ const AgentMode = () => {
       {pathname !== '/home' && active_menu ? <LeftMenuActive /> : <LeftMenu />}
       <Content>
         <div className={styles.block__pageName}>
-          <BeforeSearch
-            title='Агентный режим'
-            link='https://tsdoc.headsmade.com/en/smart-agent'
+          <BeforeSearch title='Агентный режим' link='https://tsdoc.headsmade.com/en/smart-agent' />
+        </div>
+
+        <p className={styles.lead}>
+          Опишите, что нужно выяснить по данным: агент сам выберет инструменты, соберёт цифры и примеры со ссылками,
+          подготовит отчёт. Нужен регулярный процесс — сохраните агента на странице «Мои агенты».
+        </p>
+
+        <div className={styles.step}>
+          <div className={styles.stepHead}>
+            <span className={styles.stepNumber}>1</span>
+            <div>
+              <div className={styles.stepTitle}>Выберите данные</div>
+              <div className={styles.stepHint}>набор данных и период, по которым работает агент</div>
+            </div>
+            {datasetChosen ? <span className={styles.stepDone}>выбрано</span> : null}
+          </div>
+          {isSuccess && Object.keys(dataUser || {}).length > 0 && <DataForSearch />}
+        </div>
+
+        <div className={styles.step}>
+          <div className={styles.stepHead}>
+            <span className={styles.stepNumber}>2</span>
+            <div>
+              <div className={styles.stepTitle}>Опишите задачу</div>
+              <div className={styles.stepHint}>что нужно выяснить: тема, сравнение, период, формат результата</div>
+            </div>
+          </div>
+          <textarea
+            className={styles.textarea}
+            rows={4}
+            value={task}
+            onChange={e => setTask(e.target.value)}
+            disabled={isRunning}
+            placeholder='Например: сделай подробный анализ темы «отравились» — о чём пишут, на что жалуются, примеры со ссылками, и собери отчёт'
           />
+          <div className={styles.quickTasks}>
+            {QUICK_TASKS.map(item => (
+              <button
+                key={item.title}
+                type='button'
+                className={styles.quickTask}
+                onClick={() => setTask(item.task)}
+                disabled={isRunning}
+              >
+                {item.title}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className={styles.hint}>
-          Агент сам выбирает инструменты Tellscope ({toolCount} доступно), выполняет запросы к данным и моделям
-          и собирает аналитику, а по запросу — готовый отчёт с графиками и ссылками на источники.
+        <div className={styles.runBar}>
+          <Button
+            style={{ width: 'calc(280/1440*100vw)', height: 'calc(56/1440*100vw)' }}
+            onClick={handleRun}
+            disabled={isRunning || !task.trim() || !datasetChosen}
+          >
+            {isRunning ? 'Агент работает…' : 'Запустить анализ'}
+          </Button>
+          <div className={styles.runBarInfo}>
+            <span className={styles.runBarPrimary}>
+              Инструментов: {selectedTools.length} из {catalog?.total ?? '—'}
+              {!datasetChosen ? ' · сначала выберите данные' : ''}
+            </span>
+            <button type='button' className={styles.linkBtn} onClick={() => setShowTools(v => !v)}>
+              {showTools ? 'скрыть настройку инструментов' : 'настроить инструменты'}
+            </button>
+            {spend ? (
+              <span className={styles.runBarMuted}>
+                токенов сегодня: {spend.tokens_today.toLocaleString('ru-RU')}
+                {spend.limit ? ` / ${spend.limit.toLocaleString('ru-RU')}` : ''}
+                {runState?.status ? ` · статус: ${STATUS_LABELS[runState.status] || runState.status}` : ''}
+              </span>
+            ) : null}
+          </div>
         </div>
 
-        {isSuccess && Object.keys(dataUser || {}).length > 0 && <DataForSearch />}
+        <div className={styles.advancedToggle}>
+          <button type='button' className={styles.linkBtn} onClick={() => setShowAdvanced(v => !v)}>
+            {showAdvanced ? 'скрыть дополнительные настройки' : 'дополнительно: модель, бюджет, папка отчётов'}
+          </button>
+        </div>
 
-        <div className={styles.grid}>
+        {showTools && (
           <div className={styles.panel}>
-            <div className={styles.panelHeader}>
+            <div className={styles.panelHead}>
               <h3>Инструменты агента</h3>
               <div className={styles.panelActions}>
-                <button type='button' className={styles.linkBtn} onClick={() => setSelectedTools((catalog?.default_enabled) || [])}>
-                  только рекомендованные
+                <button type='button' className={styles.linkBtn} onClick={() => setSelectedTools(catalog?.default_enabled || [])}>
+                  рекомендованные
                 </button>
                 <button
                   type='button'
@@ -452,56 +528,36 @@ const AgentMode = () => {
                 </button>
               </div>
             </div>
-            {(catalog?.groups || []).map(group => {
-              const names = (group.tools || []).map(tool => tool.name);
-              const enabled = names.length > 0 && names.every(name => selectedTools.includes(name));
-              return (
-                <div key={group.id} className={styles.toolGroup}>
-                  <label className={styles.toolGroupHeader}>
-                    <input type='checkbox' checked={enabled} onChange={e => toggleGroup(group, e.target.checked)} />
-                    <span>{group.title}</span>
-                    <span className={styles.toolGroupHint}>{group.hint}</span>
-                  </label>
-                  <div className={styles.toolList}>
-                    {(group.tools || []).map(tool => (
-                      <label key={tool.name} className={styles.toolItem} title={tool.description}>
-                        <input
-                          type='checkbox'
-                          checked={selectedTools.includes(tool.name)}
-                          onChange={() => toggleTool(tool.name)}
-                        />
-                        <span className={styles.toolName}>{tool.name}</span>
-                        <span className={styles.toolTitle}>{tool.title}</span>
-                      </label>
-                    ))}
-                  </div>
+            {(catalog?.groups || []).map(group => (
+              <div key={group.id} className={styles.toolGroup}>
+                <div className={styles.toolGroupTitle}>{group.title}</div>
+                <div className={styles.toolsGrid}>
+                  {(group.tools || []).map(tool => (
+                    <label key={tool.name} className={styles.checkbox} title={tool.description}>
+                      <input
+                        type='checkbox'
+                        checked={selectedTools.includes(tool.name)}
+                        onChange={() => toggleTool(tool.name)}
+                      />
+                      <span>{tool.title || tool.name}</span>
+                    </label>
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
+        )}
 
+        {showAdvanced && (
           <div className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <h3>Задача</h3>
-            </div>
-            <textarea
-              className={styles.textarea}
-              rows={5}
-              value={task}
-              onChange={e => setTask(e.target.value)}
-              disabled={isRunning}
-              placeholder='Что нужно выяснить по данным? Например: сравни 2025 и 2026 годы по тональности, площадкам и инфоповодам, покажи динамику и сделай отчёт.'
-            />
             <div className={styles.row}>
               <label className={styles.field}>
-                <span>Модель</span>
+                <span>Модель агента</span>
                 <select value={model} onChange={e => setModel(e.target.value)} disabled={isRunning}>
-                  {(catalog?.models || [{ id: 'gpt', label: 'GPT-4.1 mini — дёшево' }]).map(item => (
+                  {models.map(item => (
                     <option key={item.id} value={item.id}>
                       {item.label}
-                      {item.price_in || item.price_out
-                        ? ` · $${item.price_in}/$${item.price_out} за 1M токенов`
-                        : ' · без оплаты'}
+                      {item.price_in || item.price_out ? ` · $${item.price_in}/$${item.price_out} за 1M токенов` : ' · без оплаты'}
                     </option>
                   ))}
                 </select>
@@ -509,69 +565,35 @@ const AgentMode = () => {
               <label className={styles.field}>
                 <span>Бюджет прогона, токенов</span>
                 <input
-                  type="number"
-                  min="20000"
-                  max="2000000"
-                  step="10000"
+                  type='number'
+                  min='20000'
+                  max='2000000'
+                  step='10000'
                   value={budget}
                   onChange={e => setBudget(e.target.value)}
                   disabled={isRunning}
                 />
               </label>
-            </div>
-            <div className={styles.row}>
               <label className={styles.field}>
                 <span>Папка отчётов</span>
                 <input value={folder} onChange={e => setFolder(e.target.value)} disabled={isRunning} />
               </label>
-              {spend && (
-                <div className={styles.spendBox}>
-                  <span>Расход токенов за сегодня</span>
-                  <b>
-                    {spend.tokens_today.toLocaleString('ru-RU')}
-                    {spend.limit ? ` / ${spend.limit.toLocaleString('ru-RU')}` : ''}
-                  </b>
-                  <span>
-                    запусков: {spend.runs_today}
-                    {spend.runs_limit ? ` / ${spend.runs_limit}` : ''}
-                  </span>
-                </div>
-              )}
             </div>
-            <div className={styles.runRow}>
-              <Button
-                style={{ width: 'calc(240/1440*100vw)', height: 'calc(52/1440*100vw)' }}
-                onClick={handleRun}
-                disabled={isRunning || !task.trim()}
-              >
-                {isRunning ? 'Агент работает…' : 'Запустить агента'}
-              </Button>
-              <span className={styles.selectedInfo}>
-                инструментов выбрано: {selectedTools.length}
-                {dataForRequest.index !== null ? `, датасет: ${dataForRequest.index}` : ', датасет не выбран'}
-              </span>
-            </div>
-            {runState?.status && (
-              <div className={styles.statusLine}>
-                Статус: {STATUS_LABELS[runState.status] || runState.status}
-                {runId ? <span className={styles.runId}> · {runId.slice(0, 8)}</span> : null}
-              </div>
-            )}
           </div>
-        </div>
+        )}
 
         {error && (
           <div className={styles.errorBlock}>
-            <h4>Ошибка</h4>
+            <h4>Не получилось</h4>
             <p>{error}</p>
           </div>
         )}
 
-        {events.length > 0 && (
-          <div className={styles.progressContainer}>
-            <div className={styles.progressHeader}>
-              <h3>Журнал работы агента</h3>
-              {isRunning && <div className={styles.spinner} />}
+        {(events.length > 0 || isRunning) && (
+          <div className={styles.panel}>
+            <div className={styles.panelHead}>
+              <h3>{isRunning ? 'Агент работает' : 'Ход выполнения'}</h3>
+              {isRunning && <span className={styles.spinner} />}
             </div>
             <div ref={progressLogRef} className={styles.progressLog}>
               {events.map(renderEvent)}
@@ -580,31 +602,50 @@ const AgentMode = () => {
         )}
 
         {answer && (
-          <div className={styles.answerBlock}>
-            <h3>Ответ агента</h3>
+          <div className={styles.answerCard}>
+            <div className={styles.panelHead}>
+              <h3>Ответ агента</h3>
+              {runId ? <span className={styles.runningHint}>запуск {runId.slice(0, 8)}</span> : null}
+            </div>
             <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{answer}</ReactMarkdown>
           </div>
         )}
 
-        {artifacts.length > 0 && (
-          <div className={styles.artifactsBlock}>
-            <h3>Артефакты запуска</h3>
+        {reports.length > 0 && (
+          <div className={styles.reportsCard}>
+            <div className={styles.panelHead}>
+              <h3>Готовые отчёты</h3>
+              <span className={styles.runningHint}>сохранены во вкладке «Отчёты»</span>
+            </div>
+            <div className={styles.reportList}>
+              {reports.map(art => (
+                <button key={art.name} type='button' className={styles.reportItem} onClick={() => downloadArtifact(art)}>
+                  <span className={styles.reportName}>{art.name}</span>
+                  <span className={styles.reportAction}>скачать</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {charts.length > 0 && (
+          <div className={styles.panel}>
+            <div className={styles.panelHead}>
+              <h3>Графики и файлы запуска</h3>
+            </div>
             <div className={styles.artifactsList}>
-              {artifacts.map(art => (
+              {charts.map(art => (
                 <div key={`${art.kind}-${art.name}`} className={styles.artifactCard}>
                   <div className={styles.artifactHead}>
-                    <span className={styles.artifactKind}>{art.kind === 'chart' ? 'график' : 'файл'}</span>
+                    <span className={styles.artifactKind}>{art.kind === 'chart' ? 'график' : art.kind}</span>
                     <span className={styles.artifactName}>{art.name}</span>
                   </div>
                   {art.kind === 'chart' && previews[art.name] ? (
                     <img className={styles.artifactImage} src={previews[art.name]} alt={art.title} />
                   ) : null}
-                  <Button
-                    style={{ width: 'calc(200/1440*100vw)', height: 'calc(44/1440*100vw)' }}
-                    onClick={() => downloadArtifact(art)}
-                  >
-                    Скачать
-                  </Button>
+                  <button type='button' className={styles.linkBtn} onClick={() => downloadArtifact(art)}>
+                    скачать
+                  </button>
                 </div>
               ))}
             </div>
@@ -612,28 +653,19 @@ const AgentMode = () => {
         )}
 
         {stats && (
-          <div className={styles.statsBlock}>
-            <h3>Показатели запуска</h3>
+          <div className={styles.panel}>
             <div className={styles.statsGrid}>
               <div><span>обращений к модели</span><b>{stats.llm_calls}</b></div>
               <div><span>вызовов инструментов</span><b>{stats.tool_calls}</b></div>
               <div>
                 <span>токенов</span>
-                <b>
-                  {stats.tokens}
-                  {stats.token_budget ? ` / ${stats.token_budget}` : ''}
-                </b>
+                <b>{stats.tokens}{stats.token_budget ? ` / ${stats.token_budget}` : ''}</b>
               </div>
               <div>
-                <span>стоимость прогона</span>
+                <span>стоимость</span>
                 <b>{stats.cost_usd ? `$${stats.cost_usd}` : 'бесплатно'}</b>
               </div>
-              <div><span>артефактов</span><b>{stats.artifacts}</b></div>
             </div>
-            {stats.model ? <div className={styles.statsTools}>Модель: {stats.model}</div> : null}
-            {stats.tools_used?.length ? (
-              <div className={styles.statsTools}>Использованы: {stats.tools_used.join(', ')}</div>
-            ) : null}
             {stats.notes?.length ? (
               <ul className={styles.statsNotes}>
                 {stats.notes.map((note, index) => (
@@ -644,14 +676,17 @@ const AgentMode = () => {
           </div>
         )}
 
-        <div className={styles.grid}>
+        <div className={styles.footerRow}>
+          <button type='button' className={styles.footerToggle} onClick={() => setShowHistory(v => !v)}>
+            История запусков ({history.length})
+          </button>
+          <button type='button' className={styles.footerToggle} onClick={() => setShowConnectors(v => !v)}>
+            Внешние инструменты ({connectors.length})
+          </button>
+        </div>
+
+        {showHistory && (
           <div className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <h3>История запусков</h3>
-              <button type='button' className={styles.linkBtn} onClick={loadHistory}>
-                обновить
-              </button>
-            </div>
             <div className={styles.historyList}>
               {history.length === 0 && <div className={styles.empty}>Пока нет запусков</div>}
               {history.map(item => (
@@ -667,24 +702,26 @@ const AgentMode = () => {
                   </span>
                   <span className={styles.historyTask}>{item.task}</span>
                   <span className={styles.historyMeta}>
-                    {item.model_label} · инструментов {item.tools?.length || 0}
+                    {item.model_label}
                     {item.dataset_name ? ` · ${item.dataset_name}` : ''}
                     {item.stats?.tokens ? ` · ${item.stats.tokens} токенов` : ''}
-                    {item.cost_usd ? ` · $${item.cost_usd}` : ''}
                   </span>
                 </button>
               ))}
             </div>
           </div>
+        )}
 
+        {showConnectors && (
           <div className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <h3>Внешние инструменты (коннекторы)</h3>
-            </div>
-            <div className={styles.empty}>
-              Подключите свои сервисы по HTTP или MCP — агент сможет вызывать их как инструменты.
+            <div className={styles.panelHead}>
+              <h3>Внешние инструменты</h3>
+              <span className={styles.runningHint}>
+                подключите свои сервисы по HTTP или MCP — агент сможет вызывать их как инструменты
+              </span>
             </div>
             <div className={styles.connectorList}>
+              {connectors.length === 0 && <div className={styles.empty}>Пока ничего не подключено</div>}
               {connectors.map(item => (
                 <div key={item.name} className={styles.connectorItem}>
                   <div>
@@ -695,7 +732,7 @@ const AgentMode = () => {
                       {item.has_secret ? ' · секрет сохранён' : ''}
                     </span>
                   </div>
-                  <button type='button' className={styles.linkBtn} onClick={() => removeConnector(item.name)}>
+                  <button type='button' className={styles.linkBtnDanger} onClick={() => removeConnector(item.name)}>
                     удалить
                   </button>
                 </div>
@@ -738,15 +775,17 @@ const AgentMode = () => {
                   placeholder='Bearer-токен доступа'
                 />
               </label>
-              <Button
-                style={{ width: 'calc(200/1440*100vw)', height: 'calc(46/1440*100vw)' }}
-                onClick={saveConnector}
-              >
-                Добавить коннектор
-              </Button>
+              <div>
+                <Button
+                  style={{ width: 'calc(220/1440*100vw)', height: 'calc(46/1440*100vw)' }}
+                  onClick={saveConnector}
+                >
+                  Добавить коннектор
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </Content>
     </Layout>
   );

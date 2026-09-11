@@ -6,7 +6,7 @@ import { useLogout } from '@/hooks/useLogout';
 import { useAuth } from '@/hooks/useAuth';
 
 import styles from './LeftMenu.module.scss';
-import { menuPageData, menuSettings } from '@/data/menuPage.data';
+import { menuPageData, menuSettings, agentMenuData } from '@/data/menuPage.data';
 
 const LeftMenu = () => {
 	const { pathname } = useLocation();
@@ -153,7 +153,27 @@ const LeftMenu = () => {
 						<>
 							<nav className={styles.menu}>
 								<ul className={styles.menu__list}>
-								{menuPageData.map(itemMenu => {
+								{agentMenuData.length > 0 && (
+								<li className={styles.menu__groupTitle}>ИИ-автоматизация</li>
+							)}
+							{agentMenuData.map(itemMenu => {
+								const isActive = pathname === itemMenu.path;
+								return (
+									<li
+										key={itemMenu.id}
+										className={`${styles.menu__item} ${styles.menu__item_agent} ${isActive ? styles.menu__item_agentActive : ''}`}
+										onClick={() => {
+											closeMobile();
+											navigate(itemMenu.path);
+										}}
+									>
+										<img src={isActive ? itemMenu.src_active : itemMenu.src} alt={itemMenu.title} />
+										<span className={styles.menu__label}>{itemMenu.title}</span>
+										<span className={styles.menu__badge}>AI</span>
+									</li>
+								);
+							})}
+							{menuPageData.filter(item => !item.accent).map(itemMenu => {
 									const isDisabled = itemMenu.path === '/none';
 									const isActive = pathname === itemMenu.path;
 									return (

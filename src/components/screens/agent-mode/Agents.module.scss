@@ -2,95 +2,27 @@
   padding: calc(10 / 1440 * 100vw) 0 calc(4 / 1440 * 100vw);
 }
 
-.hint {
-  margin: calc(8 / 1440 * 100vw) 0 calc(16 / 1440 * 100vw);
-  padding: calc(14 / 1440 * 100vw) calc(18 / 1440 * 100vw);
-  background: #f5f7ff;
-  border-left: calc(3 / 1440 * 100vw) solid #2f6bff;
-  border-radius: calc(8 / 1440 * 100vw);
+.lead {
+  max-width: calc(900 / 1440 * 100vw);
+  margin: 0 0 calc(16 / 1440 * 100vw);
   font-size: calc(15 / 1440 * 100vw);
-  line-height: 1.5;
-  color: #344054;
-}
-
-.hintSpend {
-  display: block;
-  margin-top: calc(6 / 1440 * 100vw);
-  font-size: calc(13 / 1440 * 100vw);
-  color: #667085;
-}
-
-.section {
-  margin-bottom: calc(22 / 1440 * 100vw);
-
-  h3 {
-    margin: 0;
-    font-size: calc(18 / 1440 * 100vw);
-    font-weight: 600;
-    color: #101828;
-  }
-}
-
-.sectionHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: calc(12 / 1440 * 100vw);
-  margin-bottom: calc(12 / 1440 * 100vw);
-}
-
-.sectionActions {
-  display: flex;
-  gap: calc(14 / 1440 * 100vw);
-}
-
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(calc(360 / 1440 * 100vw), 1fr));
-  gap: calc(16 / 1440 * 100vw);
-}
-
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: calc(8 / 1440 * 100vw);
-  padding: calc(16 / 1440 * 100vw);
-  border: 1px solid #e4e7ec;
-  border-radius: calc(10 / 1440 * 100vw);
-  background: #fff;
-}
-
-.card_off {
-  opacity: 0.55;
-}
-
-.cardTitle {
-  font-size: calc(17 / 1440 * 100vw);
-  font-weight: 600;
-  color: #101828;
-}
-
-.cardText {
-  font-size: calc(13 / 1440 * 100vw);
-  line-height: 1.5;
+  line-height: 1.55;
   color: #475467;
-  flex: 1;
 }
 
-.cardMeta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: calc(6 / 1440 * 100vw) calc(14 / 1440 * 100vw);
-  font-size: calc(12 / 1440 * 100vw);
-  color: #667085;
-}
+/* ---------- главные действия ---------- */
 
-.cardButtons {
+.actionBar {
   display: flex;
   align-items: center;
+  gap: calc(18 / 1440 * 100vw);
   flex-wrap: wrap;
-  gap: calc(12 / 1440 * 100vw);
-  margin-top: calc(4 / 1440 * 100vw);
+  margin-bottom: calc(16 / 1440 * 100vw);
+}
+
+.actionMuted {
+  font-size: calc(13 / 1440 * 100vw);
+  color: #98a2b3;
 }
 
 .linkBtn {
@@ -113,53 +45,201 @@
   color: #b42318;
   font-size: calc(13 / 1440 * 100vw);
   cursor: pointer;
-
-  &:hover {
-    text-decoration: underline;
-  }
 }
 
-.errorBlock {
-  margin: calc(10 / 1440 * 100vw) 0;
-  padding: calc(14 / 1440 * 100vw) calc(18 / 1440 * 100vw);
-  background: #fef3f2;
-  border-left: calc(3 / 1440 * 100vw) solid #d92d20;
-  border-radius: calc(8 / 1440 * 100vw);
+/* ---------- панели и шаблоны ---------- */
 
-  h4 {
-    margin: 0 0 calc(6 / 1440 * 100vw);
-    font-size: calc(15 / 1440 * 100vw);
-    color: #b42318;
-  }
+.panel {
+  margin-bottom: calc(16 / 1440 * 100vw);
+  padding: calc(16 / 1440 * 100vw) calc(18 / 1440 * 100vw);
+  background: #fff;
+  border: 1px solid #e4e7ec;
+  border-radius: calc(12 / 1440 * 100vw);
+}
 
-  p {
+.panelHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(12 / 1440 * 100vw);
+  margin-bottom: calc(12 / 1440 * 100vw);
+
+  h3 {
     margin: 0;
-    font-size: calc(14 / 1440 * 100vw);
-    color: #475467;
+    font-size: calc(17 / 1440 * 100vw);
+    font-weight: 600;
+    color: #101828;
   }
 }
 
-.noticeBlock {
-  margin: calc(10 / 1440 * 100vw) 0;
-  padding: calc(12 / 1440 * 100vw) calc(16 / 1440 * 100vw);
-  background: #ecfdf3;
-  border-left: calc(3 / 1440 * 100vw) solid #12b76a;
-  border-radius: calc(8 / 1440 * 100vw);
-  font-size: calc(14 / 1440 * 100vw);
-  color: #054f31;
-}
-
-.empty {
-  font-size: calc(14 / 1440 * 100vw);
+.panelHint {
+  font-size: calc(12 / 1440 * 100vw);
   color: #98a2b3;
 }
 
-.editor {
-  margin-bottom: calc(20 / 1440 * 100vw);
-  padding: calc(18 / 1440 * 100vw);
-  border: 1px solid #d0d5dd;
+.presetsList {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8 / 1440 * 100vw);
+}
+
+.presetRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: calc(16 / 1440 * 100vw);
+  padding: calc(10 / 1440 * 100vw) calc(12 / 1440 * 100vw);
+  border: 1px solid #eaecf0;
   border-radius: calc(10 / 1440 * 100vw);
   background: #fcfcfd;
+}
+
+.presetMain {
+  min-width: 0;
+}
+
+.presetTitle {
+  font-size: calc(15 / 1440 * 100vw);
+  font-weight: 600;
+  color: #101828;
+}
+
+.presetText {
+  font-size: calc(13 / 1440 * 100vw);
+  color: #667085;
+  line-height: 1.45;
+}
+
+.presetMeta {
+  display: flex;
+  flex-direction: column;
+  gap: calc(2 / 1440 * 100vw);
+  font-size: calc(12 / 1440 * 100vw);
+  color: #98a2b3;
+  white-space: nowrap;
+}
+
+.presetAction {
+  padding: calc(8 / 1440 * 100vw) calc(16 / 1440 * 100vw);
+  border: 1px solid #2f6bff;
+  border-radius: calc(8 / 1440 * 100vw);
+  background: #fff;
+  color: #2f6bff;
+  font-size: calc(13 / 1440 * 100vw);
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: #2f6bff;
+    color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+/* ---------- карточки агентов ---------- */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(340 / 1440 * 100vw), 1fr));
+  gap: calc(16 / 1440 * 100vw);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8 / 1440 * 100vw);
+  padding: calc(16 / 1440 * 100vw);
+  border: 1px solid #e4e7ec;
+  border-radius: calc(12 / 1440 * 100vw);
+  background: #fff;
+}
+
+.card_off {
+  opacity: 0.6;
+}
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: calc(10 / 1440 * 100vw);
+}
+
+.cardTitle {
+  font-size: calc(17 / 1440 * 100vw);
+  font-weight: 600;
+  color: #101828;
+}
+
+.badge {
+  padding: calc(2 / 1440 * 100vw) calc(8 / 1440 * 100vw);
+  border-radius: calc(6 / 1440 * 100vw);
+  font-size: calc(11 / 1440 * 100vw);
+  white-space: nowrap;
+}
+
+.badge_on {
+  background: #ecfdf3;
+  color: #054f31;
+}
+
+.badge_off {
+  background: #f2f4f7;
+  color: #667085;
+}
+
+.cardText {
+  flex: 1;
+  font-size: calc(13 / 1440 * 100vw);
+  line-height: 1.5;
+  color: #475467;
+}
+
+.cardFacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(4 / 1440 * 100vw) calc(14 / 1440 * 100vw);
+  font-size: calc(13 / 1440 * 100vw);
+  color: #344054;
+}
+
+.factMain {
+  font-weight: 600;
+}
+
+.cardMuted {
+  font-size: calc(12 / 1440 * 100vw);
+  color: #98a2b3;
+}
+
+.cardButtons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: calc(12 / 1440 * 100vw);
+  margin-top: calc(4 / 1440 * 100vw);
+}
+
+.empty {
+  padding: calc(18 / 1440 * 100vw);
+  border: 1px dashed #d0d5dd;
+  border-radius: calc(12 / 1440 * 100vw);
+  font-size: calc(14 / 1440 * 100vw);
+  color: #667085;
+}
+
+/* ---------- редактор ---------- */
+
+.editor {
+  margin-bottom: calc(18 / 1440 * 100vw);
+  padding: calc(18 / 1440 * 100vw);
+  background: #f9fafb;
+  border: 1px solid #d0d5dd;
+  border-radius: calc(12 / 1440 * 100vw);
   display: flex;
   flex-direction: column;
   gap: calc(12 / 1440 * 100vw);
@@ -167,7 +247,7 @@
 
 .row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc(230 / 1440 * 100vw), 1fr));
   gap: calc(14 / 1440 * 100vw);
 }
 
@@ -194,34 +274,44 @@
   }
 }
 
+.scheduleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: calc(14 / 1440 * 100vw);
+  padding: calc(10 / 1440 * 100vw) calc(12 / 1440 * 100vw);
+  background: #fff;
+  border: 1px solid #eaecf0;
+  border-radius: calc(10 / 1440 * 100vw);
+  font-size: calc(13 / 1440 * 100vw);
+}
+
+.inlineSelect {
+  padding: calc(6 / 1440 * 100vw) calc(8 / 1440 * 100vw);
+  border: 1px solid #d0d5dd;
+  border-radius: calc(8 / 1440 * 100vw);
+  font-size: calc(13 / 1440 * 100vw);
+  font-family: inherit;
+}
+
 .timeRow {
   display: flex;
   align-items: center;
   gap: calc(6 / 1440 * 100vw);
 
   input {
-    width: calc(70 / 1440 * 100vw);
+    width: calc(64 / 1440 * 100vw);
+    padding: calc(6 / 1440 * 100vw);
+    border: 1px solid #d0d5dd;
+    border-radius: calc(8 / 1440 * 100vw);
+    font-size: calc(13 / 1440 * 100vw);
   }
 }
 
-.scheduleBlock,
-.toolsBlock {
+.weekdays {
   display: flex;
-  flex-direction: column;
-  gap: calc(10 / 1440 * 100vw);
-  padding-top: calc(10 / 1440 * 100vw);
-  border-top: 1px solid #eaecf0;
-}
-
-.toolsHead {
-  font-size: calc(13 / 1440 * 100vw);
-  color: #344054;
-}
-
-.toolsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(calc(240 / 1440 * 100vw), 1fr));
-  gap: calc(6 / 1440 * 100vw);
+  gap: calc(12 / 1440 * 100vw);
+  flex-wrap: wrap;
 }
 
 .checkbox {
@@ -233,14 +323,73 @@
   cursor: pointer;
 }
 
-.weekdays {
+.advancedBox {
   display: flex;
-  gap: calc(14 / 1440 * 100vw);
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: calc(12 / 1440 * 100vw);
+  padding: calc(14 / 1440 * 100vw);
+  background: #fff;
+  border: 1px solid #eaecf0;
+  border-radius: calc(10 / 1440 * 100vw);
 }
 
-@media (max-width: 1100px) {
-  .row {
+.toolsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8 / 1440 * 100vw);
+}
+
+.toolsHead {
+  font-size: calc(13 / 1440 * 100vw);
+  color: #344054;
+}
+
+.toolsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(230 / 1440 * 100vw), 1fr));
+  gap: calc(6 / 1440 * 100vw);
+}
+
+.editorActions {
+  display: flex;
+  align-items: center;
+  gap: calc(16 / 1440 * 100vw);
+}
+
+/* ---------- сообщения ---------- */
+
+.errorBlock {
+  margin-bottom: calc(14 / 1440 * 100vw);
+  padding: calc(14 / 1440 * 100vw) calc(18 / 1440 * 100vw);
+  background: #fef3f2;
+  border-left: calc(3 / 1440 * 100vw) solid #d92d20;
+  border-radius: calc(10 / 1440 * 100vw);
+
+  h4 {
+    margin: 0 0 calc(6 / 1440 * 100vw);
+    font-size: calc(15 / 1440 * 100vw);
+    color: #b42318;
+  }
+
+  p {
+    margin: 0;
+    font-size: calc(14 / 1440 * 100vw);
+    color: #475467;
+  }
+}
+
+.noticeBlock {
+  margin-bottom: calc(14 / 1440 * 100vw);
+  padding: calc(12 / 1440 * 100vw) calc(16 / 1440 * 100vw);
+  background: #ecfdf3;
+  border-left: calc(3 / 1440 * 100vw) solid #12b76a;
+  border-radius: calc(10 / 1440 * 100vw);
+  font-size: calc(14 / 1440 * 100vw);
+  color: #054f31;
+}
+
+@media (max-width: 900px) {
+  .presetRow {
     grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -115,6 +115,7 @@ export const menuPageData = [
 		id: 13,
 		title: 'Мои агенты',
 		text: 'Мои агенты',
+		accent: true,
 		src: '/images/icons/menu/agents.svg',
 		src_active: '/images/icons/menu/agents_active.svg',
 		path: '/agents',
@@ -123,11 +124,15 @@ export const menuPageData = [
 		id: 12,
 		title: 'Агентный режим',
 		text: 'Агентный режим',
+		accent: true,
 		src: '/images/icons/menu/agent.svg',
 		src_active: '/images/icons/menu/agent_active.svg',
 		path: '/agent-mode',
 	},
 ];
+
+// Пункты про ИИ-агентов выносятся в отдельный акцентный блок меню
+export const agentMenuData = menuPageData.filter(item => item.accent);
 
 export const menuSettings = [
 	{ 
