@@ -296,3 +296,68 @@
 .menu__badge_ai {
 	background: #2f6bff;
 }
+
+/* ---------- всплывающие подсказки (в свёрнутом меню подписи не видны) ---------- */
+
+.menu__item[data-tooltip],
+.menu__item_active[data-tooltip] {
+	position: relative;
+}
+
+.menu__item[data-tooltip]::after,
+.menu__item_active[data-tooltip]::after {
+	content: attr(data-tooltip);
+	position: absolute;
+	left: calc(100% + adapt(12px, 1440px));
+	top: 50%;
+	transform: translateY(-50%) translateX(adapt(-6px, 1440px));
+	padding: adapt(7px, 1440px) adapt(12px, 1440px);
+	background: #101828;
+	color: #ffffff;
+	font-size: adapt(12px, 1440px);
+	line-height: 1.2;
+	white-space: nowrap;
+	border-radius: adapt(8px, 1440px);
+	box-shadow: 0 8px 20px rgba(16, 24, 40, 0.25);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.14s ease, transform 0.14s ease;
+	z-index: 300;
+}
+
+/* стрелка подсказки */
+.menu__item[data-tooltip]::before,
+.menu__item_active[data-tooltip]::before {
+	content: '';
+	position: absolute;
+	left: calc(100% + adapt(6px, 1440px));
+	top: 50%;
+	transform: translateY(-50%);
+	border: adapt(6px, 1440px) solid transparent;
+	border-right-color: #101828;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.14s ease;
+	z-index: 300;
+}
+
+.menu__item[data-tooltip]:hover::after,
+.menu__item_active[data-tooltip]:hover::after {
+	opacity: 1;
+	transform: translateY(-50%) translateX(0);
+}
+
+.menu__item[data-tooltip]:hover::before,
+.menu__item_active[data-tooltip]:hover::before {
+	opacity: 1;
+}
+
+@media (max-width: 900px) {
+	/* в мобильном меню подписи видны — подсказки не нужны и мешали бы */
+	.menu__item[data-tooltip]::after,
+	.menu__item[data-tooltip]::before,
+	.menu__item_active[data-tooltip]::after,
+	.menu__item_active[data-tooltip]::before {
+		display: none;
+	}
+}

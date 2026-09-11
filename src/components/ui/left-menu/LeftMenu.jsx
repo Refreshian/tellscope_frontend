@@ -96,6 +96,7 @@ const LeftMenu = () => {
 									return (
 										<li
 											key={itemMenu.id}
+											data-tooltip='Развернуть меню'
 											className={`${styles.menu__item} ${styles.hideOnMobile}`}
 											onClick={() => toggleActiveMenu('')}
 										>
@@ -110,6 +111,7 @@ const LeftMenu = () => {
 									return (
 										<li
 											key={itemMenu.id}
+											data-tooltip={itemMenu.title || itemMenu.text}
 											className={styles.menu__item}
 											onClick={() => {
 												closeMobile();
@@ -134,6 +136,7 @@ const LeftMenu = () => {
 								return (
 									<li
 										key={itemMenu.id}
+										data-tooltip={itemMenu.title || itemMenu.text}
 										className={styles.menu__item}
 										onClick={() => {
 											closeMobile();
@@ -161,6 +164,7 @@ const LeftMenu = () => {
 								return (
 									<li
 										key={itemMenu.id}
+										data-tooltip={itemMenu.title || itemMenu.text}
 										className={`${styles.menu__item} ${styles.menu__item_agent} ${isActive ? styles.menu__item_agentActive : ''}`}
 										onClick={() => {
 											closeMobile();
@@ -181,7 +185,9 @@ const LeftMenu = () => {
 									return (
 										<li
 											disabled={isDisabled}
+											data-tooltip={itemMenu.title || itemMenu.text}
 											key={itemMenu.id}
+											data-tooltip={itemMenu.title || itemMenu.text}
 											className={
 												isActive ? styles.menu__item_active : styles.menu__item
 											}
@@ -215,6 +221,7 @@ const LeftMenu = () => {
 								{isAdmin && (
 									<li
 										key={aiTestMenuItem.id}
+										data-tooltip={aiTestMenuItem.title}
 										className={
 											pathname === aiTestMenuItem.path
 												? styles.menu__item_active
@@ -225,6 +232,7 @@ const LeftMenu = () => {
 											navigate(aiTestMenuItem.path);
 										}}
 										title={aiTestMenuItem.title}
+										data-tooltip={aiTestMenuItem.title}
 									>
 										<img
 											src={
@@ -261,6 +269,7 @@ const LeftMenu = () => {
 									return (
 										<li
 											key={itemMenu.id}
+											data-tooltip={itemMenu.title || itemMenu.text}
 											className={`${styles.menu__item} ${itemMenu.id === 1 ? styles.hideOnMobile : ''}`}
 											onClick={() => {
 												if (itemMenu.id === 1) toggleActiveMenu('');
