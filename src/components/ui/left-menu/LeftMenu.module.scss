@@ -77,7 +77,7 @@
 
 			> .menu__item_active {
 				position: relative;
-				background-color: rgba(47, 107, 255, 0.08);
+				background-color: rgba(16, 24, 40, 0.06);
 				@include menu-item();
 			}
 		}
@@ -223,8 +223,8 @@
 	transition: none !important;
 }
 .menu__item_active {
-	/* текущий раздел выделяем мягко: лёгкая заливка вместо градиента с рамкой */
-	background: rgba(47, 107, 255, 0.08);
+	/* текущий раздел выделяем мягко и нейтрально: без синего тона (он спорит с цветными иконками) */
+	background: rgba(16, 24, 40, 0.06);
 	box-shadow: none;
 }
 .menu__item,
