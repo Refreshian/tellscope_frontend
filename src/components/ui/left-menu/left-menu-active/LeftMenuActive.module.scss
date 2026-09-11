@@ -95,7 +95,11 @@
 
 			> .menu__item_active {
 				position: relative;
-				background-color: rgba(16, 24, 40, 0.06);
+				/* текущий раздел: короткая черта снизу вместо заливки */
+				background-image: linear-gradient($color_blue, $color_blue);
+				background-repeat: no-repeat;
+				background-position: center bottom adapt(6px, 1440px);
+				background-size: adapt(18px, 1440px) adapt(2px, 1440px);
 				font-size: 0.81rem;
 				@include menu-item();
 				color: $color_blue;
@@ -142,7 +146,11 @@
 
 			> .menu__item_active {
 				position: relative;
-				background-color: rgba(16, 24, 40, 0.06);
+				/* текущий раздел: короткая черта снизу вместо заливки */
+				background-image: linear-gradient($color_blue, $color_blue);
+				background-repeat: no-repeat;
+				background-position: center bottom adapt(6px, 1440px);
+				background-size: adapt(18px, 1440px) adapt(2px, 1440px);
 				font-size: 0.81rem;
 				@include menu-item();
 				color: $color_blue;

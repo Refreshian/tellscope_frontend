@@ -77,8 +77,12 @@
 
 			> .menu__item_active {
 				position: relative;
-				background-color: rgba(16, 24, 40, 0.06);
 				@include menu-item();
+				/* текущий раздел: короткая черта снизу под иконкой */
+				background-image: linear-gradient($color_blue, $color_blue);
+				background-repeat: no-repeat;
+				background-position: center bottom adapt(5px, 1440px);
+				background-size: adapt(14px, 1440px) adapt(2px, 1440px);
 			}
 		}
 	}
@@ -223,8 +227,12 @@
 	transition: none !important;
 }
 .menu__item_active {
-	/* текущий раздел выделяем мягко и нейтрально: без синего тона (он спорит с цветными иконками) */
-	background: rgba(16, 24, 40, 0.06);
+	/* текущий раздел показываем короткой чертой снизу: без заливки и рамки */
+	background: transparent;
+	background-image: linear-gradient($color_blue, $color_blue);
+	background-repeat: no-repeat;
+	background-position: center bottom adapt(5px, 1440px);
+	background-size: adapt(14px, 1440px) adapt(2px, 1440px);
 	box-shadow: none;
 }
 .menu__item,
