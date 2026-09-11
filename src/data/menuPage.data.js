@@ -147,8 +147,8 @@ export const menuPageData = [
 		accent: true,
 		sidebarOnly: true,
 		badge: 'DIFY',
-		src: '/images/icons/menu/AI.svg',
-		src_active: '/images/icons/menu/AI_active.svg',
+		src: '/images/icons/menu/dify.svg',
+		src_active: '/images/icons/menu/dify_active.svg',
 		path: '/dify-constructor',
 	},
 ];

@@ -3,7 +3,6 @@ import { useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 
 import Content from '@/components/content/Content';
-import BeforeSearch from '@/components/content/before-search/BeforeSearch';
 import Layout from '@/components/layout/Layout';
 import Button from '@/components/ui/button/Button';
 import LeftMenu from '@/components/ui/left-menu/LeftMenu';
@@ -17,7 +16,7 @@ import styles from './DifyConstructor.module.scss';
 // поэтому вкладка Tellscope открывает его внутри себя, а кнопка — в новой вкладке браузера.
 const difyUrl = () => {
 	if (typeof window === 'undefined') return 'https://tellscope40.headsmade.com:8443';
-	const { protocol, hostname, port } = window.location;
+	const { protocol, hostname } = window.location;
 	if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') {
 		return 'https://tellscope40.headsmade.com:8443';
 	}
@@ -57,40 +56,22 @@ const DifyConstructor = () => {
 		<Layout>
 			{pathname !== '/home' && active_menu ? <LeftMenuActive /> : <LeftMenu />}
 			<Content>
-				<div className={styles.block__pageName}>
-					<BeforeSearch title='Конструктор Dify' link='https://tsdoc.headsmade.com/en/smart-agent' />
-				</div>
-
-				<p className={styles.lead}>
-					Визуальный редактор цепочек: собирайте сценарии аналитики соцмедиа и СМИ из блоков
-					(поиск, тональность, инфоповоды, ИИ-разбор текста, отчёты), не заглядывая в код.
-					Инструменты Tellscope уже подключены в редакторе — ищите провайдера <b>tellscope</b>
-					в списке инструментов.
-				</p>
-
-				<div className={styles.actionBar}>
-					<Button
-						style={{ width: 'calc(260/1440*100vw)', height: 'calc(52/1440*100vw)' }}
-						onClick={openInNewTab}
-					>
-						Открыть в новой вкладке
-					</Button>
-					<button type='button' className={styles.linkBtn} onClick={reload}>
-						обновить редактор
-					</button>
-					<span className={styles.actionMuted}>
-						инструментов Tellscope: 14 · отчёты и графики попадают во вкладку «Отчёты»
+				<div className={styles.head}>
+					<h2 className={styles.title}>Конструктор Dify</h2>
+					<span className={styles.hint}>
+						инструменты Tellscope (14) уже подключены — узел «Инструмент» → провайдер tellscope
 					</span>
-				</div>
-
-				<div className={styles.notice}>
-					<b>Как собрать инструмент по соцмедиа и СМИ.</b> В редакторе создайте приложение
-					(Workflow), добавьте узел «Инструмент» → <b>tellscope</b> → нужный инструмент
-					(например, <i>search_messages</i> — поиск сообщений, <i>deep_text_analysis</i> —
-					подробный разбор текстов, <i>build_report</i> — отчёт DOCX/PDF). Параметры
-					подставляйте переменными из узла «Начало» или из предыдущих блоков — так и получается
-					цепочка. Локальная модель <i>Qwen3-32B</i> работает без оплаты, внешние модели
-					подключены через aitunnel.
+					<div className={styles.actions}>
+						<Button
+							style={{ width: 'calc(220/1440*100vw)', height: 'calc(40/1440*100vw)' }}
+							onClick={openInNewTab}
+						>
+							Открыть в новой вкладке
+						</Button>
+						<button type='button' className={styles.linkBtn} onClick={reload}>
+							обновить
+						</button>
+					</div>
 				</div>
 
 				<div className={styles.frameWrap}>
