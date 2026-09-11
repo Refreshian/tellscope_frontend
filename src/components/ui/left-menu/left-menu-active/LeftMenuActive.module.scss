@@ -95,7 +95,7 @@
 
 			> .menu__item_active {
 				position: relative;
-				background-color: $color_very_light_blue;
+				background-color: rgba(47, 107, 255, 0.08);
 				font-size: 0.81rem;
 				@include menu-item();
 				color: $color_blue;
@@ -142,7 +142,7 @@
 
 			> .menu__item_active {
 				position: relative;
-				background-color: $color_very_light_blue;
+				background-color: rgba(47, 107, 255, 0.08);
 				font-size: 0.81rem;
 				@include menu-item();
 				color: $color_blue;
