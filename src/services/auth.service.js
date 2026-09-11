@@ -9,13 +9,15 @@ export const authService = {
       params.append('username', email);
       params.append('password', password);
       // "/auth/jwt/login"
-      const { data } = await axios.post("/api/auth/jwt/login", params, {
+      const { data } = await axios.post("/api/auth/login", params, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         withCredentials: true
       });
 
       Cookies.set(TOKEN, data.access_token);
-      Cookies.set(REFRESH_TOKEN, data.refresh_token);
+      if (data.refresh_token) {
+        Cookies.set(REFRESH_TOKEN, data.refresh_token);
+      }
       setIsAuth(true);
     } catch (error) {
       console.error("Login error:", error);
@@ -44,6 +46,6 @@ registration: async (email, password, username, role_id = 1) => {
   logout: () => {
     Cookies.remove(TOKEN);
     Cookies.remove(REFRESH_TOKEN);
-    window.location.href = "/auth";
+    window.location.href = "/";
   }
 };

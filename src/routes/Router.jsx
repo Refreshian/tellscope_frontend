@@ -27,6 +27,10 @@ const Router = () => {
 							/>
 						);
 					})}
+					{/* Страницы входа по старым адресам: /login и /auth всегда ведут на форму авторизации,
+					    а не на страницу «не найдено» */}
+					<Route element={<Auth />} path='/login' />
+					<Route element={<Auth />} path='/auth' />
 					<Route element={!isAuth ? <Auth /> : <NotFound />} path='*' />
 					{/* <Route element={} path='*' /> */}
 				</Routes>

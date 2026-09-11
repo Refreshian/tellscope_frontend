@@ -25,6 +25,30 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+// Сессия истекла: запоминаем, куда пользователь шёл, чистим cookie и уводим на форму входа.
+// Маршрут /login в приложении не существует — из-за этого раньше показывалась страница «не найдено».
+const redirectToLogin = () => {
+  const current = `${window.location.pathname}${window.location.search}`;
+  if (current && current !== '/' && !current.startsWith('/login')) {
+    try {
+      sessionStorage.setItem('postAuthRedirectPath', current);
+    } catch (e) {
+      /* приватный режим — не критично */
+    }
+  }
+  Cookies.remove(TOKEN);
+  Cookies.remove(REFRESH_TOKEN);
+  if (window.location.pathname !== '/') {
+    window.location.href = '/';
+  }
+};
+
+const refreshTokenValue = () => {
+  const value = Cookies.get(REFRESH_TOKEN);
+  if (!value || value === 'undefined' || value === 'null') return null;
+  return value;
+};
+
 $axios.interceptors.request.use(
   config => {
     const token = Cookies.get(TOKEN);
@@ -41,16 +65,19 @@ $axios.interceptors.request.use(
 $axios.interceptors.response.use(
   response => response,
   async error => {
-    const originalRequest = error.config;
-    
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const originalRequest = error.config || {};
+    const status = error.response?.status;
+    // на самих эндпоинтах авторизации refresh не запускаем — иначе получаем цикл
+    const isAuthCall = (originalRequest.url || '').includes('/auth/');
+
+    if (status === 401 && !originalRequest._retry && !isAuthCall) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
           .then(token => {
             originalRequest.headers['Authorization'] = 'Bearer ' + token;
-            return $axios(originalRequest); 
+            return $axios(originalRequest);
           })
           .catch(err => {
             return Promise.reject(err);
@@ -60,19 +87,21 @@ $axios.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = Cookies.get(REFRESH_TOKEN);
+      const refreshToken = refreshTokenValue();
       if (!refreshToken) {
-        Cookies.remove(TOKEN);
-        window.location.href = '/login';
+        processQueue(error, null);
+        isRefreshing = false;
+        redirectToLogin();
         return Promise.reject(error);
       }
 
       try {
-        const { data } = await axios.post(`${API_URL}/auth/refresh`, {
-          refresh_token: refreshToken
-        });
+        const { data } = await axios.post(`${API_URL}/auth/refresh`, { refresh_token: refreshToken });
 
         Cookies.set(TOKEN, data.access_token);
+        if (data.refresh_token) {
+          Cookies.set(REFRESH_TOKEN, data.refresh_token);
+        }
         $axios.defaults.headers.common['Authorization'] = 'Bearer ' + data.access_token;
         originalRequest.headers['Authorization'] = 'Bearer ' + data.access_token;
 
@@ -82,9 +111,8 @@ $axios.interceptors.response.use(
         return $axios(originalRequest);
       } catch (err) {
         processQueue(err, null);
-        Cookies.remove(TOKEN);
-        Cookies.remove(REFRESH_TOKEN);
-        window.location.href = '/login';
+        isRefreshing = false;
+        redirectToLogin();
         return Promise.reject(err);
       }
     }
