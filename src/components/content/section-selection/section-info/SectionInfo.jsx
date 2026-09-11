@@ -16,15 +16,19 @@ const SectionInfo = ({ elemInfo }) => {
 
 	const isDisabled = elemInfo.path === '/none';
 
+	const isAccent = Boolean(elemInfo.accent);
+
 	return (
 		<Link
 			to={isDisabled ? null : elemInfo.path}
-			className={styles.block__sectionInfo}
+			className={`${styles.block__sectionInfo} ${isAccent ? styles.block__sectionInfo_accent : ''}`}
 			onMouseEnter={() => handleMouseEnter(elemInfo.id)}
 			onMouseLeave={handleMouseLeave}
 		>
+			{isAccent ? <span className={styles.badge}>AI</span> : null}
 			<img src={elemInfo.src_active} alt={elemInfo.text} />
 			<p>{elemInfo.text}</p>
+			{isAccent ? <span className={styles.accentHint}>автоматические отчёты</span> : null}
 			{isDisabled && elemInfo.path && hoveredItem === elemInfo.id && (
 				<p className={styles.not_ready}>В разработке</p>
 			)}

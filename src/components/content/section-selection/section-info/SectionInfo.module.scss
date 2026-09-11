@@ -83,3 +83,56 @@
 	border-color: rgba(108, 92, 231, 0.5);
 	box-shadow: 0 10px 26px rgba(108, 92, 231, 0.2);
 }
+
+/* ---------- акцент на плитках ИИ-агентов ---------- */
+
+.block__sectionInfo_accent {
+	background: linear-gradient(150deg, rgba(47, 107, 255, 0.14), rgba(122, 90, 248, 0.12));
+	border: 1px solid rgba(47, 107, 255, 0.45);
+	box-shadow: 0 8px 24px rgba(47, 107, 255, 0.18);
+}
+
+.block__sectionInfo_accent:hover {
+	border-color: rgba(47, 107, 255, 0.7);
+	box-shadow: 0 12px 30px rgba(47, 107, 255, 0.28);
+}
+
+.block__sectionInfo_accent > img {
+	filter: saturate(1.1);
+}
+
+.badge {
+	position: absolute;
+	top: adapt(10px, 1440px);
+	right: adapt(10px, 1440px);
+	padding: 0 adapt(6px, 1440px);
+	border-radius: adapt(8px, 1440px);
+	background: #2f6bff;
+	color: #fff;
+	font-size: adapt(9px, 1440px);
+	font-weight: 700;
+	line-height: adapt(16px, 1440px);
+	letter-spacing: 0.04em;
+}
+
+.accentHint {
+	margin-top: adapt(4px, 1440px);
+	font-size: adapt(10px, 1440px);
+	line-height: 1.2;
+	color: #2f6bff;
+	text-align: center;
+}
+
+@media (max-width: 900px) {
+	.badge {
+		position: static;
+		margin-left: auto;
+		font-size: 10px;
+		line-height: 16px;
+		padding: 0 6px;
+	}
+
+	.accentHint {
+		display: none;
+	}
+}
