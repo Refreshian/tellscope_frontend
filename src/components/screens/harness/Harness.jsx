@@ -600,7 +600,11 @@ const Harness = () => {
 									<span
 										className={`${styles.taskText} ${expandedTask === task.id ? styles.taskTextOpen : ''}`}
 										title={task.text}
-										onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
+										onClick={() => {
+										if ((task.text || '').length > 110) {
+											setExpandedTask(expandedTask === task.id ? null : task.id);
+										}
+									}}
 									>
 										{task.text}
 									</span>
@@ -610,17 +614,19 @@ const Harness = () => {
 									</span>
 								</button>
 								<span className={styles.taskActions}>
-										<button
-											type='button'
-											className={styles.taskBtn}
-											title={expandedTask === task.id ? 'Свернуть запрос' : 'Показать полный запрос'}
-											onClick={event => {
-												event.stopPropagation();
-												setExpandedTask(expandedTask === task.id ? null : task.id);
-											}}
-										>
-											{expandedTask === task.id ? 'свернуть' : 'полный'}
-										</button>
+{(task.text || '').length > 110 ? (
+											<button
+												type='button'
+												className={styles.taskBtn}
+												title={expandedTask === task.id ? 'Свернуть запрос' : 'Показать полный запрос'}
+												onClick={event => {
+													event.stopPropagation();
+													setExpandedTask(expandedTask === task.id ? null : task.id);
+												}}
+											>
+												{expandedTask === task.id ? 'свернуть' : 'полный'}
+											</button>
+										) : null}
 										<button
 											type='button'
 											className={styles.taskBtn}
