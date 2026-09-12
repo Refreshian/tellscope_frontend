@@ -241,6 +241,17 @@ const Harness = () => {
 		}
 	}, []);
 
+	// Полный текст запроса: раскрытие и копирование в буфер (запрос в списке обрезан CSS)
+	const [expandedTask, setExpandedTask] = useState(null);
+	const copyTaskText = useCallback(async taskText => {
+		try {
+			await navigator.clipboard.writeText(taskText || '');
+			setNotice('Запрос скопирован в буфер обмена');
+		} catch (e) {
+			window.prompt('Скопируйте запрос:', taskText || '');
+		}
+	}, []);
+
 	const openTask = useCallback(
 		async task => {
 			setError(null);
@@ -586,7 +597,35 @@ const Harness = () => {
 								className={`${styles.taskRow} ${current?.id === task.id ? styles.taskRowActive : ''}`}
 							>
 								<button type='button' className={styles.taskMain} onClick={() => openTask(task)}>
-									<span className={styles.taskText}>{task.text}</span>
+									<span
+										className={`${styles.taskText} ${expandedTask === task.id ? styles.taskTextOpen : ''}`}
+										title={task.text}
+										onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
+									>
+										{task.text}
+									</span>
+									<button
+										type='button'
+										className={styles.taskBtn}
+										title={expandedTask === task.id ? 'Свернуть запрос' : 'Показать полный запрос'}
+										onClick={event => {
+											event.stopPropagation();
+											setExpandedTask(expandedTask === task.id ? null : task.id);
+										}}
+									>
+										{expandedTask === task.id ? 'свернуть' : 'полный'}
+									</button>
+									<button
+										type='button'
+										className={styles.taskBtn}
+										title='Скопировать запрос'
+										onClick={event => {
+											event.stopPropagation();
+											copyTaskText(task.text);
+										}}
+									>
+										⧉ копировать
+									</button>
 									<span className={styles.taskMeta}>
 										{task.created_at} · {modeLabel(modes, task.mode)} · {task.run_status || task.status}
 									</span>

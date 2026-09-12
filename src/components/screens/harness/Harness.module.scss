@@ -552,3 +552,32 @@
 	font-size: 12px;
 	opacity: 0.7;
 }
+
+
+// Полный текст запроса и копирование
+.taskTextOpen {
+	white-space: normal;
+	overflow: visible;
+	text-overflow: clip;
+	word-break: break-word;
+	cursor: pointer;
+}
+
+.taskBtn {
+	margin-left: 6px;
+	padding: 2px 8px;
+	border: 1px solid rgba(23, 96, 232, 0.3);
+	border-radius: 6px;
+	background: rgba(23, 96, 232, 0.06);
+	color: inherit;
+	font-size: 11px;
+	line-height: 1.5;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.taskBtn:hover {
+	background: rgba(23, 96, 232, 0.14);
+	border-color: rgba(23, 96, 232, 0.55);
+}
