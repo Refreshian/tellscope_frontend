@@ -243,6 +243,9 @@ const Harness = () => {
 
 	// Полный текст запроса: раскрытие и копирование в буфер (запрос в списке обрезан CSS)
 	const [expandedTask, setExpandedTask] = useState(null);
+	// Блок кнопок показываем только если запрос реально обрезан в строке
+	const taskActionsShown = useCallback(task => (String(task?.text || '').length > 110), []);
+
 	const copyTaskText = useCallback(async taskText => {
 		try {
 			await navigator.clipboard.writeText(taskText || '');
@@ -613,32 +616,32 @@ const Harness = () => {
 										{task.created_at} · {modeLabel(modes, task.mode)} · {task.run_status || task.status}
 									</span>
 								</button>
-								<span className={styles.taskActions}>
-{(task.text || '').length > 110 ? (
-											<button
-												type='button'
-												className={styles.taskBtn}
-												title={expandedTask === task.id ? 'Свернуть запрос' : 'Показать полный запрос'}
-												onClick={event => {
-													event.stopPropagation();
-													setExpandedTask(expandedTask === task.id ? null : task.id);
-												}}
-											>
-												{expandedTask === task.id ? 'свернуть' : 'полный'}
-											</button>
-										) : null}
-										<button
-											type='button'
-											className={styles.taskBtn}
-											title='Скопировать запрос'
-											onClick={event => {
-												event.stopPropagation();
-												copyTaskText(task.text);
-											}}
-										>
-											⧉  копировать
-										</button>
-								</span>
+								{taskActionsShown(task) ? (
+									<span className={styles.taskActions}>
+																				<button
+																					type='button'
+																					className={styles.taskBtn}
+																					title={expandedTask === task.id ? 'Свернуть запрос' : 'Показать полный запрос'}
+																					onClick={event => {
+																						event.stopPropagation();
+																						setExpandedTask(expandedTask === task.id ? null : task.id);
+																					}}
+																				>
+																					{expandedTask === task.id ? 'свернуть' : 'полный'}
+																				</button>
+																			<button
+																				type='button'
+																				className={styles.taskBtn}
+																				title='Скопировать запрос'
+																				onClick={event => {
+																					event.stopPropagation();
+																					copyTaskText(task.text);
+																				}}
+																			>
+																				⧉  копировать
+																			</button>
+																	</span>
+								) : null}
 								<button type='button' className={styles.linkBtnDanger} onClick={() => removeTask(task)}>
 									удалить
 								</button>
