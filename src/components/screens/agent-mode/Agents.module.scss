@@ -1,3 +1,58 @@
+/* ---------- компактная шапка страницы ---------- */
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: calc(14 / 1440 * 100vw);
+  flex-wrap: wrap;
+  margin: calc(8 / 1440 * 100vw) 0 calc(12 / 1440 * 100vw);
+}
+
+.headTitle {
+  margin: 0;
+  font-size: calc(20 / 1440 * 100vw);
+  font-weight: 600;
+  color: #101828;
+  white-space: nowrap;
+}
+
+.headHint {
+  flex: 1 1 auto;
+  min-width: calc(240 / 1440 * 100vw);
+  font-size: calc(12 / 1440 * 100vw);
+  color: #98a2b3;
+}
+
+.headActions {
+  display: flex;
+  align-items: center;
+  gap: calc(14 / 1440 * 100vw);
+  margin-left: auto;
+}
+
+@media (max-width: 900px) {
+  .head {
+    gap: 8px;
+    margin: 8px 0 10px;
+  }
+
+  .headTitle {
+    font-size: 18px;
+  }
+
+  .headHint {
+    flex-basis: 100%;
+    min-width: 0;
+    font-size: 12px;
+  }
+
+  .headActions {
+    margin-left: 0;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+}
+
 .block__pageName {
   padding: calc(10 / 1440 * 100vw) 0 calc(4 / 1440 * 100vw);
 }

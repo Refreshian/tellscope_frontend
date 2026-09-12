@@ -3,7 +3,6 @@ import { useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import Content from '@/components/content/Content';
-import BeforeSearch from '@/components/content/before-search/BeforeSearch';
 import Layout from '@/components/layout/Layout';
 import BackgroundLoader from '@/components/loading/background-loader/BackgroundLoader';
 import Loader from '@/components/loading/loader/Loader';
@@ -332,38 +331,33 @@ const Agents = () => {
       )}
       {pathname !== '/home' && active_menu ? <LeftMenuActive /> : <LeftMenu />}
       <Content>
-        <div className={styles.block__pageName}>
-          <BeforeSearch title='Мои агенты' link='https://tsdoc.headsmade.com/en/smart-agent' />
-        </div>
-
-        <p className={styles.lead}>
-          Агент — сохранённая задача для ИИ-аналитика: набор инструментов, модель, датасет и расписание.
-          Запускайте вручную или по расписанию — отчёты появляются во вкладке «Отчёты».
-        </p>
-
-        <div className={styles.actionBar}>
-          <Button
-            style={{ width: 'calc(240/1440*100vw)', height: 'calc(52/1440*100vw)' }}
-            onClick={() => openEditor(null)}
-          >
-            Создать агента
-          </Button>
-          <Button
-            style={{ width: 'calc(250/1440*100vw)', height: 'calc(52/1440*100vw)' }}
-            onClick={() => navigate('/dify-constructor')}
-          >
-            Визуальный конструктор
-          </Button>
-          <button type='button' className={styles.linkBtn} onClick={() => setShowPresets(v => !v)}>
-            {showPresets ? 'скрыть готовые шаблоны' : `готовые шаблоны (${presets.length})`}
-          </button>
-          <span className={styles.actionMuted}>
-            агентов: {agents.length}
+        <div className={styles.head}>
+          <h2 className={styles.headTitle}>Мои агенты</h2>
+          <span className={styles.headHint}>
+            сохранённые задачи ИИ-аналитика: инструменты, модель, расписание · отчёты — во вкладке «Отчёты»
+            {agents.length ? ` · агентов: ${agents.length}` : ''}
             {enabledCount ? ` · включено ${enabledCount}` : ''}
             {meta.tokens_per_day_limit
               ? ` · токенов сегодня: ${meta.tokens_today.toLocaleString('ru-RU')} из ${meta.tokens_per_day_limit.toLocaleString('ru-RU')}`
               : ''}
           </span>
+          <div className={styles.headActions}>
+            <Button
+              style={{ width: 'calc(168/1440*100vw)', height: 'calc(38/1440*100vw)' }}
+              onClick={() => openEditor(null)}
+            >
+              Создать агента
+            </Button>
+            <button type='button' className={styles.linkBtn} onClick={() => setShowPresets(v => !v)}>
+              {showPresets ? 'скрыть шаблоны' : `шаблоны (${presets.length})`}
+            </button>
+            <button type='button' className={styles.linkBtn} onClick={() => navigate('/dify-constructor')}>
+              конструктор Dify
+            </button>
+            <button type='button' className={styles.linkBtn} onClick={load}>
+              обновить
+            </button>
+          </div>
         </div>
 
         {isSuccess && Object.keys(dataUser || {}).length > 0 && <DataForSearch />}
@@ -793,9 +787,7 @@ const Agents = () => {
 
         <div className={styles.panelHead}>
           <h3>Агенты</h3>
-          <button type='button' className={styles.linkBtn} onClick={load}>
-            обновить
-          </button>
+          <span className={styles.panelHint}>{agents.length ? `всего: ${agents.length}` : ''}</span>
         </div>
 
         {agents.length === 0 ? (
