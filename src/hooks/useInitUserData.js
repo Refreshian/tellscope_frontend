@@ -26,7 +26,7 @@ export const useInitUserData = () => {
         // Если user_id нет в cookie, запрашиваем из API
         if (!finalUserId) {
           console.log('📡 Fetching user_id from API...');
-          const userResponse = await api.get('/user-id');
+          const userResponse = await api.get('/me');
           finalUserId = userResponse.data.id || userResponse.data;
           Cookies.set(USER_ID, finalUserId);
           console.log('✅ User ID saved:', finalUserId);
@@ -45,9 +45,17 @@ export const useInitUserData = () => {
         console.error('❌ Error initializing user data:', error);
         
         if (error.response?.status === 401) {
-          Cookies.remove(TOKEN);
-          Cookies.remove(USER_ID);
-          window.location.href = '/auth';
+          // 401 от служебных запросов не должен разлогинивать: токен чистим только
+          // если он реально недействителен (проверим через /me), иначе остаёмся в системе
+          try {
+            await api.get('/me');
+          } catch (e) {
+            if (e.response?.status === 401) {
+              Cookies.remove(TOKEN);
+              Cookies.remove(USER_ID);
+              window.location.href = '/auth';
+            }
+          }
         } else if (error.response?.status === 404) {
           message.error('Пользователь не найден');
         } else {
