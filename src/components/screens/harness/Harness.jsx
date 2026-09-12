@@ -449,6 +449,14 @@ const Harness = () => {
 						<div className={styles.panelHead}>
 							<h3>
 								{modeLabel(modes, current.mode)}: {current.text.length > 86 ? `${current.text.slice(0, 86)}…` : current.text}
+									<button
+										type='button'
+										className={styles.taskBtn}
+										title='Скопировать запрос'
+										onClick={() => copyTaskText(current.text)}
+									>
+										копировать запрос
+									</button>
 							</h3>
 							<span className={styles.panelHint}>
 								{current.status}
