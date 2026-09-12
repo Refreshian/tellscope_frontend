@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { $axios } from '@/api';
 import { fmtDay } from '@/utils/fileMeta';
 import { truncateDescription } from '@/utils/editText';
 
@@ -11,7 +12,35 @@ import styles from './ThemePicker.module.scss';
  */
 const ThemePicker = ({ dataUser, currentIndex, onPick, label, period, loading, failed }) => {
 	const [open, setOpen] = useState(false);
+	const [labels, setLabels] = useState({});
 	const wrapperRef = useRef(null);
+
+	// человеческие подписи тем приходят из Tellscope (как в выпадающем списке Dify)
+	useEffect(() => {
+		let alive = true;
+		(async () => {
+			try {
+				const { data } = await $axios.get('/agent/datasets');
+				if (!alive) return;
+				const map = {};
+				(data.datasets || []).forEach(item => {
+					if (!item?.name) return;
+					map[item.name] = item.period ? `${item.label} · ${item.period}` : item.label || item.name;
+				});
+				setLabels(map);
+			} catch (err) {
+				/* не критично: покажем техническое имя датасета */
+			}
+		})();
+		return () => {
+			alive = false;
+		};
+	}, []);
+
+	const titleOf = useCallback(
+		file => labels[file?.file] || truncateDescription(file?.file || '', 36),
+		[labels]
+	);
 
 	const folders = useMemo(() => {
 		const entries = Object.entries(dataUser || {});
@@ -75,9 +104,7 @@ const ThemePicker = ({ dataUser, currentIndex, onPick, label, period, loading, f
 											close();
 										}}
 									>
-										<span className={styles.optionName}>
-											{truncateDescription(file.file || '', 36)}
-										</span>
+										<span className={styles.optionName}>{titleOf(file)}</span>
 										<span className={styles.optionMeta}>{meta}</span>
 									</button>
 								);
