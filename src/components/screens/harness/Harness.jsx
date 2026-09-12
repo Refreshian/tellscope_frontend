@@ -17,6 +17,8 @@ import { useCheckAuth } from '@/hooks/useCheckAuth';
 import { useGetUserFoldersQuery, useGetUserIdQuery } from '@/services/other.service';
 
 import { $axios } from '@/api';
+import { fmtDay } from '@/utils/fileMeta';
+import { truncateDescription } from '@/utils/editText';
 import styles from './Harness.module.scss';
 
 const EXAMPLES = [
@@ -59,7 +61,13 @@ const Harness = () => {
 	const [error, setError] = useState(null);
 	const [notice, setNotice] = useState(null);
 	const [events, setEvents] = useState([]);
-	const [showData, setShowData] = useState(false);
+	const [showData, setShowData] = useState(() => {
+		try {
+			return localStorage.getItem('harness_data_collapsed') !== '1';
+		} catch (err) {
+			return true;
+		}
+	});
 	const [showAllTasks, setShowAllTasks] = useState(false);
 	const pollRef = useRef(null);
 	const resultRef = useRef(null);
@@ -76,12 +84,6 @@ const Harness = () => {
 	);
 
 	const datasetChosen = dataForRequest.index !== null && dataForRequest.index !== undefined;
-
-	useEffect(() => {
-		setShowData(!datasetChosen);
-		// раскрываем выбор данных, только если набор ещё не выбран
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
 
 	const loadTasks = useCallback(async () => {
 		try {
@@ -234,12 +236,41 @@ const Harness = () => {
 	const difyUrl = info?.dify_url || 'https://tellscope40.headsmade.com:8443';
 	const visibleTasks = showAllTasks ? tasks : tasks.slice(0, 5);
 
+	const datasetOption = useMemo(() => {
+		const list = Object.values(dataUser || {}).flat();
+		return (
+			list.find(
+				item => item && item.index_number === dataForRequest.index && !item['html-file']
+			) || null
+		);
+	}, [dataUser, dataForRequest.index]);
+
+	const datasetLabel = datasetOption
+		? truncateDescription(datasetOption.file || '', 34)
+		: datasetChosen
+			? `набор #${dataForRequest.index}`
+			: '';
+
 	const periodLabel = useMemo(() => {
+		if (datasetOption?.min_data && datasetOption?.max_data) {
+			return `${fmtDay(datasetOption.min_data)} — ${fmtDay(datasetOption.max_data)}`;
+		}
 		const from = fmtDate(dataForRequest.min_date);
 		const to = fmtDate(dataForRequest.max_date);
 		if (from && to) return `${from} — ${to}`;
-		return from || to || 'весь период датасета';
-	}, [dataForRequest.min_date, dataForRequest.max_date]);
+		return from || to || '';
+	}, [datasetOption, dataForRequest.min_date, dataForRequest.max_date]);
+
+	const toggleData = useCallback(() => {
+		setShowData(prev => {
+			try {
+				localStorage.setItem('harness_data_collapsed', prev ? '1' : '0');
+			} catch (err) {
+				/* приватный режим — просто не запоминаем */
+			}
+			return !prev;
+		});
+	}, []);
 
 	const modeButtons = useMemo(
 		() =>
@@ -327,13 +358,13 @@ const Harness = () => {
 					</div>
 
 					<div className={styles.dataRow}>
-						<span className={styles.dataLabel}>Данные:</span>
+						<span className={styles.dataLabel}>Тема:</span>
 						<span className={datasetChosen ? styles.dataValue : styles.dataEmpty}>
-							{datasetChosen ? `набор #${dataForRequest.index}` : 'набор не выбран'}
-							{datasetChosen ? ` · ${periodLabel}` : ''}
+							{datasetChosen ? datasetLabel : 'не выбрана — выберите набор данных и период'}
+							{datasetChosen && periodLabel ? ` · ${periodLabel}` : ''}
 						</span>
-						<button type='button' className={styles.linkBtn} onClick={() => setShowData(v => !v)}>
-							{showData ? 'скрыть выбор' : datasetChosen ? 'изменить' : 'выбрать данные'}
+						<button type='button' className={styles.linkBtn} onClick={toggleData}>
+							{showData ? 'скрыть выбор темы' : 'выбрать тему'}
 						</button>
 					</div>
 					{showData && isSuccess && Object.keys(dataUser || {}).length > 0 && (
