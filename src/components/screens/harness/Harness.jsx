@@ -604,32 +604,35 @@ const Harness = () => {
 									>
 										{task.text}
 									</span>
-									<button
-										type='button'
-										className={styles.taskBtn}
-										title={expandedTask === task.id ? 'Свернуть запрос' : 'Показать полный запрос'}
-										onClick={event => {
-											event.stopPropagation();
-											setExpandedTask(expandedTask === task.id ? null : task.id);
-										}}
-									>
-										{expandedTask === task.id ? 'свернуть' : 'полный'}
-									</button>
-									<button
-										type='button'
-										className={styles.taskBtn}
-										title='Скопировать запрос'
-										onClick={event => {
-											event.stopPropagation();
-											copyTaskText(task.text);
-										}}
-									>
-										⧉ копировать
-									</button>
+
 									<span className={styles.taskMeta}>
 										{task.created_at} · {modeLabel(modes, task.mode)} · {task.run_status || task.status}
 									</span>
 								</button>
+								<span className={styles.taskActions}>
+										<button
+											type='button'
+											className={styles.taskBtn}
+											title={expandedTask === task.id ? 'Свернуть запрос' : 'Показать полный запрос'}
+											onClick={event => {
+												event.stopPropagation();
+												setExpandedTask(expandedTask === task.id ? null : task.id);
+											}}
+										>
+											{expandedTask === task.id ? 'свернуть' : 'полный'}
+										</button>
+										<button
+											type='button'
+											className={styles.taskBtn}
+											title='Скопировать запрос'
+											onClick={event => {
+												event.stopPropagation();
+												copyTaskText(task.text);
+											}}
+										>
+											⧉  копировать
+										</button>
+								</span>
 								<button type='button' className={styles.linkBtnDanger} onClick={() => removeTask(task)}>
 									удалить
 								</button>

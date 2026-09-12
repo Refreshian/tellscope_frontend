@@ -581,3 +581,19 @@
 	background: rgba(23, 96, 232, 0.14);
 	border-color: rgba(23, 96, 232, 0.55);
 }
+
+
+// Кнопки запроса — справа от строки, в один ряд (раньше попадали внутрь кнопки-строки)
+.taskActions {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	flex: 0 0 auto;
+	margin-left: auto;
+	align-self: center;
+	padding-left: 8px;
+}
+
+.taskActions .taskBtn {
+	margin-left: 0;
+}
