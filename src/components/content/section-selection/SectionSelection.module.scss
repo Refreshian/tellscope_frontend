@@ -9,10 +9,10 @@
 
 .block__logo {
 	display: flex;
-	align-items: flex-end;
+	align-items: center;
 	justify-content: center;
-	gap: adapt(15px, 1440px);
-	margin-bottom: adapt(33px, 1440px);
+	gap: adapt(14px, 1440px);
+	margin-bottom: adapt(26px, 1440px);
 }
 
 .logo__image {
@@ -20,65 +20,99 @@
 	height: adapt(40px, 1440px);
 }
 
-.description {
-	font-size: 0.75rem;
-	line-height: 1.4;
-	font-weight: 400;
-	color: rgba($color: $color_black, $alpha: 0.7);
-	text-align: center;
+/* ---------- брендовый блок вместо прежних трёх строк ---------- */
+
+.brand {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	line-height: 1.15;
 }
 
-.max {
-	font-size: 1rem;
+.brandTop {
+	font-size: 0.78rem;
+	font-weight: 600;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
 	color: $color_blue;
-	font-weight: 500;
 }
 
-.mini {
-	font-size: 0.65rem;
+.brandMain {
+	margin: adapt(2px, 1440px) 0 adapt(3px, 1440px);
+	font-size: 1.32rem;
+	font-weight: 700;
+	color: $ink-cosmic;
+	letter-spacing: -0.01em;
+}
+
+.brandNote {
+	font-size: 0.74rem;
+	font-weight: 500;
+	letter-spacing: 0.06em;
+	color: #667085;
 }
 
 .title {
-	font-size: 1.25rem; // Уменьшенный размер шрифта (было 2rem)
+	margin: 0 0 adapt(28px, 1440px);
+	font-size: 1.05rem;
 	font-weight: 600;
-	color: $color_blue; // Синий цвет как у "Аналитика"
+	color: $ink-cosmic;
 	text-align: center;
-	margin-bottom: adapt(46px, 1440px);
 }
 
-.block__choice {
-	/* раскладка с переносом: неполная последняя строка выравнивается по центру */
+/* ---------- группы разделов ---------- */
+
+.groups {
+	display: flex;
+	flex-direction: column;
+	gap: adapt(22px, 1440px);
+	width: 100%;
+	max-width: adapt(780px, 1440px);
+	/* запас снизу, чтобы подсказки у нижних плиток не обрезались контейнером */
+	padding-bottom: adapt(110px, 1440px);
+}
+
+.group {
+	display: flex;
+	flex-direction: column;
+	gap: adapt(12px, 1440px);
+}
+
+/* блок ИИ-инструментов выделяем мягкой брендовой подложкой */
+.groupAccent {
+	padding: adapt(16px, 1440px) adapt(16px, 1440px) adapt(18px, 1440px);
+	background: linear-gradient(140deg, rgba(47, 107, 255, 0.07), rgba(122, 90, 248, 0.06));
+	border: 1px solid rgba(47, 107, 255, 0.16);
+	border-radius: adapt(20px, 1440px);
+}
+
+.groupHead {
+	display: flex;
+	align-items: baseline;
+	gap: adapt(10px, 1440px);
+	flex-wrap: wrap;
+	padding-left: adapt(4px, 1440px);
+}
+
+.groupTitle {
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: #667085;
+}
+
+.groupHint {
+	font-size: 0.72rem;
+	color: #98a2b3;
+}
+
+.groupRow {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: center;
 	align-content: flex-start;
 	gap: adapt(16px, 1440px);
-	max-width: adapt(700px, 1440px);
-	margin: 0 auto;
-}
-
-@media (max-width: 900px) {
-	.block__logo {
-		margin-bottom: 16px;
-		gap: 10px;
-	}
-
-	.logo__image {
-		width: 32px;
-		height: 34px;
-	}
-
-	.title {
-		font-size: 1.1rem;
-		margin-bottom: 20px;
-	}
-
-	.block__choice {
-		flex-direction: column;
-		width: 100%;
-		max-width: 100%;
-		gap: 10px;
-	}
 }
 
 .page {
@@ -88,6 +122,7 @@
 	flex-direction: column;
 	align-items: center;
 }
+
 .adminBtn {
 	position: fixed;
 	top: adapt(28px, 1440px);
@@ -108,24 +143,58 @@
 	transition: color 0.15s ease, background-color 0.15s ease;
 	z-index: 5;
 }
+
 .adminBtn:hover {
 	color: $color_blue;
 	background: rgba(16, 24, 40, 0.05);
 }
+
 .adminBtn img {
 	width: 14px;
 	height: 14px;
 	opacity: 0.7;
 }
+
 .adminBtn:hover img {
 	opacity: 1;
 }
+
 @media (max-width: 900px) {
+	.block__logo {
+		margin-bottom: 18px;
+		gap: 10px;
+	}
+
+	.logo__image {
+		width: 32px;
+		height: 34px;
+	}
+
+	.brandMain {
+		font-size: 1.12rem;
+	}
+
+	.title {
+		font-size: 1rem;
+		margin-bottom: 16px;
+	}
+
+	.groups {
+		gap: 18px;
+	}
+
+	.groupRow {
+		flex-direction: column;
+		width: 100%;
+		gap: 10px;
+	}
+
+	.groupHint {
+		display: none;
+	}
+
 	.adminBtn {
 		top: calc(60px + env(safe-area-inset-top));
 		right: 12px;
 	}
-}
-.title {
-	color: $ink-cosmic;
 }
