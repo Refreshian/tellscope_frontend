@@ -133,12 +133,6 @@ const Auth = () => {
 				)}
 					<Button>{isViewAuth ? 'Войти' : 'Зарегистрироваться'}</Button>
 				</form>
-				<button
-					onClick={() => setIsViewAuth(!isViewAuth)}
-					className={styles.switch__button}
-				>
-					{isViewAuth ? 'Регистрация' : 'Авторизация'}
-				</button>
 				{viewMessage && (
 					<span
 						className={`${styles.message} ${message === 'Регистрация прошла успешно!' ? styles.good : ''}`}
@@ -152,3 +146,4 @@ const Auth = () => {
 };
 
 export default Auth;
+
