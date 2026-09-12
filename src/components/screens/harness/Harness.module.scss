@@ -1,71 +1,63 @@
-/* DeepSeek Harness — единый центр задач: акцентная плитка и рабочая область */
+/* Центр ИИ-задач: компактная шапка, поле задачи, результат, история */
 
-.hero {
+.head {
   display: flex;
   align-items: center;
-  gap: calc(20 / 1440 * 100vw);
+  gap: calc(12 / 1440 * 100vw);
   flex-wrap: wrap;
-  margin: calc(8 / 1440 * 100vw) 0 calc(14 / 1440 * 100vw);
-  padding: calc(18 / 1440 * 100vw) calc(22 / 1440 * 100vw);
-  border-radius: calc(16 / 1440 * 100vw);
-  background: linear-gradient(100deg, rgba(108, 92, 231, 0.14), rgba(34, 184, 240, 0.12) 55%, rgba(47, 107, 255, 0.1));
-  border: 1px solid rgba(108, 92, 231, 0.25);
+  margin: calc(6 / 1440 * 100vw) 0 calc(12 / 1440 * 100vw);
 }
 
-.heroText {
-  flex: 1 1 calc(560 / 1440 * 100vw);
-  min-width: calc(320 / 1440 * 100vw);
-
-  h2 {
-    margin: calc(6 / 1440 * 100vw) 0 calc(6 / 1440 * 100vw);
-    font-size: calc(22 / 1440 * 100vw);
-    font-weight: 600;
-    color: #101828;
-  }
-
-  p {
-    margin: 0;
-    max-width: calc(820 / 1440 * 100vw);
-    font-size: calc(13 / 1440 * 100vw);
-    line-height: 1.6;
-    color: #475467;
-  }
-}
-
-.heroBadge {
-  display: inline-block;
-  padding: calc(3 / 1440 * 100vw) calc(10 / 1440 * 100vw);
-  border-radius: calc(999 / 1440 * 100vw);
+.headMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(28 / 1440 * 100vw);
+  height: calc(20 / 1440 * 100vw);
+  border-radius: calc(7 / 1440 * 100vw);
   background: linear-gradient(90deg, #6c5ce7, #22b8f0);
   color: #fff;
-  font-size: calc(11 / 1440 * 100vw);
+  font-size: calc(10 / 1440 * 100vw);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
-.heroActions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: calc(8 / 1440 * 100vw);
+.headTitle {
+  margin: 0;
+  font-size: calc(20 / 1440 * 100vw);
+  font-weight: 600;
+  color: #101828;
+  white-space: nowrap;
 }
 
-.heroMeta {
+.headHint {
+  flex: 1 1 auto;
+  min-width: calc(260 / 1440 * 100vw);
   font-size: calc(12 / 1440 * 100vw);
-  color: #667085;
+  color: #98a2b3;
 }
+
+.headActions {
+  display: flex;
+  align-items: center;
+  gap: calc(14 / 1440 * 100vw);
+  margin-left: auto;
+}
+
+/* ---------- поле задачи ---------- */
 
 .composer {
-  margin-bottom: calc(14 / 1440 * 100vw);
-  padding: calc(14 / 1440 * 100vw) calc(18 / 1440 * 100vw);
+  margin-bottom: calc(12 / 1440 * 100vw);
+  padding: calc(12 / 1440 * 100vw) calc(16 / 1440 * 100vw) calc(14 / 1440 * 100vw);
   background: #fff;
   border: 1px solid #e4e7ec;
-  border-radius: calc(12 / 1440 * 100vw);
+  border-radius: calc(14 / 1440 * 100vw);
+  box-shadow: 0 6px 18px rgba(11, 27, 59, 0.05);
 }
 
 .input {
   width: 100%;
-  min-height: calc(72 / 1440 * 100vw);
+  min-height: calc(58 / 1440 * 100vw);
   padding: calc(10 / 1440 * 100vw) calc(12 / 1440 * 100vw);
   border: 1px solid #d0d5dd;
   border-radius: calc(10 / 1440 * 100vw);
@@ -98,7 +90,7 @@
 }
 
 .mode {
-  padding: calc(7 / 1440 * 100vw) calc(12 / 1440 * 100vw);
+  padding: calc(6 / 1440 * 100vw) calc(12 / 1440 * 100vw);
   border: 1px solid #d0d5dd;
   border-radius: calc(999 / 1440 * 100vw);
   background: #fff;
@@ -122,10 +114,11 @@
   display: flex;
   align-items: center;
   gap: calc(10 / 1440 * 100vw);
+  margin-left: auto;
 }
 
 .model {
-  height: calc(40 / 1440 * 100vw);
+  height: calc(38 / 1440 * 100vw);
   padding: 0 calc(10 / 1440 * 100vw);
   border: 1px solid #d0d5dd;
   border-radius: calc(10 / 1440 * 100vw);
@@ -135,15 +128,55 @@
   background: #fff;
 }
 
+/* ---------- строка выбора данных ---------- */
+
+.dataRow {
+  display: flex;
+  align-items: center;
+  gap: calc(8 / 1440 * 100vw);
+  flex-wrap: wrap;
+  margin-top: calc(10 / 1440 * 100vw);
+  padding-top: calc(10 / 1440 * 100vw);
+  border-top: 1px solid #f0f2f5;
+  font-size: calc(12.5 / 1440 * 100vw);
+}
+
+.dataLabel {
+  color: #98a2b3;
+}
+
+.dataValue {
+  color: #101828;
+  font-weight: 500;
+}
+
+.dataEmpty {
+  color: #b54708;
+}
+
+.dataPicker {
+  margin-top: calc(10 / 1440 * 100vw);
+  padding: calc(10 / 1440 * 100vw) calc(12 / 1440 * 100vw);
+  background: #f8faff;
+  border: 1px solid #e4eaff;
+  border-radius: calc(12 / 1440 * 100vw);
+}
+
 .examples {
   display: flex;
+  align-items: center;
   gap: calc(8 / 1440 * 100vw);
   flex-wrap: wrap;
   margin-top: calc(10 / 1440 * 100vw);
 }
 
+.examplesLabel {
+  font-size: calc(12 / 1440 * 100vw);
+  color: #98a2b3;
+}
+
 .example {
-  padding: calc(5 / 1440 * 100vw) calc(10 / 1440 * 100vw);
+  padding: calc(4 / 1440 * 100vw) calc(10 / 1440 * 100vw);
   border: 1px dashed #cbd5e1;
   border-radius: calc(8 / 1440 * 100vw);
   background: #f9fafb;
@@ -158,19 +191,14 @@
   }
 }
 
-.hint {
-  display: inline-block;
-  margin-top: calc(8 / 1440 * 100vw);
-  font-size: calc(12 / 1440 * 100vw);
-  color: #b54708;
-}
+/* ---------- результат и история ---------- */
 
 .panel {
-  margin-bottom: calc(14 / 1440 * 100vw);
-  padding: calc(14 / 1440 * 100vw) calc(18 / 1440 * 100vw);
+  margin-bottom: calc(12 / 1440 * 100vw);
+  padding: calc(14 / 1440 * 100vw) calc(16 / 1440 * 100vw);
   background: #fff;
   border: 1px solid #e4e7ec;
-  border-radius: calc(12 / 1440 * 100vw);
+  border-radius: calc(14 / 1440 * 100vw);
 }
 
 .panelHead {
@@ -182,7 +210,7 @@
 
   h3 {
     margin: 0;
-    font-size: calc(16 / 1440 * 100vw);
+    font-size: calc(15.5 / 1440 * 100vw);
     font-weight: 600;
     color: #101828;
   }
@@ -191,6 +219,7 @@
 .panelHint {
   font-size: calc(12 / 1440 * 100vw);
   color: #98a2b3;
+  white-space: nowrap;
 }
 
 .card {
@@ -252,7 +281,7 @@
 .log {
   margin: 0;
   padding-left: calc(20 / 1440 * 100vw);
-  max-height: calc(240 / 1440 * 100vw);
+  max-height: calc(220 / 1440 * 100vw);
   overflow-y: auto;
 
   li {
@@ -282,7 +311,7 @@
   align-items: center;
   gap: calc(14 / 1440 * 100vw);
   flex-wrap: wrap;
-  margin-top: calc(10 / 1440 * 100vw);
+  margin-top: calc(8 / 1440 * 100vw);
 }
 
 .linkBtn {
@@ -290,7 +319,8 @@
   background: none;
   padding: 0;
   color: #2f6bff;
-  font-size: calc(13 / 1440 * 100vw);
+  font-family: inherit;
+  font-size: calc(12.5 / 1440 * 100vw);
   cursor: pointer;
 
   &:hover {
@@ -303,7 +333,8 @@
   background: none;
   padding: 0;
   color: #b42318;
-  font-size: calc(13 / 1440 * 100vw);
+  font-family: inherit;
+  font-size: calc(12.5 / 1440 * 100vw);
   cursor: pointer;
 }
 
@@ -351,7 +382,7 @@
 }
 
 .taskText {
-  font-size: calc(13.5 / 1440 * 100vw);
+  font-size: calc(13 / 1440 * 100vw);
   color: #101828;
 }
 
@@ -391,24 +422,40 @@
 }
 
 @media (max-width: 900px) {
-  .hero {
-    padding: 14px;
-    margin: 8px 0 12px;
+  .head {
+    gap: 8px;
+    margin: 8px 0 10px;
   }
 
-  .heroText h2 {
-    font-size: 19px;
+  .headMark {
+    width: 28px;
+    height: 20px;
+    font-size: 10px;
   }
 
-  .heroText p,
-  .card,
-  .taskText,
+  .headTitle {
+    font-size: 17px;
+  }
+
+  .headHint {
+    flex-basis: 100%;
+    min-width: 0;
+    font-size: 12px;
+  }
+
+  .headActions {
+    margin-left: 0;
+    gap: 12px;
+  }
+
+  .composer,
+  .panel {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
   .input {
     font-size: 13px;
-  }
-
-  .heroActions {
-    align-items: flex-start;
   }
 
   .mode,
@@ -416,17 +463,19 @@
   .model,
   .linkBtn,
   .linkBtnDanger,
-  .fileLink {
+  .fileLink,
+  .dataRow {
     font-size: 12px;
   }
 
   .mode {
-    padding: 7px 11px;
+    padding: 6px 11px;
   }
 
-  .panel,
-  .composer {
-    padding: 12px;
+  .composerRight {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
   }
 
   .log {

@@ -20,11 +20,21 @@ import { $axios } from '@/api';
 import styles from './Harness.module.scss';
 
 const EXAMPLES = [
-	'Собери отчёт по подтеме «просрочка»: тональность, авторы, цепочки распространения, негатив и позитив, выводы',
-	'Сделай мониторинг негатива по доставке за последнюю неделю и объясни, где горит',
-	'Сравни упоминания бренда и конкурентов и предложи, что улучшить в коммуникации',
-	'Нужен Dify-flow: по подтеме собрать данные, разбор моделью и отчёт DOCX',
+	'Отчёт по подтеме «просрочка»: тональность, авторы, цепочки, негатив и позитив, выводы',
+	'Мониторинг негатива по доставке за неделю: где горит и что делать',
+	'Сравни упоминания бренда и конкурентов, предложи, что поправить в коммуникации',
 ];
+
+const fmtDate = value => {
+	if (value === null || value === undefined || value === '') return '';
+	const text = String(value);
+	if (/^\d+$/.test(text)) {
+		const number = Number(text);
+		const date = new Date(text.length > 10 ? number : number * 1000);
+		return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('ru-RU');
+	}
+	return text;
+};
 
 const Harness = () => {
 	useCheckAuth();
@@ -36,7 +46,7 @@ const Harness = () => {
 	const dataForRequest = useSelector(state => state.dataForRequest);
 	const { json_files_directory: dataUser } = useSelector(state => state.dataUsersSlice);
 
-	const { data: data_getUserId } = useGetUserIdQuery();
+	const { data: data_getUserId } = useGetUserFoldersQuery();
 	const { data, isError, isLoading, isSuccess } = useGetUserFoldersQuery(data_getUserId);
 
 	const [info, setInfo] = useState(null);
@@ -49,7 +59,10 @@ const Harness = () => {
 	const [error, setError] = useState(null);
 	const [notice, setNotice] = useState(null);
 	const [events, setEvents] = useState([]);
+	const [showData, setShowData] = useState(false);
+	const [showAllTasks, setShowAllTasks] = useState(false);
 	const pollRef = useRef(null);
+	const resultRef = useRef(null);
 
 	useAddBaseAndDate(
 		dataUser,
@@ -64,12 +77,18 @@ const Harness = () => {
 
 	const datasetChosen = dataForRequest.index !== null && dataForRequest.index !== undefined;
 
+	useEffect(() => {
+		setShowData(!datasetChosen);
+		// раскрываем выбор данных, только если набор ещё не выбран
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
 	const loadTasks = useCallback(async () => {
 		try {
 			const { data: payload } = await $axios.get('/harness/tasks');
 			setTasks(payload.tasks || []);
 		} catch (err) {
-			/* список задач не критичен для работы */
+			/* список задач не критичен */
 		}
 	}, []);
 
@@ -97,7 +116,7 @@ const Harness = () => {
 			pollRef.current = setInterval(async () => {
 				try {
 					const { data: run } = await $axios.get(`/agent/run/${runId}`);
-					setEvents((run.events || []).slice(-80));
+					setEvents((run.events || []).slice(-70));
 					setCurrent(prev => (prev ? { ...prev, run } : prev));
 					if (['completed', 'failed'].includes(run.status)) {
 						clearInterval(pollRef.current);
@@ -125,6 +144,7 @@ const Harness = () => {
 			}
 			if (chosenMode !== 'explain' && !datasetChosen) {
 				setError('Сначала выберите набор данных и период');
+				setShowData(true);
 				return;
 			}
 			setBusy(true);
@@ -143,13 +163,14 @@ const Harness = () => {
 				});
 				setCurrent(payload.task);
 				if (payload.run_id) {
-					setNotice('Задача выполняется — ниже виден журнал шагов');
+					setNotice('Задача выполняется — журнал шагов обновляется ниже');
 					watchRun(payload.run_id);
 				} else {
 					setBusy(false);
 					setNotice('Готово');
 				}
 				await loadTasks();
+				setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
 			} catch (err) {
 				setBusy(false);
 				setError(err.response?.data?.detail || 'Не удалось обработать задачу');
@@ -166,6 +187,7 @@ const Harness = () => {
 				const { data: payload } = await $axios.post(`/harness/task/${task.id}/run`);
 				setNotice('Выполняю задачу');
 				watchRun(payload.run_id);
+				setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
 			} catch (err) {
 				setBusy(false);
 				setError(err.response?.data?.detail || 'Не удалось запустить задачу');
@@ -174,20 +196,24 @@ const Harness = () => {
 		[watchRun]
 	);
 
-	const openTask = useCallback(async task => {
-		setError(null);
-		setNotice(null);
-		setEvents([]);
-		try {
-			const { data: payload } = await $axios.get(`/harness/task/${task.id}`);
-			setCurrent(payload.task);
-			setText(payload.task.text || '');
-			setMode(payload.task.mode || 'explain');
-			if (payload.task.run) setEvents((payload.task.run.events || []).slice(-80));
-		} catch (err) {
-			setError(err.response?.data?.detail || 'Не удалось открыть задачу');
-		}
-	}, []);
+	const openTask = useCallback(
+		async task => {
+			setError(null);
+			setNotice(null);
+			setEvents([]);
+			try {
+				const { data: payload } = await $axios.get(`/harness/task/${task.id}`);
+				setCurrent(payload.task);
+				setText(payload.task.text || '');
+				setMode(payload.task.mode || 'explain');
+				if (payload.task.run) setEvents((payload.task.run.events || []).slice(-70));
+				setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+			} catch (err) {
+				setError(err.response?.data?.detail || 'Не удалось открыть задачу');
+			}
+		},
+		[]
+	);
 
 	const removeTask = useCallback(
 		async task => {
@@ -206,6 +232,14 @@ const Harness = () => {
 	const run = current?.run || null;
 	const modes = info?.modes || [];
 	const difyUrl = info?.dify_url || 'https://tellscope40.headsmade.com:8443';
+	const visibleTasks = showAllTasks ? tasks : tasks.slice(0, 5);
+
+	const periodLabel = useMemo(() => {
+		const from = fmtDate(dataForRequest.min_date);
+		const to = fmtDate(dataForRequest.max_date);
+		if (from && to) return `${from} — ${to}`;
+		return from || to || 'весь период датасета';
+	}, [dataForRequest.min_date, dataForRequest.max_date]);
 
 	const modeButtons = useMemo(
 		() =>
@@ -233,44 +267,49 @@ const Harness = () => {
 			)}
 			{pathname !== '/home' && active_menu ? <LeftMenuActive /> : <LeftMenu />}
 			<Content>
-				<div className={styles.hero}>
-					<div className={styles.heroText}>
-						<span className={styles.heroBadge}>Единый центр задач</span>
-						<h2>ИИ-аналитика соцмедиа и СМИ</h2>
-						<p>
-							Опишите задачу обычными словами и дождитесь решения: ассистент подберёт инструменты
-							Tellscope и цепочки агентов, соберёт данные, аналитику и отчёт — или предложит план
-							и готовую цепочку шагов. Одна точка входа во все разделы приложения.
-						</p>
-					</div>
-					<div className={styles.heroActions}>
-						<Button
-							style={{ width: 'calc(230/1440*100vw)', height: 'calc(44/1440*100vw)' }}
+				<div className={styles.head}>
+					<span className={styles.headMark}>AI</span>
+					<h2 className={styles.headTitle}>Центр ИИ-задач</h2>
+					<span className={styles.headHint}>
+						опишите задачу словами — ассистент соберёт данные инструментами Tellscope и подготовит отчёт
+						{info?.tools_total ? ` · инструментов: ${info.tools_total}` : ''}
+						{tasks.length ? ` · задач у вас: ${tasks.length}` : ''}
+					</span>
+					<div className={styles.headActions}>
+						<button type='button' className={styles.linkBtn} onClick={() => navigate('/agents')}>
+							мои агенты
+						</button>
+						<button
+							type='button'
+							className={styles.linkBtn}
 							onClick={() => window.open(difyUrl, '_blank', 'noopener,noreferrer')}
 						>
-							Открыть конструктор Dify
-						</Button>
-						<span className={styles.heroMeta}>
-							инструментов: {info?.tools_total ?? '—'} · задач у вас: {info?.tasks_total ?? tasks.length}
-						</span>
+							конструктор Dify
+						</button>
 					</div>
 				</div>
-
-				{isSuccess && Object.keys(dataUser || {}).length > 0 && <DataForSearch />}
 
 				<div className={styles.composer}>
 					<textarea
 						className={styles.input}
 						value={text}
-						placeholder='Например: собери отчёт по подтеме «просрочка» — тональность, авторы, цепочки, негатив и позитив, выводы'
+						placeholder='Опишите задачу: что выяснить, за какой период и что должно быть в итоге'
 						onChange={event => setText(event.target.value)}
-						rows={3}
+						onKeyDown={event => {
+							if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) submit();
+						}}
+						rows={2}
 					/>
 					<div className={styles.composerRow}>
 						<div className={styles.modes}>{modeButtons}</div>
 						<div className={styles.composerRight}>
 							{info?.models?.length ? (
-								<select className={styles.model} value={model} onChange={event => setModel(event.target.value)}>
+								<select
+									className={styles.model}
+									value={model}
+									onChange={event => setModel(event.target.value)}
+									title='Модель ассистента'
+								>
 									{info.models.map(item => (
 										<option key={item.id} value={item.id}>
 											{item.label}
@@ -279,25 +318,38 @@ const Harness = () => {
 								</select>
 							) : null}
 							<Button
-								style={{ width: 'calc(190/1440*100vw)', height: 'calc(44/1440*100vw)' }}
+								style={{ width: 'calc(160/1440*100vw)', height: 'calc(40/1440*100vw)' }}
 								onClick={() => submit()}
 							>
 								{busy ? 'Работаю…' : 'Отправить'}
 							</Button>
 						</div>
 					</div>
+
+					<div className={styles.dataRow}>
+						<span className={styles.dataLabel}>Данные:</span>
+						<span className={datasetChosen ? styles.dataValue : styles.dataEmpty}>
+							{datasetChosen ? `набор #${dataForRequest.index}` : 'набор не выбран'}
+							{datasetChosen ? ` · ${periodLabel}` : ''}
+						</span>
+						<button type='button' className={styles.linkBtn} onClick={() => setShowData(v => !v)}>
+							{showData ? 'скрыть выбор' : datasetChosen ? 'изменить' : 'выбрать данные'}
+						</button>
+					</div>
+					{showData && isSuccess && Object.keys(dataUser || {}).length > 0 && (
+						<div className={styles.dataPicker}>
+							<DataForSearch />
+						</div>
+					)}
+
 					<div className={styles.examples}>
+						<span className={styles.examplesLabel}>Примеры:</span>
 						{EXAMPLES.map(example => (
 							<button key={example} type='button' className={styles.example} onClick={() => setText(example)}>
-								{example.length > 74 ? `${example.slice(0, 74)}…` : example}
+								{example.length > 62 ? `${example.slice(0, 62)}…` : example}
 							</button>
 						))}
 					</div>
-					{!datasetChosen && (
-						<span className={styles.hint}>
-							для выполнения задач нужен выбранный набор данных и период — блок выбора ниже
-						</span>
-					)}
 				</div>
 
 				{error && (
@@ -309,13 +361,13 @@ const Harness = () => {
 				{notice && <div className={styles.noticeBlock}>{notice}</div>}
 
 				{current && (
-					<div className={styles.panel}>
+					<div className={styles.panel} ref={resultRef}>
 						<div className={styles.panelHead}>
 							<h3>
-								Задача: {current.text.length > 90 ? `${current.text.slice(0, 90)}…` : current.text}
+								{modeLabel(modes, current.mode)}: {current.text.length > 86 ? `${current.text.slice(0, 86)}…` : current.text}
 							</h3>
 							<span className={styles.panelHint}>
-								{modeLabel(modes, current.mode)} · {current.status}
+								{current.status}
 								{result?.model?.cost_usd ? ` · $${result.model.cost_usd}` : ''}
 								{result?.model?.tokens ? ` · ${result.model.tokens} токенов` : ''}
 							</span>
@@ -333,7 +385,7 @@ const Harness = () => {
 											<b>{event.type === 'tool_start' ? 'запуск' : event.type}</b>{' '}
 											{event.title || event.name || ''}
 											{event.summary ? ` — ${event.summary}` : ''}
-											{event.text ? ` ${String(event.text).slice(0, 160)}` : ''}
+											{event.text ? ` ${String(event.text).slice(0, 150)}` : ''}
 										</li>
 									))}
 									{!events.length && <li>ожидаю первые шаги…</li>}
@@ -352,7 +404,7 @@ const Harness = () => {
 
 						{result?.summary && (
 							<div className={styles.card}>
-								<b>Что будет сделано</b>
+								<b>План решения</b>
 								<p>{result.summary}</p>
 								{(result.steps || []).length ? (
 									<ol className={styles.plan}>
@@ -376,8 +428,8 @@ const Harness = () => {
 							<div className={styles.card}>
 								<b>Цепочка собрана</b>
 								<p>
-									Агент «{result.agent.name}» из {(result.steps || []).length} шагов сохранён во вкладке
-									«Мои агенты» (папка отчётов: {result.agent.folder}).
+									Агент «{result.agent.name}» из {(result.steps || []).length} шагов сохранён во вкладке «Мои
+									агенты» (папка отчётов: {result.agent.folder}).
 								</p>
 								<ol className={styles.plan}>
 									{(result.steps || []).map(step => (
@@ -398,7 +450,7 @@ const Harness = () => {
 									«{result.spec.title}» — узлов: {result.nodes}. {result.instructions}
 								</p>
 								{result.download ? (
-									<a className={styles.fileLink} href={`${result.download}`}>
+									<a className={styles.fileLink} href={result.download}>
 										скачать DSL-файл ({result.file})
 									</a>
 								) : null}
@@ -408,7 +460,7 @@ const Harness = () => {
 						<div className={styles.actions}>
 							{(result?.summary || result?.spec) && !result?.agent ? (
 								<Button
-									style={{ width: 'calc(200/1440*100vw)', height: 'calc(42/1440*100vw)' }}
+									style={{ width: 'calc(180/1440*100vw)', height: 'calc(38/1440*100vw)' }}
 									onClick={() => runExisting(current)}
 								>
 									Выполнить сейчас
@@ -417,7 +469,7 @@ const Harness = () => {
 							{result?.agent ? (
 								<>
 									<Button
-										style={{ width: 'calc(180/1440*100vw)', height: 'calc(42/1440*100vw)' }}
+										style={{ width: 'calc(170/1440*100vw)', height: 'calc(38/1440*100vw)' }}
 										onClick={() => runExisting(current)}
 									>
 										Запустить цепочку
@@ -428,7 +480,11 @@ const Harness = () => {
 								</>
 							) : null}
 							{result?.spec ? (
-								<button type='button' className={styles.linkBtn} onClick={() => window.open(difyUrl, '_blank', 'noopener,noreferrer')}>
+								<button
+									type='button'
+									className={styles.linkBtn}
+									onClick={() => window.open(difyUrl, '_blank', 'noopener,noreferrer')}
+								>
 									открыть Dify и импортировать файл
 								</button>
 							) : null}
@@ -446,7 +502,7 @@ const Harness = () => {
 					</div>
 					{!tasks.length && <p className={styles.muted}>Пока пусто — опишите первую задачу выше.</p>}
 					<div className={styles.taskList}>
-						{tasks.map(task => (
+						{visibleTasks.map(task => (
 							<div
 								key={task.id}
 								className={`${styles.taskRow} ${current?.id === task.id ? styles.taskRowActive : ''}`}
@@ -463,6 +519,11 @@ const Harness = () => {
 							</div>
 						))}
 					</div>
+					{tasks.length > 5 ? (
+						<button type='button' className={styles.linkBtn} onClick={() => setShowAllTasks(v => !v)}>
+							{showAllTasks ? 'свернуть список' : `показать все (${tasks.length})`}
+						</button>
+					) : null}
 				</div>
 			</Content>
 		</Layout>
