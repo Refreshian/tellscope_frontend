@@ -61,7 +61,7 @@ const TASK_STATUS_LABELS = {
 	interrupted: 'прервано',
 };
 
-const ACTIVE_RUN_STATUSES = ['queued', 'running'];
+const ACTIVE_RUN_STATUSES = ['queued', 'running', 'paused'];
 const FINISHED_RUN_STATUSES = ['completed', 'failed', 'cancelled'];
 
 // Как сообщить о завершении запуска (в том числе об остановке пользователем)
@@ -164,6 +164,9 @@ const taskBadge = task => {
 	}
 	if (runStatus === 'cancelled' || status === 'cancelled') {
 		return { kind: 'cancelled', label: 'Остановлено', title: task?.error || 'остановлено пользователем' };
+	}
+	if (runStatus === 'paused' || status === 'paused') {
+		return { kind: 'paused', label: 'Пауза', title: 'Запуск на паузе: «продолжить» вернёт его с текущего шага' };
 	}
 	if (runStatus === 'failed' || status === 'failed' || status === 'error') {
 		return { kind: 'error', label: 'Ошибка', title: task?.error || 'причина не указана' };
@@ -403,6 +406,8 @@ const Harness = () => {
 			await loadTasks();
 			if (taskId) {
 				try {
+					// Пользователь смотрел этот запуск — плашку «Пока вас не было» по нему не показываем.
+					await $axios.post(`/harness/task/${taskId}/seen`).catch(() => {});
 					const { data } = await $axios.get(`/harness/task/${taskId}`);
 					if (data?.task) setCurrent(data.task);
 				} catch (err) {
@@ -504,11 +509,23 @@ const Harness = () => {
 	// Список «Мои задачи» обновляем сам: статус-чип должен меняться без перезагрузки страницы,
 	// даже если запуск стартовал в другой вкладке или пришёл из планировщика.
 	useEffect(() => {
-		const id = setInterval(() => {
-			loadTasks();
+		const id = setInterval(async () => {
+			const items = await loadTasks();
+			// Запуск мог быть начат в другой вкладке или с другого устройства:
+			// подхватываем его и снова подключаемся к потоку событий.
+			if (!watchRef.current.active) {
+				const active = (items || []).find(
+					task => task.run_id && ACTIVE_RUN_STATUSES.includes(task.run_status || task.status)
+				);
+				if (active) {
+					setBusy(true);
+					setCurrent(prev => (prev && prev.id === active.id ? prev : active));
+					startWatch(active.run_id, active.id);
+				}
+			}
 		}, 20000);
 		return () => clearInterval(id);
-	}, [loadTasks]);
+	}, [loadTasks, startWatch]);
 
 	// После перезагрузки страницы подхватываем уже идущий запуск, чтобы прогресс не терялся
 	useEffect(() => {
@@ -693,6 +710,7 @@ const Harness = () => {
 	const liveStatus = useMemo(() => {
 		const runStatus = currentRun?.status || current?.run_status || current?.status || '';
 		const active = ACTIVE_RUN_STATUSES.includes(runStatus);
+		const paused = runStatus === 'paused' || current?.run_status === 'paused';
 		const finished = ['completed', 'done'].includes(runStatus);
 		// Запуск, остановленный пользователем: отдельный статус, а не «неуспешно»
 		const stopped = runStatus === 'cancelled' || current?.run_status === 'cancelled' || current?.status === 'cancelled';
@@ -743,7 +761,9 @@ const Harness = () => {
 
 		let hint = '';
 		let alert = false;
-		if (active) {
+		if (paused) {
+			hint = 'Запуск на паузе: нажмите «продолжить», и он пойдёт дальше с текущего шага.';
+		} else if (active) {
 			if (sinceEvent !== null && sinceEvent > STALE_ALERT_SEC) {
 				alert = true;
 				hint = `Событий нет уже ${fmtDuration(sinceEvent)}. Возможно, сервер перезапускался: обновите страницу или нажмите «проверить статус» — состояние подтянется.`;
@@ -758,7 +778,8 @@ const Harness = () => {
 		}
 
 		let title = '';
-		if (active) title = 'Задача выполняется';
+		if (paused) title = 'Пауза';
+		else if (active) title = 'Задача выполняется';
 		else if (finished) title = `Выполнено за ${fmtDuration(durationSec)}`;
 		else if (stopped) title = 'Остановлено пользователем';
 		else if (failed) title = `Неуспешно: ${currentRun?.error || current?.error || 'причина не указана'}`;
@@ -766,6 +787,7 @@ const Harness = () => {
 
 		return {
 			active,
+			paused,
 			finished,
 			stopped,
 			failed,
@@ -800,6 +822,8 @@ const Harness = () => {
 			setEvents([]);
 			stopWatch();
 			try {
+				// Открыли задачу — плашку «Пока вас не было» для неё больше не показываем.
+				$axios.post(`/harness/task/${task.id}/seen`).catch(() => {});
 				const { data: payload } = await $axios.get(`/harness/task/${task.id}`);
 				setCurrent(payload.task);
 				setText(payload.task.text || '');
@@ -825,7 +849,15 @@ const Harness = () => {
 	const removeTask = useCallback(
 		async task => {
 			try {
-				await $axios.delete(`/harness/task/${task.id}`);
+				// Артефакты удаляем только по явному выбору пользователя; по умолчанию файлы остаются.
+				const hasArtifacts = !!(task.run_progress || task.duration_sec || task.run_id);
+				const withArtifacts =
+					hasArtifacts &&
+					window.confirm(
+						'Удалить задачу?\n\nОК — удалить задачу вместе с файлами отчёта и записью запуска.\n' +
+							'Отмена — удалить только задачу, файлы отчёта останутся.'
+					);
+				await $axios.delete(`/harness/task/${task.id}${withArtifacts ? '?with_artifacts=true' : ''}`);
 				if (current?.id === task.id) setCurrent(null);
 				await loadTasks();
 			} catch (err) {
@@ -963,6 +995,77 @@ const Harness = () => {
 		}
 	}, [current, startWatch]);
 
+	// Мягкая пауза и продолжение: движок останавливается на ближайшей границе шага
+	// и идёт дальше с того же места — прочитанные пачки не перечитываются.
+	const [pausing, setPausing] = useState(false);
+	const pauseRun = useCallback(async () => {
+		if (!current) return;
+		setPausing(true);
+		setError(null);
+		try {
+			if (current.id) {
+				const { data } = await $axios.post(`/harness/task/${current.id}/pause`);
+				if (data?.task) setCurrent(prev => (prev ? { ...prev, ...data.task } : prev));
+			} else if (current.run_id) {
+				await $axios.post(`/agent/run/${current.run_id}/pause`);
+			}
+			setNotice('Пауза: движок остановится на ближайшей границе шага');
+			if (current.run_id) startWatch(current.run_id, current.id);
+			await loadTasks();
+		} catch (err) {
+			setError(err.response?.data?.detail || 'Не удалось поставить задачу на паузу');
+		} finally {
+			setPausing(false);
+		}
+	}, [current, loadTasks, startWatch]);
+
+	const resumeRun = useCallback(async () => {
+		if (!current) return;
+		setPausing(true);
+		setError(null);
+		try {
+			if (current.id) {
+				const { data } = await $axios.post(`/harness/task/${current.id}/resume`);
+				if (data?.task) setCurrent(prev => (prev ? { ...prev, ...data.task } : prev));
+			} else if (current.run_id) {
+				await $axios.post(`/agent/run/${current.run_id}/resume`);
+			}
+			setNotice('Продолжаю с текущего шага');
+			if (current.run_id) startWatch(current.run_id, current.id);
+			await loadTasks();
+		} catch (err) {
+			setError(err.response?.data?.detail || 'Не удалось продолжить задачу');
+		} finally {
+			setPausing(false);
+		}
+	}, [current, loadTasks, startWatch]);
+
+	// «Пока вас не было»: задачи, завершившиеся без наблюдения (успех/ошибка/отмена),
+	// помечены в хранилище как непросмотренные — плашка висит до первого открытия.
+	const [awayHidden, setAwayHidden] = useState([]);
+	const awayTask = useMemo(() => {
+		const items = tasks.filter(
+			item =>
+				item.unseen &&
+				!awayHidden.includes(item.id) &&
+				['done', 'completed', 'failed', 'error', 'cancelled', 'interrupted'].includes(
+					String(item.run_status || item.status || '')
+				)
+		);
+		return items.length ? items[0] : null;
+	}, [tasks, awayHidden]);
+
+	const awayMessage = useMemo(() => {
+		if (!awayTask) return '';
+		const status = String(awayTask.run_status || awayTask.status || '');
+		if (status === 'completed' || status === 'done') {
+			return `задача завершилась за ${fmtDuration(awayTask.duration_sec)}`;
+		}
+		if (status === 'cancelled') return 'задача остановлена пользователем';
+		if (status === 'interrupted') return 'запуск прерван: сервис перезапускался';
+		return `задача завершилась с ошибкой: ${awayTask.error || 'причина не указана'}`;
+	}, [awayTask]);
+
 	const showStatusBar = !!current || !!notice;
 
 	return (
@@ -1068,6 +1171,22 @@ const Harness = () => {
 					</div>
 				)}
 
+				{awayTask ? (
+					<div className={styles.awayBlock}>
+						<span className={styles.awayTitle}>Пока вас не было: {awayMessage}</span>
+						<button type='button' className={styles.awayBtn} onClick={() => openTask(awayTask)}>
+							открыть результат
+						</button>
+						<button
+							type='button'
+							className={styles.awayDismiss}
+							onClick={() => setAwayHidden(prev => [...prev, awayTask.id])}
+						>
+							скрыть
+						</button>
+					</div>
+				) : null}
+
 				{showStatusBar && (
 					<div
 						className={`${styles.noticeBlock} ${
@@ -1102,6 +1221,28 @@ const Harness = () => {
 									) : null}
 									{liveStatus.etaText ? <span>{liveStatus.etaText}</span> : null}
 								</span>
+							) : null}
+							{liveStatus.active && !liveStatus.paused ? (
+								<button
+									type='button'
+									className={styles.pauseBtn}
+									onClick={pauseRun}
+									disabled={pausing}
+									title='Мягкая пауза: движок остановится на ближайшей границе шага, сделанное сохранится'
+								>
+									{pausing ? 'ставлю на паузу…' : 'пауза'}
+								</button>
+							) : null}
+							{liveStatus.paused ? (
+								<button
+									type='button'
+									className={styles.pauseBtn}
+									onClick={resumeRun}
+									disabled={pausing}
+									title='Продолжить с текущего шага: уже прочитанное не перечитывается'
+								>
+									{pausing ? 'продолжаю…' : 'продолжить'}
+								</button>
 							) : null}
 							{liveStatus.active ? (
 								<button
@@ -1362,6 +1503,19 @@ const Harness = () => {
 											{badge.kind === 'running' ? <span className={styles.chipDot} aria-hidden='true' /> : null}
 											{badge.label}
 										</span>
+										{['interrupted', 'error', 'cancelled'].includes(badge.kind) ? (
+											<button
+												type='button'
+												className={styles.taskBtn}
+												title='Запустить задачу заново: тот же текст, датасет, период и модель'
+												onClick={event => {
+													event.stopPropagation();
+													runExisting(task);
+												}}
+											>
+												запустить снова
+											</button>
+										) : null}
 										<button
 											type='button'
 											className={styles.taskBtn}
