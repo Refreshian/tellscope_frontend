@@ -115,10 +115,23 @@ const AdminPage = () => {
 	const [access, setAccess] = useState('read');
 	const [llmUsage, setLlmUsage] = useState([]);
 	const [llmDays, setLlmDays] = useState([]);
+	const [fromDate, setFromDate] = useState('');
+	const [toDate, setToDate] = useState('');
+	const [appliedFrom, setAppliedFrom] = useState('');
+	const [appliedTo, setAppliedTo] = useState('');
 
-	const loadLlm = async () => {
+	const loadLlm = async (from, to) => {
+		const f = from !== undefined && from !== null ? from : appliedFrom;
+		const t = to !== undefined && to !== null ? to : appliedTo;
+		const dateQs = [];
+		if (f) dateQs.push('date_from=' + encodeURIComponent(f));
+		if (t) dateQs.push('date_to=' + encodeURIComponent(t));
+		const mainQ = dateQs.length ? '?' + dateQs.join('&') : '';
+		const dayQ = dateQs.slice();
+		if (dayQ.length === 0) dayQ.push('days=30');
 		const [lu, ld] = await Promise.all([
-			api('/admin/llm-usage'), api('/admin/llm-usage/days?days=30'),
+			api('/admin/llm-usage' + mainQ),
+			api('/admin/llm-usage/days?' + dayQ.join('&')),
 		]);
 		setLlmUsage(lu && lu.rows ? lu.rows : []);
 		setLlmDays(ld && ld.rows ? llmDaySums(ld.rows) : []);
@@ -132,6 +145,21 @@ const AdminPage = () => {
 		setUsers(us);
 		setShares(sh.shares || []);
 		setOwners(us);
+	};
+
+	const applyRange = () => {
+		if (fromDate && toDate && fromDate > toDate) {
+			setErr('Дата «С» не может быть позже «По»');
+			return;
+		}
+		setErr('');
+		setAppliedFrom(fromDate);
+		setAppliedTo(toDate);
+		loadLlm(fromDate, toDate);
+	};
+	const resetRange = () => {
+		setFromDate(''); setToDate(''); setAppliedFrom(''); setAppliedTo('');
+		loadLlm('', '');
 	};
 
 	useEffect(() => {
@@ -309,6 +337,19 @@ const AdminPage = () => {
 
 			{tab === 'llm' && (
 			<div style={card}>
+				<div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+					<b style={{ fontSize: 13, color: '#152A5A' }}>Период:</b>
+					<input type='date' value={fromDate} onChange={e => setFromDate(e.target.value)} style={input} />
+					<span style={{ color: '#98a2b3', fontSize: 12 }}>—</span>
+					<input type='date' value={toDate} onChange={e => setToDate(e.target.value)} style={input} />
+					<button type='button' style={btn} onClick={applyRange}>Применить</button>
+					<button type='button' style={{ ...btn, background: '#fff', color: '#344054', border: '1px solid #d0d7e2' }} onClick={resetRange}>Сбросить</button>
+				</div>
+				<div style={{ color: '#667085', fontSize: 12, marginBottom: 4 }}>
+					{appliedFrom || appliedTo
+						? <>Показаны данные за период: <b style={{ color: '#344054' }}>{appliedFrom || '…'} — {appliedTo || '…'}</b> (по дате запроса)</>
+						: <>Показаны данные <b style={{ color: '#344054' }}>за всё время</b>. Выберите даты выше, чтобы отфильтровать таблицу и график.</>}
+				</div>
 				{llmUsage.length === 0 && (
 					<div style={{ color: '#98a2b3', marginTop: 8, fontSize: 13 }}>Пока нет данных — токены появятся после первого запроса к ИИ</div>
 				)}
@@ -357,7 +398,9 @@ const AdminPage = () => {
 
 				{llmDays.length > 0 && (
 					<div style={{ marginTop: 16 }}>
-						<b style={{ fontSize: 13, color: '#152A5A' }}>По дням (30 дней)</b>
+						<b style={{ fontSize: 13, color: '#152A5A' }}>
+						По дням {(appliedFrom || appliedTo) ? `за период ${appliedFrom || '…'} — ${appliedTo || '…'}` : '(последние 30 дней)'}
+					</b>
 						<div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, marginTop: 8, minHeight: 96, overflowX: 'auto', paddingBottom: 2 }}>
 							{llmDays.slice(-30).map(x => {
 								const max = Math.max(1, ...llmDays.slice(-30).map(y => y.total_tokens));

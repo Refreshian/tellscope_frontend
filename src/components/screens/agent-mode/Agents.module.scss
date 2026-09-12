@@ -1,5 +1,50 @@
 /* ---------- компактная шапка страницы ---------- */
 
+.chipBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #e4e7ec;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #344054;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+
+  > img {
+    width: 14px;
+    height: 14px;
+    opacity: 0.75;
+  }
+
+  &:hover {
+    border-color: #b9c6ff;
+    background: #f2f6ff;
+    color: #1760e8;
+
+    > img {
+      opacity: 1;
+    }
+  }
+}
+
+.dataRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.dataEmpty {
+  font-size: 12px;
+  color: #b54708;
+}
+
 .head {
   display: flex;
   align-items: center;

@@ -18,7 +18,7 @@ import { useGetUserFoldersQuery, useGetUserIdQuery } from '@/services/other.serv
 import { $axios } from '@/api';
 import { fmtDay } from '@/utils/fileMeta';
 import { truncateDescription } from '@/utils/editText';
-import ThemePicker from './ThemePicker';
+import ThemePicker from '@/components/ui/theme-picker/ThemePicker';
 
 import styles from './Harness.module.scss';
 

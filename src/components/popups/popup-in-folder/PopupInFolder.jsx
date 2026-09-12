@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 
 import { useActions } from '@/hooks/useActions';
 
-import { useGetUserIdQuery } from '../../../services/other.service';
+import { useGetUserIdQuery, useGetUserFoldersQuery } from '../../../services/other.service';
 
 import styles from './PopupInFolder.module.scss';
 import { useLazyCreateFolderQuery } from '@/services/dataSet.service';
@@ -28,6 +28,8 @@ const PopupInFolder = () => {
 		error: error_getUserId,
 		isLoading: isLoading_getUserId,
 	} = useGetUserIdQuery();
+
+	const { refetch } = useGetUserFoldersQuery(data_getUserId);
 
 	const [
 		trigger_createFolder,
@@ -57,13 +59,20 @@ const PopupInFolder = () => {
 		toggle_PopupInFolder('');
 	};
 
-	const onClick_folder = () => {
-		trigger_createFolder({
-			user: data_getUserId,
-			folder: value,
-		});
+	const onClick_folder = async () => {
+		try {
+			await trigger_createFolder({
+				user: data_getUserId,
+				folder: value,
+			});
+		} catch (e) {
+			console.error('Ошибка при создании папки:', e);
+		}
 
 		createFolderJson(value);
+
+		// Обновляем список папок, чтобы новая папка появилась сразу без перезагрузки страницы
+		refetch();
 
 		toggle_PopupInFolder('');
 	};

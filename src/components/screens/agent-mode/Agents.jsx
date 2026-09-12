@@ -7,7 +7,6 @@ import Layout from '@/components/layout/Layout';
 import BackgroundLoader from '@/components/loading/background-loader/BackgroundLoader';
 import Loader from '@/components/loading/loader/Loader';
 import Button from '@/components/ui/button/Button';
-import DataForSearch from '@/components/ui/data-for-search/DataForSearch';
 import LeftMenu from '@/components/ui/left-menu/LeftMenu';
 import LeftMenuActive from '@/components/ui/left-menu/left-menu-active/LeftMenuActive';
 
@@ -16,7 +15,11 @@ import { useAddBaseAndDate } from '@/hooks/useAddBaseAndDate';
 import { useCheckAuth } from '@/hooks/useCheckAuth';
 import { useGetUserFoldersQuery, useGetUserIdQuery } from '@/services/other.service';
 
+import ThemePicker from '@/components/ui/theme-picker/ThemePicker';
+
 import { $axios } from '@/api';
+import { fmtDay } from '@/utils/fileMeta';
+import { truncateDescription } from '@/utils/editText';
 import styles from './Agents.module.scss';
 
 const WEEKDAYS = [
@@ -77,6 +80,35 @@ const Agents = () => {
   );
 
   const datasetChosen = dataForRequest.index !== null && dataForRequest.index !== undefined;
+
+  const datasetOption = useMemo(() => {
+    const list = Object.values(dataUser || {}).flat();
+    return (
+      list.find(item => item && item.index_number === dataForRequest.index && !item['html-file']) || null
+    );
+  }, [dataUser, dataForRequest.index]);
+
+  const datasetLabel = datasetOption
+    ? truncateDescription(datasetOption.file || '', 34)
+    : datasetChosen
+      ? `набор #${dataForRequest.index}`
+      : '';
+
+  const periodLabel = useMemo(() => {
+    if (datasetOption?.min_data && datasetOption?.max_data) {
+      return `${fmtDay(datasetOption.min_data)} — ${fmtDay(datasetOption.max_data)}`;
+    }
+    return '';
+  }, [datasetOption]);
+
+  const pickTheme = useCallback(
+    option => {
+      addIndex(option.index_number);
+      if (option.min_data) addMinDate(option.min_data);
+      if (option.max_data) addMaxDate(option.max_data);
+    },
+    [addIndex, addMinDate, addMaxDate]
+  );
 
   const load = useCallback(async () => {
     try {
@@ -343,24 +375,36 @@ const Agents = () => {
           </span>
           <div className={styles.headActions}>
             <Button
-              style={{ width: 'calc(168/1440*100vw)', height: 'calc(38/1440*100vw)' }}
+              style={{ width: '150px', height: '32px', fontSize: '13px' }}
               onClick={() => openEditor(null)}
             >
               Создать агента
             </Button>
-            <button type='button' className={styles.linkBtn} onClick={() => setShowPresets(v => !v)}>
+            <button type='button' className={styles.chipBtn} onClick={() => setShowPresets(v => !v)}>
               {showPresets ? 'скрыть шаблоны' : `шаблоны (${presets.length})`}
             </button>
-            <button type='button' className={styles.linkBtn} onClick={() => navigate('/dify-constructor')}>
+            <button type='button' className={styles.chipBtn} onClick={() => navigate('/dify-constructor')}>
+              <img src='/images/icons/menu/dify.svg' alt='' />
               конструктор Dify
             </button>
-            <button type='button' className={styles.linkBtn} onClick={load}>
+            <button type='button' className={styles.chipBtn} onClick={load}>
               обновить
             </button>
           </div>
         </div>
 
-        {isSuccess && Object.keys(dataUser || {}).length > 0 && <DataForSearch />}
+        <div className={styles.dataRow}>
+          <ThemePicker
+            dataUser={dataUser}
+            currentIndex={dataForRequest.index}
+            label={datasetLabel}
+            period={periodLabel}
+            loading={!isSuccess && !isError}
+            failed={isError}
+            onPick={pickTheme}
+          />
+          {!datasetChosen && <span className={styles.dataEmpty}>выберите тему, чтобы запускать агентов</span>}
+        </div>
 
         {error && (
           <div className={styles.errorBlock}>
@@ -784,11 +828,6 @@ const Agents = () => {
             </div>
           </div>
         )}
-
-        <div className={styles.panelHead}>
-          <h3>Агенты</h3>
-          <span className={styles.panelHint}>{agents.length ? `всего: ${agents.length}` : ''}</span>
-        </div>
 
         {agents.length === 0 ? (
           <div className={styles.empty}>
