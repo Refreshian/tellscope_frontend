@@ -78,11 +78,6 @@
 			> .menu__item_active {
 				position: relative;
 				@include menu-item();
-				/* текущий раздел: короткая черта снизу под иконкой */
-				background-image: linear-gradient($color_blue, $color_blue);
-				background-repeat: no-repeat;
-				background-position: center bottom adapt(5px, 1440px);
-				background-size: adapt(14px, 1440px) adapt(2px, 1440px);
 			}
 		}
 	}
@@ -227,13 +222,18 @@
 	transition: none !important;
 }
 .menu__item_active {
-	/* текущий раздел показываем короткой чертой снизу: без заливки и рамки */
+	/* текущий раздел не заливаем: его помечает тонкая рамка вокруг иконки */
 	background: transparent;
-	background-image: linear-gradient($color_blue, $color_blue);
-	background-repeat: no-repeat;
-	background-position: center bottom adapt(5px, 1440px);
-	background-size: adapt(14px, 1440px) adapt(2px, 1440px);
 	box-shadow: none;
+}
+
+/* тонкая рамка вокруг иконки того раздела, который открыт сейчас
+   (включая пункты ИИ-агентов и «Конструктор Dify» — у них класс agentActive) */
+.menu__item_active > img,
+.menu__item_agentActive > img {
+	border-radius: adapt(6px, 1440px);
+	outline: 1px solid rgba(23, 96, 232, 0.5);
+	outline-offset: adapt(3px, 1440px);
 }
 .menu__item,
 .menu__item_active,

@@ -95,11 +95,7 @@
 
 			> .menu__item_active {
 				position: relative;
-				/* текущий раздел: короткая черта снизу вместо заливки */
-				background-image: linear-gradient($color_blue, $color_blue);
-				background-repeat: no-repeat;
-				background-position: center bottom adapt(6px, 1440px);
-				background-size: adapt(18px, 1440px) adapt(2px, 1440px);
+				/* текущий раздел: заливки нет — иконку обводит тонкая рамка */
 				font-size: 0.81rem;
 				@include menu-item();
 				color: $color_blue;
@@ -146,11 +142,7 @@
 
 			> .menu__item_active {
 				position: relative;
-				/* текущий раздел: короткая черта снизу вместо заливки */
-				background-image: linear-gradient($color_blue, $color_blue);
-				background-repeat: no-repeat;
-				background-position: center bottom adapt(6px, 1440px);
-				background-size: adapt(18px, 1440px) adapt(2px, 1440px);
+				/* текущий раздел: заливки нет — иконку обводит тонкая рамка */
 				font-size: 0.81rem;
 				@include menu-item();
 				color: $color_blue;
@@ -340,4 +332,12 @@
 
 .menu__badge_ai {
 	background: #2f6bff;
+}
+
+/* тонкая рамка вокруг иконки текущего раздела (в т.ч. пунктов ИИ-агентов) */
+.menu__item_active > img,
+.menu__item_agentActive > img {
+	border-radius: adapt(7px, 1440px);
+	outline: 1px solid rgba(23, 96, 232, 0.5);
+	outline-offset: adapt(3px, 1440px);
 }
