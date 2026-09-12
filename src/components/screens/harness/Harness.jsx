@@ -201,19 +201,33 @@ const Harness = () => {
 	);
 
 
-	// Скачиваем артефакт через $axios: обычная ссылка уходит без заголовка
-	// Authorization (только cookie), и бэкенд отвечает 401.
+	// Скачиваем артефакт через $axios: у него baseURL уже заканчивается на /api,
+	// поэтому из ссылки вида /api/agent/artifact/... префикс /api надо убрать.
+	// Если всё же не получилось — открываем ссылку в новой вкладке (бэкенд принимает cookie).
 	const downloadArtifact = useCallback(async artifact => {
+		const rawUrl = artifact?.url || '';
+		let target = rawUrl;
 		try {
-			let target = artifact?.url || '';
-			try {
-				const parsed = new URL(target, window.location.origin);
-				target = parsed.pathname + parsed.search;
-			} catch (e) {
-				// оставляем как есть
-			}
+			const parsed = new URL(rawUrl, window.location.origin);
+			target = parsed.pathname + parsed.search;
+		} catch (e) {
+			// оставляем как есть
+		}
+		target = target.replace(/^\/api(\/|$)/, '/');
+		try {
 			const response = await $axios.get(target, { responseType: 'blob' });
-			const objectUrl = URL.createObjectURL(response.data);
+			let payload = response?.data ?? response;
+			if (payload instanceof Blob) {
+				if ((payload.type || '').includes('json')) {
+					throw new Error(await payload.text());
+				}
+			} else {
+				payload = new Blob([payload]);
+			}
+			if (!payload.size) {
+				throw new Error('пустой файл');
+			}
+			const objectUrl = URL.createObjectURL(payload);
 			const link = document.createElement('a');
 			link.href = objectUrl;
 			link.download = artifact?.name || 'file';
@@ -222,8 +236,8 @@ const Harness = () => {
 			link.remove();
 			URL.revokeObjectURL(objectUrl);
 		} catch (error) {
-			console.error('Не удалось скачать артефакт:', error);
-			window.alert('Не удалось скачать файл. Обновите страницу и попробуйте снова.');
+			console.error('Не удалось скачать артефакт через API, открываю ссылку:', error);
+			window.open(rawUrl, '_blank', 'noopener,noreferrer');
 		}
 	}, []);
 

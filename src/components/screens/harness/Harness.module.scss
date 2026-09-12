@@ -492,3 +492,33 @@
     max-height: 180px;
   }
 }
+
+
+// Кнопки-файлы в карточке запуска: выглядели как системные белые кнопки
+.artifactBtn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 10px;
+	margin: 0 6px 6px 0;
+	border: 1px solid rgba(23, 96, 232, 0.35);
+	border-radius: 7px;
+	background: rgba(23, 96, 232, 0.06);
+	color: inherit;
+	font-size: 12px;
+	line-height: 1.2;
+	cursor: pointer;
+	text-align: left;
+	transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.artifactBtn:hover {
+	background: rgba(23, 96, 232, 0.14);
+	border-color: rgba(23, 96, 232, 0.6);
+}
+
+.artifactBtn::before {
+	content: '↓';
+	font-size: 12px;
+	opacity: 0.7;
+}
