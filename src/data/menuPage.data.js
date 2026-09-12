@@ -1,12 +1,12 @@
 export const menuPageData = [
 	{
 		id: 20,
-		title: 'DeepSeek Harness',
-		text: 'DeepSeek Harness',
+		title: 'Центр задач',
+		text: 'Центр задач',
 		accent: true,
-		tileBadge: 'DSH',
-		accentHint: 'все задачи Tellscope: данные, отчёты, агенты, Dify',
-		badge: 'DSH',
+		tileBadge: 'AI',
+		accentHint: 'опишите задачу — решим цепочками агентов и инструментами Tellscope',
+		badge: 'AI',
 		src: '/images/icons/menu/harness.svg',
 		src_active: '/images/icons/menu/harness_active.svg',
 		path: '/harness',
