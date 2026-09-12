@@ -189,7 +189,7 @@ const Harness = () => {
 			setError(null);
 			try {
 				const { data: payload } = await $axios.post(`/harness/task/${task.id}/run`);
-				setNotice('Выполняю задачу');
+				setNotice('Задача выполняется — журнал шагов обновляется ниже');
 				watchRun(payload.run_id);
 				setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
 			} catch (err) {
@@ -243,6 +243,18 @@ const Harness = () => {
 
 	// Полный текст запроса: раскрытие и копирование в буфер (запрос в списке обрезан CSS)
 	const [expandedTask, setExpandedTask] = useState(null);
+	// Живой статус в зелёной полосе: какой шаг идёт прямо сейчас
+	const liveStatus = useMemo(() => {
+		if (!events.length) return '';
+		const last = events[events.length - 1] || {};
+		const label = last.title || last.name || last.message || last.text || '';
+		const steps = events.filter(event => event.type === 'tool_start').length;
+		const finished = ['final', 'done'].includes(last.type);
+		return [finished ? 'готово' : steps ? `шаг ${steps}` : '', label ? String(label).slice(0, 80) : '']
+			.filter(Boolean)
+			.join(': ');
+	}, [events]);
+
 	const copyTaskText = useCallback(async taskText => {
 		try {
 			await navigator.clipboard.writeText(taskText || '');
@@ -442,7 +454,12 @@ const Harness = () => {
 						<p>{error}</p>
 					</div>
 				)}
-				{notice && <div className={styles.noticeBlock}>{notice}</div>}
+				{notice && (
+					<div className={styles.noticeBlock}>
+						{notice}
+						{liveStatus ? ` · ${liveStatus}` : ''}
+					</div>
+				)}
 
 				{current && (
 					<div className={styles.panel} ref={resultRef}>
