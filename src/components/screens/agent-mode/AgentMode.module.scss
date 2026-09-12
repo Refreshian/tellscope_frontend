@@ -2,6 +2,16 @@
   padding: calc(10 / 1440 * 100vw) 0 calc(4 / 1440 * 100vw);
 }
 
+.leadLink {
+  color: #1760e8;
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(23, 96, 232, 0.5);
+
+  &:hover {
+    border-bottom-style: solid;
+  }
+}
+
 .lead {
   max-width: calc(900 / 1440 * 100vw);
   margin: 0 0 calc(18 / 1440 * 100vw);
