@@ -618,17 +618,6 @@ const Harness = () => {
 								</button>
 								{taskActionsShown(task) ? (
 									<span className={styles.taskActions}>
-																				<button
-																					type='button'
-																					className={styles.taskBtn}
-																					title={expandedTask === task.id ? 'Свернуть запрос' : 'Показать полный запрос'}
-																					onClick={event => {
-																						event.stopPropagation();
-																						setExpandedTask(expandedTask === task.id ? null : task.id);
-																					}}
-																				>
-																					{expandedTask === task.id ? 'свернуть' : 'полный'}
-																				</button>
 																			<button
 																				type='button'
 																				className={styles.taskBtn}
@@ -638,7 +627,7 @@ const Harness = () => {
 																					copyTaskText(task.text);
 																				}}
 																			>
-																				⧉  копировать
+																				копировать запрос
 																			</button>
 																	</span>
 								) : null}
