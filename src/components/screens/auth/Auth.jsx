@@ -76,13 +76,11 @@ const Auth = () => {
 						src='/images/logo.svg'
 						alt='logo'
 					/>
-					<p className={styles.description}>
-						<span className={styles.max}>Аналитика</span>
-						<br />
-						Соцмедиа & СМИ
-						<br />
-						<span className={styles.mini}>С применением ИИ</span>
-					</p>
+					<div className={styles.brand}>
+						<span className={styles.brandTop}>Аналитика</span>
+						<span className={styles.brandMain}>Соцмедиа &amp; СМИ</span>
+						<span className={styles.brandNote}>с применением ИИ</span>
+					</div>
 				</div>
 				<h2 className={styles.title}>
 					{isViewAuth ? 'Авторизация' : 'Регистрация'}
