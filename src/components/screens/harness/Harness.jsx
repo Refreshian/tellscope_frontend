@@ -143,6 +143,69 @@ const journalEntry = event => {
 	return { text: event.title || event.message || type };
 };
 
+// Статус задачи в списке «Мои задачи»: понятный чип вместо технического слова.
+// Статус запуска важнее статуса задачи: если запуск завершился, а в хранилище задача
+// осталась running (например, запись не успела обновиться), показываем честный статус.
+const taskBadge = task => {
+	const runStatus = String(task?.run_status || '');
+	const status = String(task?.status || '');
+	const hasRun = !!task?.run_id;
+	const duration = task?.duration_sec ?? null;
+	const cost = task?.run_cost_usd ?? null;
+	const durationText = duration ? ` за ${fmtDuration(duration)}` : '';
+	const costText = cost ? ` · $${Number(cost).toFixed(4)}` : '';
+
+	if (runStatus === 'interrupted' || status === 'interrupted') {
+		return {
+			kind: 'interrupted',
+			label: 'Прервано',
+			title: task?.error || 'Запуск прерван: событий нет (сервер перезапускался или процесс убит)',
+		};
+	}
+	if (runStatus === 'cancelled' || status === 'cancelled') {
+		return { kind: 'cancelled', label: 'Остановлено', title: task?.error || 'остановлено пользователем' };
+	}
+	if (runStatus === 'failed' || status === 'failed' || status === 'error') {
+		return { kind: 'error', label: 'Ошибка', title: task?.error || 'причина не указана' };
+	}
+	// План без запуска (режимы explain/chain/flow): задача только собрала план — «Черновик»,
+	// даже если в хранилище у неё статус done.
+	const draftMode = ['explain', 'chain', 'flow'].includes(String(task?.mode || ''));
+	if (!hasRun && (draftMode || status === 'new')) {
+		return {
+			kind: 'draft',
+			label: 'Черновик',
+			title: status === 'new' ? 'Задача создана, запуск ещё не выполнялся' : 'План готов, запуск ещё не выполнялся',
+		};
+	}
+	if (runStatus === 'completed' || status === 'done' || status === 'completed') {
+		return {
+			kind: 'done',
+			label: `Выполнено${durationText}`,
+			title: `Выполнено${durationText}${costText}${task?.finished_at ? ` · ${task.finished_at}` : ''}`,
+		};
+	}
+	if (runStatus === 'queued') return { kind: 'running', label: 'В очереди', title: 'Запуск стоит в очереди' };
+	if (runStatus === 'running') return { kind: 'running', label: 'Выполняется', title: 'Запуск идёт прямо сейчас' };
+	if (status === 'running') {
+		// Задача числится выполняющейся, но активного запуска нет — не «залипаем»
+		return hasRun
+			? { kind: 'running', label: 'Выполняется', title: 'Запуск идёт прямо сейчас' }
+			: {
+					kind: 'interrupted',
+					label: 'Прервано',
+					title: 'У задачи нет активного запуска — обновите список или запустите её заново',
+				};
+	}
+	return {
+		kind: 'draft',
+		label: 'Черновик',
+		title: 'Сформирован план (объяснение, цепочка или Dify-flow), запуск ещё не выполнялся',
+	};
+};
+
+const chipKind = kind => String(kind || '').charAt(0).toUpperCase() + String(kind || '').slice(1);
+
 const fmtDate = value => {
 	if (value === null || value === undefined || value === '') return '';
 	const text = String(value);
@@ -420,19 +483,32 @@ const Harness = () => {
 			} else {
 				startPolling(runId, taskId);
 			}
-			// Страховка: раз в 15 с уточняем состояние запуска даже при живом сокете
+			// Страховка: раз в 15 с уточняем состояние запуска даже при живом сокете,
+			// а заодно обновляем список задач — статус-чип в «Моих задачах» меняется сам,
+			// без перезагрузки страницы.
 			watchdogRef.current = setInterval(async () => {
 				if (!watchRef.current.active) return;
 				const runPayload = await fetchRun(runId, taskId);
 				if (runPayload && FINISHED_RUN_STATUSES.includes(runPayload.status)) {
 					await finishWatch(runMessage(runPayload.status));
+					return;
 				}
+				await loadTasks();
 			}, 15000);
 		},
-		[fetchRun, finishWatch, startPolling, stopWatch]
+		[fetchRun, finishWatch, loadTasks, startPolling, stopWatch]
 	);
 
 	useEffect(() => () => stopWatch(), [stopWatch]);
+
+	// Список «Мои задачи» обновляем сам: статус-чип должен меняться без перезагрузки страницы,
+	// даже если запуск стартовал в другой вкладке или пришёл из планировщика.
+	useEffect(() => {
+		const id = setInterval(() => {
+			loadTasks();
+		}, 20000);
+		return () => clearInterval(id);
+	}, [loadTasks]);
 
 	// После перезагрузки страницы подхватываем уже идущий запуск, чтобы прогресс не терялся
 	useEffect(() => {
@@ -1253,47 +1329,57 @@ const Harness = () => {
 					</div>
 					{!tasks.length && <p className={styles.muted}>Пока пусто — опишите первую задачу выше.</p>}
 					<div className={styles.taskList}>
-						{visibleTasks.map(task => (
-							<div
-								key={task.id}
-								className={`${styles.taskRow} ${current?.id === task.id ? styles.taskRowActive : ''}`}
-							>
-								<button type='button' className={styles.taskMain} onClick={() => openTask(task)}>
-									<span
-										className={`${styles.taskText} ${expandedTask === task.id ? styles.taskTextOpen : ''}`}
-										title={task.text}
-										onClick={() => {
-										if ((task.text || '').length > 110) {
-											setExpandedTask(expandedTask === task.id ? null : task.id);
-										}
-									}}
-									>
-										{task.text}
-									</span>
+						{visibleTasks.map(task => {
+							const badge = taskBadge(task);
+							return (
+								<div
+									key={task.id}
+									className={`${styles.taskRow} ${current?.id === task.id ? styles.taskRowActive : ''}`}
+								>
+									<button type='button' className={styles.taskMain} onClick={() => openTask(task)}>
+										<span
+											className={`${styles.taskText} ${expandedTask === task.id ? styles.taskTextOpen : ''}`}
+											title={task.text}
+											onClick={() => {
+												if ((task.text || '').length > 110) {
+													setExpandedTask(expandedTask === task.id ? null : task.id);
+												}
+											}}
+										>
+											{task.text}
+										</span>
 
-									<span className={styles.taskMeta}>
-										{task.created_at} · {modeLabel(modes, task.mode)} · {taskStatusLabel(task)}
-										{task.run_progress?.percent ? ` · ${task.run_progress.percent}%` : ''}
+										<span className={styles.taskMeta}>
+											{task.created_at} · {modeLabel(modes, task.mode)}
+											{task.run_progress?.percent ? ` · ${task.run_progress.percent}%` : ''}
+										</span>
+									</button>
+									<span className={styles.taskActions}>
+										<span
+											className={`${styles.taskChip} ${styles[`chip${chipKind(badge.kind)}`] || ''}`}
+											title={badge.title}
+										>
+											{badge.kind === 'running' ? <span className={styles.chipDot} aria-hidden='true' /> : null}
+											{badge.label}
+										</span>
+										<button
+											type='button'
+											className={styles.taskBtn}
+											title='Скопировать запрос'
+											onClick={event => {
+												event.stopPropagation();
+												copyTaskText(task.text);
+											}}
+										>
+											копировать запрос
+										</button>
 									</span>
-								</button>
-																<span className={styles.taskActions}>
-																		<button
-																			type='button'
-																			className={styles.taskBtn}
-																			title='Скопировать запрос'
-																			onClick={event => {
-																				event.stopPropagation();
-																				copyTaskText(task.text);
-																			}}
-																		>
-																			копировать запрос
-																		</button>
-																</span>
-								<button type='button' className={styles.linkBtnDanger} onClick={() => removeTask(task)}>
-									удалить
-								</button>
-							</div>
-						))}
+									<button type='button' className={styles.linkBtnDanger} onClick={() => removeTask(task)}>
+										удалить
+									</button>
+								</div>
+							);
+						})}
 					</div>
 					{tasks.length > 5 ? (
 						<button type='button' className={styles.linkBtn} onClick={() => setShowAllTasks(v => !v)}>
