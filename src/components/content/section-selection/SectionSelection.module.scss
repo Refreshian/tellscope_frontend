@@ -78,6 +78,14 @@
 	gap: adapt(12px, 1440px);
 }
 
+/* нижний блок — та же рамка, но заметно мягче: только контур и почти прозрачная заливка */
+.groupPlain {
+	padding: adapt(16px, 1440px) adapt(16px, 1440px) adapt(18px, 1440px);
+	background: rgba(255, 255, 255, 0.45);
+	border: 1px solid rgba(11, 27, 59, 0.07);
+	border-radius: adapt(20px, 1440px);
+}
+
 /* блок ИИ-инструментов выделяем мягкой брендовой подложкой */
 .groupAccent {
 	padding: adapt(16px, 1440px) adapt(16px, 1440px) adapt(18px, 1440px);

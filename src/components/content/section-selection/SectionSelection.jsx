@@ -40,7 +40,7 @@ const SectionSelection = () => {
 			{
 				id: 'tools',
 				title: 'Аналитика и данные',
-				hint: 'готовые срезы и отчёты по соцмедиа и СМИ',
+				hint: 'срезы и отчёты по соцмедиа и СМИ',
 				items: tools,
 			},
 		].filter(group => group.items.length > 0);
@@ -63,7 +63,7 @@ const SectionSelection = () => {
 				{groups.map(group => (
 					<section
 					key={group.id}
-					className={`${styles.group} ${group.id === 'ai' ? styles.groupAccent : ''}`}
+					className={`${styles.group} ${group.id === 'ai' ? styles.groupAccent : styles.groupPlain}`}
 				>
 						<div className={styles.groupHead}>
 							<span className={styles.groupTitle}>{group.title}</span>
