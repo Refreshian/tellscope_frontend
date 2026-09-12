@@ -76,6 +76,73 @@ const runMessage = status =>
 const STALE_HINT_SEC = 60;
 const STALE_ALERT_SEC = 300;
 
+// Журнал для пользователя: технические типы событий превращаем в человеческие подписи.
+// log и heartbeat в журнале не показываем: log — служебные заметки инструментов (видны
+// в подробном режиме), heartbeat — источник «живости» для таймера, а не строка журнала.
+const humanStage = stage => {
+	const text = String(stage || '').trim();
+	if (!text) return 'Работаю';
+	if (/^подготовка запуска$/i.test(text)) return 'Готовлю запуск';
+	if (/^модель/i.test(text)) return 'Модель думает…';
+	const tool = text.match(/^Инструмент:\s*(.+)$/i);
+	if (tool) return tool[1];
+	if (/^чтение текстов$/i.test(text)) return 'Читаю тексты датасета';
+	const step = text.match(/^Шаг\s+(\d+)\.\s*(.+)$/i);
+	if (step) return `Шаг ${step[1]}: ${step[2]}`;
+	return text;
+};
+
+// «прочитано 24 из 41 сообщений (пачек: 2 из 3, последняя за 50 с)» → «прочитано 24 из 41 сообщений»
+const humanDetail = detail => String(detail || '').replace(/\s*\(пачек:[^)]*\)/i, '').trim();
+
+// Одна строка журнала: { text, bad } или null, если событие показывать не нужно
+const journalEntry = event => {
+	const type = event?.type;
+	if (!type || type === 'heartbeat' || type === 'keepalive') return null;
+	if (type === 'log') {
+		// Служебные заметки инструментов по умолчанию не показываем: они видны по кнопке
+		// «служебные записи». Исключение — сообщения об ошибках: они важны пользователю.
+		if (String(event.level || '').toLowerCase() !== 'error') return null;
+		return { text: `Внимание: ${event.message || ''}`.trim(), bad: true };
+	}
+	if (type === 'notice') return { text: event.message || 'Сообщение', bad: event.level === 'warning' };
+	if (type === 'progress') {
+		const stage = humanStage(event.stage);
+		const sub = event.sub;
+		if (sub && sub.total) {
+			if (!sub.done) {
+				// Чтение только началось — не показываем «прочитано 0 из 41»
+				const batches = sub.units_total ? `, пачек ${sub.units_total}` : '';
+				return { text: `${stage}: начинаю — ${sub.total} сообщений${batches}` };
+			}
+			const batches = sub.units_total ? ` · пачка ${sub.units_done || 0} из ${sub.units_total}` : '';
+			const eta = event.eta_seconds ? ` · осталось ~${fmtDuration(event.eta_seconds)}` : '';
+			return { text: `${stage}: прочитано ${sub.done} из ${sub.total}${batches}${eta}` };
+		}
+		const detail = humanDetail(event.detail);
+		return detail && detail !== event.stage ? { text: `${stage} — ${detail}` } : { text: stage };
+	}
+	if (type === 'tool_start') return { text: `Шаг начат: ${event.title || event.name || ''}`.trim() };
+	if (type === 'tool_end') {
+		const summary = event.summary ? ` — ${event.summary}` : '';
+		return { text: `Шаг завершён: ${event.title || event.name || ''}${summary}`.trim(), bad: event.ok === false };
+	}
+	if (type === 'llm') {
+		const planned = (event.planned || []).filter(Boolean);
+		if (planned.length) return { text: `Модель выбрала инструмент: ${planned.join(', ')}` };
+		return { text: event.final ? 'Модель готовит итог…' : 'Модель думает…' };
+	}
+	if (type === 'start') {
+		const tools = Array.isArray(event.tools) ? ` · инструментов ${event.tools.length}` : '';
+		return { text: `Запуск${event.model ? `: ${event.model}` : ''}${tools}` };
+	}
+	if (type === 'answer') return { text: 'Ответ готов' };
+	if (type === 'final') return { text: 'Итог сформирован' };
+	if (type === 'done') return { text: `Запуск завершён: ${RUN_STATUS_LABELS[event.status] || event.status || 'без статуса'}` };
+	if (type === 'error') return { text: `Ошибка: ${event.message || ''}`.trim(), bad: true };
+	return { text: event.title || event.message || type };
+};
+
 const fmtDate = value => {
 	if (value === null || value === undefined || value === '') return '';
 	const text = String(value);
@@ -570,24 +637,47 @@ const Harness = () => {
 		const percent = progress?.percent ?? progress?.sub?.percent ?? null;
 		const step = progress?.step ?? null;
 		const total = progress?.total ?? null;
-		const eta = progress?.eta_seconds ?? null;
+		const etaRaw = progress?.eta_seconds ?? null;
 		const etaScope = progress?.eta_scope || '';
 		const historyRun = progress?.history_run_sec ?? null;
+		const sub = progress?.sub || null;
+		// Оценка остатка тикает каждую секунду: между событиями вычитаем прошедшее время,
+		// чтобы цифра «осталось ~2 мин» не выглядела застывшей.
+		const progressAgeSec = progress?.ts ? Math.max(0, (tick - timeOf(progress.ts)) / 1000) : 0;
+		const eta = etaRaw !== null && etaRaw !== undefined ? Math.max(0, Math.round(etaRaw - progressAgeSec)) : null;
 		let etaText = '';
-		if (active && eta !== null && eta !== undefined) {
+		if (active && eta !== null) {
 			etaText = etaScope === 'stage' ? `на шаг осталось ~${fmtDuration(eta)}` : `осталось ~${fmtDuration(eta)}`;
 		} else if (active && !total && historyRun) {
 			etaText = `обычно такой запуск ${fmtDuration(historyRun)}`;
 		}
 
+		// Подробность под полосой: «прочитано 24 из 41 текстов · пачка 2 из 3»
+		let detail = '';
+		if (sub && sub.total) {
+			detail = sub.done
+				? `прочитано ${sub.done} из ${sub.total} текстов`
+				: `читаю ${sub.total} текстов`;
+			if (sub.units_total) detail += ` · пачка ${sub.units_done || 0} из ${sub.units_total}`;
+		} else if (progress?.detail) {
+			detail = humanDetail(progress.detail);
+		}
+
+		const reading = /текст|отзыв/i.test(String(stage || '')) || /текст|отзыв/i.test(String(progress?.detail || ''));
+
 		let hint = '';
 		let alert = false;
-		if (active && sinceEvent !== null) {
-			if (sinceEvent > STALE_ALERT_SEC) {
+		if (active) {
+			if (sinceEvent !== null && sinceEvent > STALE_ALERT_SEC) {
 				alert = true;
 				hint = `Событий нет уже ${fmtDuration(sinceEvent)}. Возможно, сервер перезапускался: обновите страницу или нажмите «проверить статус» — состояние подтянется.`;
-			} else if (sinceEvent > STALE_HINT_SEC) {
+			} else if (sinceEvent !== null && sinceEvent > STALE_HINT_SEC) {
 				hint = `Шаг выполняется долго (${stage || 'модель или чтение текстов'}), обычно это 2–3 минуты — процесс идёт, ждём ответа модели.`;
+			} else if (percent === null || percent === undefined) {
+				// Оценки нет (плана шагов не знаем): вместо пустоты объясняем, что происходит
+				hint = reading
+					? 'Читаю тексты датасета локальной моделью — обычно это 2–3 минуты, шаг выполняется.'
+					: 'Работа идёт: шаг длинный, точную оценку пока дать нельзя — обычно это 1–3 минуты.';
 			}
 		}
 
@@ -614,7 +704,7 @@ const Harness = () => {
 			hint,
 			alert,
 			title,
-			detail: progress?.detail || '',
+			detail,
 		};
 	}, [current, currentRun, lastEventMs, notice, progress, startedMs, tick]);
 
@@ -684,8 +774,25 @@ const Harness = () => {
 	const difyUrl = info?.dify_url || 'https://tellscope40.headsmade.com:8443';
 	const visibleTasks = showAllTasks ? tasks : tasks.slice(0, 5);
 
-	// Журнал шагов: heartbeat в списке не показываем — он нужен таймерам, а не журналу
-	const logEvents = useMemo(() => events.filter(event => event.type !== 'heartbeat').slice(-40), [events]);
+	// Журнал для пользователя: без служебных log и без heartbeat (heartbeat — только «живость»
+	// для таймера). Технические типы событий превращаются в человеческие подписи.
+	const journal = useMemo(() => {
+		const rows = [];
+		events.forEach((event, index) => {
+			const entry = journalEntry(event);
+			if (!entry || !entry.text) return;
+			if (rows.length && rows[rows.length - 1].text === entry.text) return;
+			rows.push({ ...entry, index });
+		});
+		return rows.slice(-40);
+	}, [events]);
+
+	// Подробный режим: служебные заметки инструментов (log) — только по кнопке
+	const [showServiceNotes, setShowServiceNotes] = useState(false);
+	const serviceNotes = useMemo(
+		() => events.filter(event => event.type === 'log' && event.message).slice(-25),
+		[events]
+	);
 
 	const taskStatusLabel = useCallback(taskItem => {
 		const key = taskItem?.run_status || taskItem?.status || '';
@@ -994,34 +1101,38 @@ const Harness = () => {
 							</div>
 						) : null}
 
-						{run && (liveStatus.active || logEvents.length) ? (
+						{run && (liveStatus.active || journal.length) ? (
 							<div className={styles.runBox}>
 								<div className={styles.runHead}>
 									модель: {run.model_label || '—'} · статус: {RUN_STATUS_LABELS[run.status] || run.status}
 									{run.duration_sec ? ` · ${fmtDuration(run.duration_sec)}` : ''}
 									{run.cost_usd ? ` · $${run.cost_usd}` : ''}
+									{serviceNotes.length ? (
+										<button
+											type='button'
+											className={styles.journalToggle}
+											onClick={() => setShowServiceNotes(value => !value)}
+											title='Служебные заметки инструментов: нужны для отладки'
+										>
+											{showServiceNotes ? 'скрыть служебные записи' : 'служебные записи'}
+										</button>
+									) : null}
 								</div>
 								<ol className={styles.log}>
-									{logEvents.map((event, index) => (
-										<li
-											key={`${event.type}-${event.ts || ''}-${index}`}
-											className={event.ok === false ? styles.logBad : ''}
-										>
-											<b>
-												{event.type === 'tool_start'
-													? 'запуск'
-													: event.type === 'progress'
-														? 'прогресс'
-														: event.type}
-											</b>{' '}
-											{event.type === 'progress' ? event.stage || '' : event.title || event.name || ''}
-											{event.type === 'progress' && event.detail ? ` — ${event.detail}` : ''}
-											{event.type !== 'progress' && event.summary ? ` — ${event.summary}` : ''}
-											{event.text ? ` ${String(event.text).slice(0, 150)}` : ''}
+									{journal.map(row => (
+										<li key={`${row.key || 'row'}-${row.index}`} className={row.bad ? styles.logBad : ''}>
+											{row.text}
 										</li>
 									))}
-									{!logEvents.length && <li>ожидаю первые шаги…</li>}
+									{!journal.length && <li>ожидаю первые шаги…</li>}
 								</ol>
+								{showServiceNotes && serviceNotes.length ? (
+									<ol className={styles.serviceLog}>
+										{serviceNotes.map((event, index) => (
+											<li key={`service-${index}`}>{event.message}</li>
+										))}
+									</ol>
+								) : null}
 								{run.artifacts?.length ? (
 									<div className={styles.artifacts}>
 										{run.artifacts.map(artifact => (
