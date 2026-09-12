@@ -46,11 +46,17 @@
 }
 
 .head {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   display: flex;
   align-items: center;
-  gap: calc(14 / 1440 * 100vw);
+  gap: 10px;
   flex-wrap: wrap;
-  margin: calc(8 / 1440 * 100vw) 0 calc(12 / 1440 * 100vw);
+  margin: 0 0 10px;
+  padding: 8px 0 10px;
+  background: #ffffff;
+  box-shadow: 0 8px 14px -12px rgba(11, 27, 59, 0.35);
 }
 
 .headTitle {
@@ -130,7 +136,8 @@
   background: none;
   padding: 0;
   color: #2f6bff;
-  font-size: calc(13 / 1440 * 100vw);
+  font-family: inherit;
+  font-size: 12.5px;
   cursor: pointer;
 
   &:hover {
@@ -143,7 +150,8 @@
   background: none;
   padding: 0;
   color: #b42318;
-  font-size: calc(13 / 1440 * 100vw);
+  font-family: inherit;
+  font-size: 12.5px;
   cursor: pointer;
 }
 
@@ -320,8 +328,8 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: calc(12 / 1440 * 100vw);
-  margin-top: calc(4 / 1440 * 100vw);
+  gap: 12px;
+  margin-top: 6px;
 }
 
 .empty {

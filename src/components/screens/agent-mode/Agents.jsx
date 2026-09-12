@@ -196,8 +196,15 @@ const Agents = () => {
     [load]
   );
 
+  const scrollTop = useCallback(() => {
+    const container = document.querySelector('[class*="wrapper_content"]');
+    if (container) container.scrollTo({ top: 0, behavior: 'smooth' });
+    else window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   const openEditor = useCallback(
     agent => {
+      scrollTop();
       setEditor({
         id: agent?.id || null,
         name: agent?.name || '',
@@ -216,7 +223,7 @@ const Agents = () => {
       setShowAdvanced(false);
       setOpenStep(null);
     },
-    [catalog, meta, dataForRequest.index]
+    [catalog, meta, dataForRequest.index, scrollTop]
   );
 
   const stepDefaults = useCallback(
@@ -855,7 +862,7 @@ const Agents = () => {
                 </div>
                 <div className={styles.cardButtons}>
                   <Button
-                    style={{ width: 'calc(170/1440*100vw)', height: 'calc(44/1440*100vw)' }}
+                    style={{ width: '116px', height: '30px', fontSize: '12.5px' }}
                     onClick={() => runAgent(agent)}
                     disabled={busy}
                   >

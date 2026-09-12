@@ -16,7 +16,7 @@ const Content = ({ children, graph, style, alignStart }) => {
 	const isAiBotPath = location.pathname === '/ai-bot';
 	const isWorkspacePath = !isHomePath && location.pathname !== '/';
 	// страницы задач: контент сверху и на всю ширину, без центрирования по вертикали
-	const isTaskPath = ['/harness'].includes(location.pathname);
+	const isTaskPath = ['/harness', '/agents'].includes(location.pathname);
 
 	useEffect(() => {
 		const m = document.cookie.split('; ').find(x => x.startsWith('token='));
