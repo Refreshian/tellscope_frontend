@@ -318,7 +318,7 @@ const Harness = () => {
 								</select>
 							) : null}
 							<Button
-								style={{ width: 'calc(160/1440*100vw)', height: 'calc(40/1440*100vw)' }}
+								style={{ width: '138px', height: '32px', fontSize: '13px' }}
 								onClick={() => submit()}
 							>
 								{busy ? 'Работаю…' : 'Отправить'}
@@ -460,7 +460,7 @@ const Harness = () => {
 						<div className={styles.actions}>
 							{(result?.summary || result?.spec) && !result?.agent ? (
 								<Button
-									style={{ width: 'calc(180/1440*100vw)', height: 'calc(38/1440*100vw)' }}
+									style={{ width: '152px', height: '32px', fontSize: '13px' }}
 									onClick={() => runExisting(current)}
 								>
 									Выполнить сейчас
@@ -469,7 +469,7 @@ const Harness = () => {
 							{result?.agent ? (
 								<>
 									<Button
-										style={{ width: 'calc(170/1440*100vw)', height: 'calc(38/1440*100vw)' }}
+										style={{ width: '152px', height: '32px', fontSize: '13px' }}
 										onClick={() => runExisting(current)}
 									>
 										Запустить цепочку

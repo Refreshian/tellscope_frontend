@@ -15,6 +15,8 @@ const Content = ({ children, graph, style, alignStart }) => {
 	const isHomePath = location.pathname === '/home';
 	const isAiBotPath = location.pathname === '/ai-bot';
 	const isWorkspacePath = !isHomePath && location.pathname !== '/';
+	// страницы задач: контент сверху и на всю ширину, без центрирования по вертикали
+	const isTaskPath = ['/harness'].includes(location.pathname);
 
 	useEffect(() => {
 		const m = document.cookie.split('; ').find(x => x.startsWith('token='));
@@ -39,7 +41,7 @@ const Content = ({ children, graph, style, alignStart }) => {
 
 	return (
 		<div
-			className={`${styles.wrapper_content}${isAiBotPath ? ` ${styles.fill}` : ''}${isWorkspacePath && !isAiBotPath ? ` ${styles.workspace}` : ''}${isHomePath ? ` ${styles.home}` : ''}${alignStart ? ` ${styles.start}` : ''}`}
+			className={`${styles.wrapper_content}${isAiBotPath ? ` ${styles.fill}` : ''}${isWorkspacePath && !isAiBotPath ? ` ${styles.workspace}` : ''}${isHomePath ? ` ${styles.home}` : ''}${isTaskPath ? ` ${styles.task}` : ''}${alignStart ? ` ${styles.start}` : ''}`}
 			style={styleCSS}
 			onClick={() => {
 				if (active_menu) defaultActiveMenu('');

@@ -63,6 +63,18 @@
 		overflow: hidden !important;
 	}
 }
+/* страницы задач: прижимаем контент к верху и растягиваем по ширине */
+.task {
+	justify-content: flex-start !important;
+	align-items: stretch !important;
+	padding: 8px 16px 16px;
+	overflow-y: auto;
+
+	@media (max-width: 900px) {
+		padding: calc(52px + env(safe-area-inset-top)) 12px calc(16px + env(safe-area-inset-bottom));
+	}
+}
+
 .home {
 	background:
 		radial-gradient(1100px 540px at 88% -12%, rgba(108, 92, 231, 0.16), transparent 62%),

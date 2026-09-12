@@ -1,30 +1,31 @@
-/* Центр ИИ-задач: компактная шапка, поле задачи, результат, история */
+/* Центр ИИ-задач: компактная шапка, поле задачи, результат, история.
+   Размеры в px (а не в vw), чтобы на широких экранах ничего не раздувалось. */
 
 .head {
   display: flex;
   align-items: center;
-  gap: calc(12 / 1440 * 100vw);
+  gap: 10px;
   flex-wrap: wrap;
-  margin: calc(6 / 1440 * 100vw) 0 calc(12 / 1440 * 100vw);
+  margin: 0 0 10px;
 }
 
 .headMark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: calc(28 / 1440 * 100vw);
-  height: calc(20 / 1440 * 100vw);
-  border-radius: calc(7 / 1440 * 100vw);
+  width: 26px;
+  height: 19px;
+  border-radius: 6px;
   background: linear-gradient(90deg, #6c5ce7, #22b8f0);
   color: #fff;
-  font-size: calc(10 / 1440 * 100vw);
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
 }
 
 .headTitle {
   margin: 0;
-  font-size: calc(20 / 1440 * 100vw);
+  font-size: 19px;
   font-weight: 600;
   color: #101828;
   white-space: nowrap;
@@ -32,37 +33,37 @@
 
 .headHint {
   flex: 1 1 auto;
-  min-width: calc(260 / 1440 * 100vw);
-  font-size: calc(12 / 1440 * 100vw);
+  min-width: 240px;
+  font-size: 12px;
   color: #98a2b3;
 }
 
 .headActions {
   display: flex;
   align-items: center;
-  gap: calc(14 / 1440 * 100vw);
+  gap: 14px;
   margin-left: auto;
 }
 
 /* ---------- поле задачи ---------- */
 
 .composer {
-  margin-bottom: calc(12 / 1440 * 100vw);
-  padding: calc(12 / 1440 * 100vw) calc(16 / 1440 * 100vw) calc(14 / 1440 * 100vw);
+  margin-bottom: 10px;
+  padding: 10px 14px 12px;
   background: #fff;
   border: 1px solid #e4e7ec;
-  border-radius: calc(14 / 1440 * 100vw);
-  box-shadow: 0 6px 18px rgba(11, 27, 59, 0.05);
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(11, 27, 59, 0.05);
 }
 
 .input {
   width: 100%;
-  min-height: calc(58 / 1440 * 100vw);
-  padding: calc(10 / 1440 * 100vw) calc(12 / 1440 * 100vw);
+  min-height: 52px;
+  padding: 9px 11px;
   border: 1px solid #d0d5dd;
-  border-radius: calc(10 / 1440 * 100vw);
+  border-radius: 9px;
   font-family: inherit;
-  font-size: calc(14 / 1440 * 100vw);
+  font-size: 13.5px;
   line-height: 1.5;
   color: #101828;
   resize: vertical;
@@ -78,25 +79,26 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: calc(12 / 1440 * 100vw);
+  gap: 10px;
   flex-wrap: wrap;
-  margin-top: calc(10 / 1440 * 100vw);
+  margin-top: 8px;
 }
 
 .modes {
   display: flex;
-  gap: calc(8 / 1440 * 100vw);
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .mode {
-  padding: calc(6 / 1440 * 100vw) calc(12 / 1440 * 100vw);
+  padding: 5px 11px;
   border: 1px solid #d0d5dd;
-  border-radius: calc(999 / 1440 * 100vw);
+  border-radius: 999px;
   background: #fff;
   color: #344054;
   font-family: inherit;
-  font-size: calc(12.5 / 1440 * 100vw);
+  font-size: 12.5px;
+  line-height: 1.2;
   cursor: pointer;
 
   &:hover {
@@ -113,17 +115,17 @@
 .composerRight {
   display: flex;
   align-items: center;
-  gap: calc(10 / 1440 * 100vw);
+  gap: 8px;
   margin-left: auto;
 }
 
 .model {
-  height: calc(38 / 1440 * 100vw);
-  padding: 0 calc(10 / 1440 * 100vw);
+  height: 32px;
+  padding: 0 8px;
   border: 1px solid #d0d5dd;
-  border-radius: calc(10 / 1440 * 100vw);
+  border-radius: 8px;
   font-family: inherit;
-  font-size: calc(12.5 / 1440 * 100vw);
+  font-size: 12.5px;
   color: #344054;
   background: #fff;
 }
@@ -133,12 +135,12 @@
 .dataRow {
   display: flex;
   align-items: center;
-  gap: calc(8 / 1440 * 100vw);
+  gap: 8px;
   flex-wrap: wrap;
-  margin-top: calc(10 / 1440 * 100vw);
-  padding-top: calc(10 / 1440 * 100vw);
+  margin-top: 8px;
+  padding-top: 8px;
   border-top: 1px solid #f0f2f5;
-  font-size: calc(12.5 / 1440 * 100vw);
+  font-size: 12.5px;
 }
 
 .dataLabel {
@@ -155,34 +157,35 @@
 }
 
 .dataPicker {
-  margin-top: calc(10 / 1440 * 100vw);
-  padding: calc(10 / 1440 * 100vw) calc(12 / 1440 * 100vw);
+  margin-top: 8px;
+  padding: 8px 10px;
   background: #f8faff;
   border: 1px solid #e4eaff;
-  border-radius: calc(12 / 1440 * 100vw);
+  border-radius: 10px;
 }
 
 .examples {
   display: flex;
   align-items: center;
-  gap: calc(8 / 1440 * 100vw);
+  gap: 6px;
   flex-wrap: wrap;
-  margin-top: calc(10 / 1440 * 100vw);
+  margin-top: 8px;
 }
 
 .examplesLabel {
-  font-size: calc(12 / 1440 * 100vw);
+  font-size: 12px;
   color: #98a2b3;
 }
 
 .example {
-  padding: calc(4 / 1440 * 100vw) calc(10 / 1440 * 100vw);
+  padding: 3px 9px;
   border: 1px dashed #cbd5e1;
-  border-radius: calc(8 / 1440 * 100vw);
+  border-radius: 7px;
   background: #f9fafb;
   color: #667085;
   font-family: inherit;
-  font-size: calc(11.5 / 1440 * 100vw);
+  font-size: 11.5px;
+  line-height: 1.3;
   cursor: pointer;
 
   &:hover {
@@ -194,99 +197,99 @@
 /* ---------- результат и история ---------- */
 
 .panel {
-  margin-bottom: calc(12 / 1440 * 100vw);
-  padding: calc(14 / 1440 * 100vw) calc(16 / 1440 * 100vw);
+  margin-bottom: 10px;
+  padding: 12px 14px;
   background: #fff;
   border: 1px solid #e4e7ec;
-  border-radius: calc(14 / 1440 * 100vw);
+  border-radius: 12px;
 }
 
 .panelHead {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: calc(12 / 1440 * 100vw);
-  margin-bottom: calc(10 / 1440 * 100vw);
+  gap: 12px;
+  margin-bottom: 8px;
 
   h3 {
     margin: 0;
-    font-size: calc(15.5 / 1440 * 100vw);
+    font-size: 15px;
     font-weight: 600;
     color: #101828;
   }
 }
 
 .panelHint {
-  font-size: calc(12 / 1440 * 100vw);
+  font-size: 12px;
   color: #98a2b3;
   white-space: nowrap;
 }
 
 .card {
-  margin-bottom: calc(10 / 1440 * 100vw);
-  padding: calc(12 / 1440 * 100vw) calc(14 / 1440 * 100vw);
+  margin-bottom: 8px;
+  padding: 10px 12px;
   background: #f8faff;
   border: 1px solid #e0e7ff;
-  border-radius: calc(10 / 1440 * 100vw);
-  font-size: calc(13 / 1440 * 100vw);
-  line-height: 1.6;
+  border-radius: 9px;
+  font-size: 12.5px;
+  line-height: 1.55;
   color: #344054;
 
   > b {
     display: block;
-    margin-bottom: calc(4 / 1440 * 100vw);
+    margin-bottom: 3px;
     color: #101828;
   }
 
   p {
-    margin: 0 0 calc(6 / 1440 * 100vw);
+    margin: 0 0 5px;
   }
 }
 
 .plan {
   margin: 0;
-  padding-left: calc(20 / 1440 * 100vw);
+  padding-left: 18px;
 
   li {
-    margin-bottom: calc(3 / 1440 * 100vw);
+    margin-bottom: 2px;
   }
 }
 
 .muted {
-  font-size: calc(12 / 1440 * 100vw);
+  font-size: 12px;
   color: #98a2b3;
   margin: 0;
 }
 
 .warn {
   margin: 0;
-  font-size: calc(12 / 1440 * 100vw);
+  font-size: 12px;
   color: #b54708;
 }
 
 .runBox {
-  margin-bottom: calc(10 / 1440 * 100vw);
-  padding: calc(10 / 1440 * 100vw) calc(12 / 1440 * 100vw);
+  margin-bottom: 8px;
+  padding: 9px 11px;
   background: #0f172a;
-  border-radius: calc(10 / 1440 * 100vw);
+  border-radius: 9px;
   color: #e2e8f0;
-  font-size: calc(12 / 1440 * 100vw);
+  font-size: 12px;
 }
 
 .runHead {
-  margin-bottom: calc(6 / 1440 * 100vw);
+  margin-bottom: 5px;
   color: #93c5fd;
 }
 
 .log {
   margin: 0;
-  padding-left: calc(20 / 1440 * 100vw);
-  max-height: calc(220 / 1440 * 100vw);
+  padding-left: 18px;
+  max-height: 200px;
   overflow-y: auto;
 
   li {
-    margin-bottom: calc(3 / 1440 * 100vw);
-    line-height: 1.5;
+    margin-bottom: 2px;
+    line-height: 1.45;
   }
 }
 
@@ -296,22 +299,22 @@
 
 .artifacts {
   display: flex;
-  gap: calc(10 / 1440 * 100vw);
+  gap: 10px;
   flex-wrap: wrap;
-  margin-top: calc(8 / 1440 * 100vw);
+  margin-top: 6px;
 
   a {
     color: #7dd3fc;
-    font-size: calc(12 / 1440 * 100vw);
+    font-size: 12px;
   }
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: calc(14 / 1440 * 100vw);
+  gap: 14px;
   flex-wrap: wrap;
-  margin-top: calc(8 / 1440 * 100vw);
+  margin-top: 6px;
 }
 
 .linkBtn {
@@ -320,7 +323,7 @@
   padding: 0;
   color: #2f6bff;
   font-family: inherit;
-  font-size: calc(12.5 / 1440 * 100vw);
+  font-size: 12.5px;
   cursor: pointer;
 
   &:hover {
@@ -334,31 +337,31 @@
   padding: 0;
   color: #b42318;
   font-family: inherit;
-  font-size: calc(12.5 / 1440 * 100vw);
+  font-size: 12.5px;
   cursor: pointer;
 }
 
 .fileLink {
   display: inline-block;
-  margin-top: calc(4 / 1440 * 100vw);
+  margin-top: 4px;
   color: #2f6bff;
-  font-size: calc(13 / 1440 * 100vw);
+  font-size: 12.5px;
 }
 
 .taskList {
   display: flex;
   flex-direction: column;
-  gap: calc(6 / 1440 * 100vw);
+  gap: 5px;
 }
 
 .taskRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: calc(12 / 1440 * 100vw);
-  padding: calc(8 / 1440 * 100vw) calc(10 / 1440 * 100vw);
+  gap: 12px;
+  padding: 7px 9px;
   border: 1px solid #eef0f4;
-  border-radius: calc(10 / 1440 * 100vw);
+  border-radius: 9px;
   background: #fff;
 }
 
@@ -372,7 +375,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: calc(2 / 1440 * 100vw);
+  gap: 1px;
   border: none;
   background: none;
   padding: 0;
@@ -382,57 +385,46 @@
 }
 
 .taskText {
-  font-size: calc(13 / 1440 * 100vw);
+  font-size: 13px;
   color: #101828;
 }
 
 .taskMeta {
-  font-size: calc(11.5 / 1440 * 100vw);
+  font-size: 11.5px;
   color: #98a2b3;
 }
 
 .errorBlock {
-  margin-bottom: calc(12 / 1440 * 100vw);
-  padding: calc(12 / 1440 * 100vw) calc(16 / 1440 * 100vw);
+  margin-bottom: 10px;
+  padding: 10px 14px;
   background: #fef3f2;
   border: 1px solid #fecdca;
-  border-radius: calc(10 / 1440 * 100vw);
+  border-radius: 9px;
 
   h4 {
-    margin: 0 0 calc(4 / 1440 * 100vw);
+    margin: 0 0 3px;
     color: #b42318;
-    font-size: calc(15 / 1440 * 100vw);
+    font-size: 14px;
   }
 
   p {
     margin: 0;
-    font-size: calc(13 / 1440 * 100vw);
+    font-size: 12.5px;
     color: #7a271a;
   }
 }
 
 .noticeBlock {
-  margin-bottom: calc(12 / 1440 * 100vw);
-  padding: calc(10 / 1440 * 100vw) calc(14 / 1440 * 100vw);
+  margin-bottom: 10px;
+  padding: 8px 12px;
   background: #ecfdf3;
   border: 1px solid #a6f4c5;
-  border-radius: calc(10 / 1440 * 100vw);
-  font-size: calc(13 / 1440 * 100vw);
+  border-radius: 9px;
+  font-size: 12.5px;
   color: #054f31;
 }
 
 @media (max-width: 900px) {
-  .head {
-    gap: 8px;
-    margin: 8px 0 10px;
-  }
-
-  .headMark {
-    width: 28px;
-    height: 20px;
-    font-size: 10px;
-  }
-
   .headTitle {
     font-size: 17px;
   }
@@ -440,36 +432,10 @@
   .headHint {
     flex-basis: 100%;
     min-width: 0;
-    font-size: 12px;
   }
 
   .headActions {
     margin-left: 0;
-    gap: 12px;
-  }
-
-  .composer,
-  .panel {
-    padding: 12px;
-    border-radius: 12px;
-  }
-
-  .input {
-    font-size: 13px;
-  }
-
-  .mode,
-  .example,
-  .model,
-  .linkBtn,
-  .linkBtnDanger,
-  .fileLink,
-  .dataRow {
-    font-size: 12px;
-  }
-
-  .mode {
-    padding: 6px 11px;
   }
 
   .composerRight {
@@ -479,6 +445,6 @@
   }
 
   .log {
-    max-height: 200px;
+    max-height: 180px;
   }
 }
