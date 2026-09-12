@@ -45,6 +45,7 @@ const RUN_STATUS_LABELS = {
 	running: 'выполняется',
 	completed: 'выполнено',
 	failed: 'неуспешно',
+	cancelled: 'остановлено пользователем',
 	interrupted: 'прервано',
 };
 
@@ -56,10 +57,20 @@ const TASK_STATUS_LABELS = {
 	completed: 'выполнено',
 	error: 'ошибка',
 	failed: 'неуспешно',
+	cancelled: 'остановлено пользователем',
 	interrupted: 'прервано',
 };
 
 const ACTIVE_RUN_STATUSES = ['queued', 'running'];
+const FINISHED_RUN_STATUSES = ['completed', 'failed', 'cancelled'];
+
+// Как сообщить о завершении запуска (в том числе об остановке пользователем)
+const runMessage = status =>
+	status === 'completed'
+		? 'Задача выполнена'
+		: status === 'cancelled'
+			? 'Запуск остановлен пользователем'
+			: 'Задача завершилась неуспешно';
 
 // Через сколько секунд без событий показывать подсказку и когда предлагать обновить страницу
 const STALE_HINT_SEC = 60;
@@ -224,11 +235,12 @@ const Harness = () => {
 		setCurrent(prev => {
 			if (!prev) return prev;
 			const runStatus = runPayload.status;
-			const nextStatus = ACTIVE_RUN_STATUSES.includes(runStatus)
-				? prev.status || 'running'
-				: runStatus === 'completed'
-					? 'done'
-					: 'failed';
+			let nextStatus = prev.status || 'running';
+			if (!ACTIVE_RUN_STATUSES.includes(runStatus)) {
+				if (runStatus === 'completed') nextStatus = 'done';
+				else if (runStatus === 'cancelled') nextStatus = 'cancelled';
+				else nextStatus = 'failed';
+			}
 			return { ...prev, run: runPayload, status: nextStatus };
 		});
 		return runPayload;
@@ -279,10 +291,8 @@ const Harness = () => {
 				const runPayload = await fetchRun(runId, taskId);
 				if (runPayload) {
 					watchRef.current.failures = 0;
-					if (['completed', 'failed'].includes(runPayload.status)) {
-						await finishWatch(
-							runPayload.status === 'completed' ? 'Задача выполнена' : 'Задача завершилась неуспешно'
-						);
+					if (FINISHED_RUN_STATUSES.includes(runPayload.status)) {
+						await finishWatch(runMessage(runPayload.status));
 					}
 					return;
 				}
@@ -323,7 +333,7 @@ const Harness = () => {
 						const payload = JSON.parse(event.data);
 						if (payload.type === 'keepalive') return;
 						if (payload.type === 'done') {
-							finishWatch(payload.status === 'completed' ? 'Задача выполнена' : 'Задача завершилась неуспешно');
+							finishWatch(runMessage(payload.status));
 							return;
 						}
 						setEvents(prev => [...prev, payload].slice(-80));
@@ -347,8 +357,8 @@ const Harness = () => {
 			watchdogRef.current = setInterval(async () => {
 				if (!watchRef.current.active) return;
 				const runPayload = await fetchRun(runId, taskId);
-				if (runPayload && ['completed', 'failed'].includes(runPayload.status)) {
-					await finishWatch(runPayload.status === 'completed' ? 'Задача выполнена' : 'Задача завершилась неуспешно');
+				if (runPayload && FINISHED_RUN_STATUSES.includes(runPayload.status)) {
+					await finishWatch(runMessage(runPayload.status));
 				}
 			}, 15000);
 		},
@@ -541,8 +551,10 @@ const Harness = () => {
 		const runStatus = currentRun?.status || current?.run_status || current?.status || '';
 		const active = ACTIVE_RUN_STATUSES.includes(runStatus);
 		const finished = ['completed', 'done'].includes(runStatus);
+		// Запуск, остановленный пользователем: отдельный статус, а не «неуспешно»
+		const stopped = runStatus === 'cancelled' || current?.run_status === 'cancelled' || current?.status === 'cancelled';
 		const failedStatuses = ['failed', 'error', 'interrupted'];
-		const failed = failedStatuses.includes(runStatus) || failedStatuses.includes(current?.run_status);
+		const failed = !stopped && (failedStatuses.includes(runStatus) || failedStatuses.includes(current?.run_status));
 		const elapsed = active && startedMs ? Math.max(0, Math.round((tick - startedMs) / 1000)) : 0;
 		const sinceEvent = active && lastEventMs ? Math.max(0, Math.round((tick - lastEventMs) / 1000)) : null;
 		const durationSec =
@@ -582,12 +594,14 @@ const Harness = () => {
 		let title = '';
 		if (active) title = 'Задача выполняется';
 		else if (finished) title = `Выполнено за ${fmtDuration(durationSec)}`;
+		else if (stopped) title = 'Остановлено пользователем';
 		else if (failed) title = `Неуспешно: ${currentRun?.error || current?.error || 'причина не указана'}`;
 		else if (notice) title = notice;
 
 		return {
 			active,
 			finished,
+			stopped,
 			failed,
 			elapsed,
 			sinceEvent,
@@ -739,6 +753,33 @@ const Harness = () => {
 		await loadTasks();
 	}, [current, fetchRun, loadTasks, startWatch]);
 
+	// «Остановить»: просим бэкенд прервать запуск. Движок замечает флаг на ближайшем шаге,
+	// статус становится cancelled, а уже собранные артефакты остаются на месте.
+	const [stopping, setStopping] = useState(false);
+	const stopRun = useCallback(async () => {
+		if (!current) return;
+		setStopping(true);
+		setError(null);
+		try {
+			if (current.id) {
+				const { data } = await $axios.post(`/harness/task/${current.id}/cancel`);
+				if (data?.task) setCurrent(prev => (prev ? { ...prev, ...data.task } : prev));
+			} else if (current.run_id) {
+				await $axios.post(`/agent/run/${current.run_id}/cancel`);
+			} else {
+				setError('У задачи нет активного запуска');
+				return;
+			}
+			setNotice('Останавливаю запуск…');
+			// Продолжаем следить за запуском: он завершится статусом cancelled.
+			if (current.run_id) startWatch(current.run_id, current.id);
+		} catch (err) {
+			setError(err.response?.data?.detail || 'Не удалось остановить запуск');
+		} finally {
+			setStopping(false);
+		}
+	}, [current, startWatch]);
+
 	const showStatusBar = !!current || !!notice;
 
 	return (
@@ -846,9 +887,9 @@ const Harness = () => {
 
 				{showStatusBar && (
 					<div
-						className={`${styles.noticeBlock} ${liveStatus.alert ? styles.noticeAlert : ''} ${
-							liveStatus.failed ? styles.noticeFailed : ''
-						}`}
+						className={`${styles.noticeBlock} ${
+							liveStatus.alert || liveStatus.stopped ? styles.noticeAlert : ''
+						} ${liveStatus.failed ? styles.noticeFailed : ''}`}
 					>
 						<div className={styles.statusRow}>
 							{liveStatus.active && <span className={styles.statusPulse} aria-hidden='true' />}
@@ -879,6 +920,17 @@ const Harness = () => {
 									{liveStatus.etaText ? <span>{liveStatus.etaText}</span> : null}
 								</span>
 							) : null}
+							{liveStatus.active ? (
+								<button
+									type='button'
+									className={styles.stopBtn}
+									onClick={stopRun}
+									disabled={stopping}
+									title='Остановить выполнение: уже собранные артефакты сохранятся'
+								>
+									{stopping ? 'останавливаю…' : 'остановить'}
+								</button>
+							) : null}
 						</div>
 
 						{liveStatus.active ? (
@@ -907,7 +959,9 @@ const Harness = () => {
 								) : null}
 							</div>
 						) : null}
-						{!liveStatus.active && notice ? <div className={styles.statusDetail}>{notice}</div> : null}
+						{!liveStatus.active && (liveStatus.detail || notice) ? (
+							<div className={styles.statusDetail}>{liveStatus.detail || notice}</div>
+						) : null}
 					</div>
 				)}
 
