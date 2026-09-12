@@ -27,6 +27,14 @@ const EXAMPLES = [
 	'Сравни упоминания бренда и конкурентов, предложи, что поправить в коммуникации',
 ];
 
+// чем режимы отличаются — показываем под чипами выбора
+const MODE_NOTES = {
+	explain: 'Покажет план: какие инструменты сработают, что будет на выходе и на что обратить внимание. Ничего не запускает.',
+	run: 'Выполнит задачу прямо сейчас: агент сам вызовет инструменты Tellscope, соберёт данные и подготовит отчёт DOCX/PDF.',
+	chain: 'Соберёт цепочку шагов и сохранит её агентом в «Мои агенты»: данные → графики → выводы ИИ → отчёт. Дальше её можно запускать по кнопке или по расписанию.',
+	flow: 'Соберёт схему для Dify отдельным файлом (DSL): узлы-инструменты и разбор моделью. Файл импортируется в визуальный конструктор и правится мышкой.',
+};
+
 const fmtDate = value => {
 	if (value === null || value === undefined || value === '') return '';
 	const text = String(value);
@@ -48,7 +56,7 @@ const Harness = () => {
 	const dataForRequest = useSelector(state => state.dataForRequest);
 	const { json_files_directory: dataUser } = useSelector(state => state.dataUsersSlice);
 
-	const { data: data_getUserId } = useGetUserFoldersQuery();
+	const { data: data_getUserId } = useGetUserIdQuery();
 	const { data, isError, isLoading, isSuccess } = useGetUserFoldersQuery(data_getUserId);
 
 	const [info, setInfo] = useState(null);
@@ -307,14 +315,16 @@ const Harness = () => {
 						{tasks.length ? ` · задач у вас: ${tasks.length}` : ''}
 					</span>
 					<div className={styles.headActions}>
-						<button type='button' className={styles.linkBtn} onClick={() => navigate('/agents')}>
+						<button type='button' className={styles.chipBtn} onClick={() => navigate('/agents')}>
+							<img src='/images/icons/menu/agents.svg' alt='' />
 							мои агенты
 						</button>
 						<button
 							type='button'
-							className={styles.linkBtn}
+							className={styles.chipBtn}
 							onClick={() => window.open(difyUrl, '_blank', 'noopener,noreferrer')}
 						>
+							<img src='/images/icons/menu/dify.svg' alt='' />
 							конструктор Dify
 						</button>
 					</div>
@@ -357,6 +367,8 @@ const Harness = () => {
 						</div>
 					</div>
 
+					<p className={styles.modeNote}>{MODE_NOTES[mode]}</p>
+
 					<div className={styles.dataRow}>
 						<span className={styles.dataLabel}>Тема:</span>
 						<span className={datasetChosen ? styles.dataValue : styles.dataEmpty}>
@@ -367,9 +379,15 @@ const Harness = () => {
 							{showData ? 'скрыть выбор темы' : 'выбрать тему'}
 						</button>
 					</div>
-					{showData && isSuccess && Object.keys(dataUser || {}).length > 0 && (
+					{showData && (
 						<div className={styles.dataPicker}>
-							<DataForSearch />
+							{isSuccess && Object.keys(dataUser || {}).length > 0 ? (
+								<DataForSearch />
+							) : (
+								<span className={styles.dataLoading}>
+									{isError ? 'не удалось загрузить список тем — обновите страницу' : 'загружаю список тем…'}
+								</span>
+							)}
 						</div>
 					)}
 
