@@ -7,7 +7,6 @@ import Layout from '@/components/layout/Layout';
 import BackgroundLoader from '@/components/loading/background-loader/BackgroundLoader';
 import Loader from '@/components/loading/loader/Loader';
 import Button from '@/components/ui/button/Button';
-import DataForSearch from '@/components/ui/data-for-search/DataForSearch';
 import LeftMenu from '@/components/ui/left-menu/LeftMenu';
 import LeftMenuActive from '@/components/ui/left-menu/left-menu-active/LeftMenuActive';
 
@@ -19,6 +18,8 @@ import { useGetUserFoldersQuery, useGetUserIdQuery } from '@/services/other.serv
 import { $axios } from '@/api';
 import { fmtDay } from '@/utils/fileMeta';
 import { truncateDescription } from '@/utils/editText';
+import ThemePicker from './ThemePicker';
+
 import styles from './Harness.module.scss';
 
 const EXAMPLES = [
@@ -69,13 +70,6 @@ const Harness = () => {
 	const [error, setError] = useState(null);
 	const [notice, setNotice] = useState(null);
 	const [events, setEvents] = useState([]);
-	const [showData, setShowData] = useState(() => {
-		try {
-			return localStorage.getItem('harness_data_collapsed') !== '1';
-		} catch (err) {
-			return true;
-		}
-	});
 	const [showAllTasks, setShowAllTasks] = useState(false);
 	const pollRef = useRef(null);
 	const resultRef = useRef(null);
@@ -238,6 +232,15 @@ const Harness = () => {
 		[current, loadTasks]
 	);
 
+	const pickTheme = useCallback(
+		option => {
+			addIndex(option.index_number);
+			if (option.min_data) addMinDate(option.min_data);
+			if (option.max_data) addMaxDate(option.max_data);
+		},
+		[addIndex, addMinDate, addMaxDate]
+	);
+
 	const result = current?.result || null;
 	const run = current?.run || null;
 	const modes = info?.modes || [];
@@ -268,17 +271,6 @@ const Harness = () => {
 		if (from && to) return `${from} — ${to}`;
 		return from || to || '';
 	}, [datasetOption, dataForRequest.min_date, dataForRequest.max_date]);
-
-	const toggleData = useCallback(() => {
-		setShowData(prev => {
-			try {
-				localStorage.setItem('harness_data_collapsed', prev ? '1' : '0');
-			} catch (err) {
-				/* приватный режим — просто не запоминаем */
-			}
-			return !prev;
-		});
-	}, []);
 
 	const modeButtons = useMemo(
 		() =>
@@ -370,26 +362,17 @@ const Harness = () => {
 					<p className={styles.modeNote}>{MODE_NOTES[mode]}</p>
 
 					<div className={styles.dataRow}>
-						<span className={styles.dataLabel}>Тема:</span>
-						<span className={datasetChosen ? styles.dataValue : styles.dataEmpty}>
-							{datasetChosen ? datasetLabel : 'не выбрана — выберите набор данных и период'}
-							{datasetChosen && periodLabel ? ` · ${periodLabel}` : ''}
-						</span>
-						<button type='button' className={styles.linkBtn} onClick={toggleData}>
-							{showData ? 'скрыть выбор темы' : 'выбрать тему'}
-						</button>
+						<ThemePicker
+							dataUser={dataUser}
+							currentIndex={dataForRequest.index}
+							label={datasetLabel}
+							period={periodLabel}
+							loading={!isSuccess && !isError}
+							failed={isError}
+							onPick={pickTheme}
+						/>
+						{!datasetChosen && <span className={styles.dataEmpty}>выберите тему, чтобы запускать задачи</span>}
 					</div>
-					{showData && (
-						<div className={styles.dataPicker}>
-							{isSuccess && Object.keys(dataUser || {}).length > 0 ? (
-								<DataForSearch />
-							) : (
-								<span className={styles.dataLoading}>
-									{isError ? 'не удалось загрузить список тем — обновите страницу' : 'загружаю список тем…'}
-								</span>
-							)}
-						</div>
-					)}
 
 					<div className={styles.examples}>
 						<span className={styles.examplesLabel}>Примеры:</span>
