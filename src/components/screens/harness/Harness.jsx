@@ -137,8 +137,8 @@ const Harness = () => {
 					text: query,
 					mode: chosenMode,
 					index: dataForRequest.index,
-					min_date: dataForRequest.minDate,
-					max_date: dataForRequest.maxDate,
+					min_date: dataForRequest.min_date,
+					max_date: dataForRequest.max_date,
 					model,
 				});
 				setCurrent(payload.task);
