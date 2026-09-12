@@ -28,7 +28,7 @@ export const dataUsersService = createApi({
 	},
 	endpoints: builder => ({
 		getUserId: builder.query({
-			query: () => '/user-id',
+			query: () => '/me',
 		}),
 		getUserFolders: builder.query({
 			query: id => `/user-folders/${id}`,
