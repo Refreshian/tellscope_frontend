@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import Cookies from 'js-cookie';
+
 import Content from '@/components/content/Content';
 import Layout from '@/components/layout/Layout';
 import BackgroundLoader from '@/components/loading/background-loader/BackgroundLoader';
@@ -15,6 +17,7 @@ import { useAddBaseAndDate } from '@/hooks/useAddBaseAndDate';
 import { useCheckAuth } from '@/hooks/useCheckAuth';
 import { useGetUserFoldersQuery, useGetUserIdQuery } from '@/services/other.service';
 
+import { TOKEN } from '@/app.constants';
 import { $axios } from '@/api';
 import { fmtDay } from '@/utils/fileMeta';
 import { truncateDescription } from '@/utils/editText';
@@ -36,6 +39,32 @@ const MODE_NOTES = {
 	flow: 'Соберёт схему для Dify отдельным файлом (DSL): узлы-инструменты и разбор моделью. Файл импортируется в визуальный конструктор и правится мышкой.',
 };
 
+// Статусы запуска и задачи — человеческими словами, чтобы в списке не было «running»
+const RUN_STATUS_LABELS = {
+	queued: 'в очереди',
+	running: 'выполняется',
+	completed: 'выполнено',
+	failed: 'неуспешно',
+	interrupted: 'прервано',
+};
+
+const TASK_STATUS_LABELS = {
+	new: 'новая',
+	queued: 'в очереди',
+	running: 'выполняется',
+	done: 'выполнено',
+	completed: 'выполнено',
+	error: 'ошибка',
+	failed: 'неуспешно',
+	interrupted: 'прервано',
+};
+
+const ACTIVE_RUN_STATUSES = ['queued', 'running'];
+
+// Через сколько секунд без событий показывать подсказку и когда предлагать обновить страницу
+const STALE_HINT_SEC = 60;
+const STALE_ALERT_SEC = 300;
+
 const fmtDate = value => {
 	if (value === null || value === undefined || value === '') return '';
 	const text = String(value);
@@ -45,6 +74,49 @@ const fmtDate = value => {
 		return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('ru-RU');
 	}
 	return text;
+};
+
+// MM:SS (и Ч:ММ:СС для долгих запусков)
+const fmtClock = seconds => {
+	const total = Math.max(0, Math.round(Number(seconds) || 0));
+	const hours = Math.floor(total / 3600);
+	const minutes = Math.floor((total % 3600) / 60);
+	const rest = total % 60;
+	const pad = value => String(value).padStart(2, '0');
+	return hours ? `${hours}:${pad(minutes)}:${pad(rest)}` : `${pad(minutes)}:${pad(rest)}`;
+};
+
+// «2 мин 30 с» — для оценки остатка и итоговой длительности
+const fmtDuration = seconds => {
+	const total = Math.max(0, Math.round(Number(seconds) || 0));
+	if (total < 60) return `${total} с`;
+	const minutes = Math.floor(total / 60);
+	const rest = total % 60;
+	if (minutes < 60) return rest ? `${minutes} мин ${rest} с` : `${minutes} мин`;
+	const hours = Math.floor(minutes / 60);
+	return `${hours} ч ${minutes % 60} мин`;
+};
+
+const fmtAgo = seconds => {
+	const total = Math.max(0, Math.round(Number(seconds) || 0));
+	if (total < 60) return `${total} с назад`;
+	if (total < 3600) return `${Math.floor(total / 60)} мин ${total % 60} с назад`;
+	return `${Math.floor(total / 3600)} ч ${Math.floor((total % 3600) / 60)} мин назад`;
+};
+
+const timeOf = value => {
+	if (!value) return 0;
+	const parsed = Date.parse(value);
+	return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+// Время сервера без таймзоны («2026-09-12 20:43:29») — только запасной вариант
+const serverTimeOf = value => {
+	if (!value) return 0;
+	const text = String(value);
+	if (/\d{4}-\d{2}-\d{2}T/.test(text) || text.endsWith('Z')) return timeOf(text);
+	const parsed = Date.parse(text.replace(' ', 'T'));
+	return Number.isNaN(parsed) ? 0 : parsed;
 };
 
 const Harness = () => {
@@ -71,7 +143,14 @@ const Harness = () => {
 	const [notice, setNotice] = useState(null);
 	const [events, setEvents] = useState([]);
 	const [showAllTasks, setShowAllTasks] = useState(false);
+	// Тик раз в секунду: по нему считаются «прошло» и «последнее обновление», иначе
+	// таймеры в полосе статуса выглядят застывшими и непонятно, работает задача или нет.
+	const [tick, setTick] = useState(() => Date.now());
+	const wsRef = useRef(null);
 	const pollRef = useRef(null);
+	const watchdogRef = useRef(null);
+	// Наблюдение за запуском: WebSocket первым, HTTP-опрос — как запасной канал
+	const watchRef = useRef({ active: false, runId: null, taskId: null, failures: 0, ws: false });
 	const resultRef = useRef(null);
 
 	useAddBaseAndDate(
@@ -90,9 +169,12 @@ const Harness = () => {
 	const loadTasks = useCallback(async () => {
 		try {
 			const { data: payload } = await $axios.get('/harness/tasks');
-			setTasks(payload.tasks || []);
+			const items = payload.tasks || [];
+			setTasks(items);
+			return items;
 		} catch (err) {
 			/* список задач не критичен */
+			return [];
 		}
 	}, []);
 
@@ -108,35 +190,209 @@ const Harness = () => {
 
 	useEffect(() => {
 		loadInfo();
-		loadTasks();
-	}, [loadInfo, loadTasks]);
+	}, [loadInfo]);
 
-	useEffect(() => () => clearInterval(pollRef.current), []);
+	/* ---------- наблюдение за запуском: WebSocket + опрос с фолбэком ---------- */
 
-	const watchRun = useCallback(
-		runId => {
+	const stopWatch = useCallback(() => {
+		watchRef.current.active = false;
+		if (pollRef.current) {
 			clearInterval(pollRef.current);
-			setEvents([]);
-			pollRef.current = setInterval(async () => {
+			pollRef.current = null;
+		}
+		if (watchdogRef.current) {
+			clearInterval(watchdogRef.current);
+			watchdogRef.current = null;
+		}
+		if (wsRef.current) {
+			const socket = wsRef.current;
+			wsRef.current = null;
+			try {
+				socket.onclose = null;
+				socket.onerror = null;
+				socket.close();
+			} catch (err) {
+				/* сокет уже закрыт */
+			}
+		}
+	}, []);
+
+	// Применяем состояние запуска: события журнала + статус задачи в карточке
+	const applyRun = useCallback(runPayload => {
+		if (!runPayload) return null;
+		setEvents((runPayload.events || []).slice(-80));
+		setCurrent(prev => {
+			if (!prev) return prev;
+			const runStatus = runPayload.status;
+			const nextStatus = ACTIVE_RUN_STATUSES.includes(runStatus)
+				? prev.status || 'running'
+				: runStatus === 'completed'
+					? 'done'
+					: 'failed';
+			return { ...prev, run: runPayload, status: nextStatus };
+		});
+		return runPayload;
+	}, []);
+
+	// Запасной канал: GET /harness/task/{id} — если /agent/run недоступен, прогресс не замирает
+	const fetchRun = useCallback(
+		async (runId, taskId) => {
+			try {
+				const { data } = await $axios.get(`/agent/run/${runId}`);
+				return applyRun(data);
+			} catch (err) {
 				try {
-					const { data: run } = await $axios.get(`/agent/run/${runId}`);
-					setEvents((run.events || []).slice(-70));
-					setCurrent(prev => (prev ? { ...prev, run } : prev));
-					if (['completed', 'failed'].includes(run.status)) {
-						clearInterval(pollRef.current);
-						pollRef.current = null;
-						setBusy(false);
-						await loadTasks();
-					}
-				} catch (err) {
-					clearInterval(pollRef.current);
-					pollRef.current = null;
-					setBusy(false);
+					const { data } = await $axios.get(`/harness/task/${taskId}`);
+					return applyRun(data?.task?.run || null);
+				} catch (err2) {
+					return null;
 				}
-			}, 3000);
+			}
 		},
-		[loadTasks]
+		[applyRun]
 	);
+
+	const finishWatch = useCallback(
+		async message => {
+			const taskId = watchRef.current.taskId;
+			stopWatch();
+			setBusy(false);
+			setNotice(message || 'Готово');
+			await loadTasks();
+			if (taskId) {
+				try {
+					const { data } = await $axios.get(`/harness/task/${taskId}`);
+					if (data?.task) setCurrent(data.task);
+				} catch (err) {
+					/* детали задачи не критичны: статус уже обновлён */
+				}
+			}
+		},
+		[loadTasks, stopWatch]
+	);
+
+	const startPolling = useCallback(
+		(runId, taskId) => {
+			if (pollRef.current || !watchRef.current.active) return;
+			pollRef.current = setInterval(async () => {
+				if (!watchRef.current.active) return;
+				const runPayload = await fetchRun(runId, taskId);
+				if (runPayload) {
+					watchRef.current.failures = 0;
+					if (['completed', 'failed'].includes(runPayload.status)) {
+						await finishWatch(
+							runPayload.status === 'completed' ? 'Задача выполнена' : 'Задача завершилась неуспешно'
+						);
+					}
+					return;
+				}
+				watchRef.current.failures += 1;
+				if (watchRef.current.failures > 40) {
+					await finishWatch('Обновление прогресса недоступно — обновите страницу');
+				}
+			}, 2500);
+		},
+		[fetchRun, finishWatch]
+	);
+
+	const startWatch = useCallback(
+		(runId, taskId) => {
+			if (!runId) return;
+			if (watchRef.current.active && watchRef.current.runId === runId) return;
+			stopWatch();
+			watchRef.current = { active: true, runId, taskId, failures: 0, ws: false };
+			let socket = null;
+			try {
+				const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+				const token = Cookies.get(TOKEN);
+				socket = new WebSocket(
+					`${protocol}//${window.location.host}/api/ws/agent-run/${runId}${token ? `?token=${token}` : ''}`
+				);
+			} catch (err) {
+				socket = null;
+			}
+			if (socket) {
+				wsRef.current = socket;
+				watchRef.current.ws = true;
+				const openTimer = setTimeout(() => {
+					if (watchRef.current.active && socket.readyState !== WebSocket.OPEN) startPolling(runId, taskId);
+				}, 4000);
+				socket.onopen = () => clearTimeout(openTimer);
+				socket.onmessage = event => {
+					try {
+						const payload = JSON.parse(event.data);
+						if (payload.type === 'keepalive') return;
+						if (payload.type === 'done') {
+							finishWatch(payload.status === 'completed' ? 'Задача выполнена' : 'Задача завершилась неуспешно');
+							return;
+						}
+						setEvents(prev => [...prev, payload].slice(-80));
+					} catch (err) {
+						/* некорректный кадр потока игнорируем */
+					}
+				};
+				socket.onerror = () => {
+					clearTimeout(openTimer);
+					if (watchRef.current.active) startPolling(runId, taskId);
+				};
+				socket.onclose = () => {
+					clearTimeout(openTimer);
+					// поток закрылся, а запуск ещё идёт — не даём прогрессу «застыть»
+					if (watchRef.current.active) startPolling(runId, taskId);
+				};
+			} else {
+				startPolling(runId, taskId);
+			}
+			// Страховка: раз в 15 с уточняем состояние запуска даже при живом сокете
+			watchdogRef.current = setInterval(async () => {
+				if (!watchRef.current.active) return;
+				const runPayload = await fetchRun(runId, taskId);
+				if (runPayload && ['completed', 'failed'].includes(runPayload.status)) {
+					await finishWatch(runPayload.status === 'completed' ? 'Задача выполнена' : 'Задача завершилась неуспешно');
+				}
+			}, 15000);
+		},
+		[fetchRun, finishWatch, startPolling, stopWatch]
+	);
+
+	useEffect(() => () => stopWatch(), [stopWatch]);
+
+	// После перезагрузки страницы подхватываем уже идущий запуск, чтобы прогресс не терялся
+	useEffect(() => {
+		let cancelled = false;
+		(async () => {
+			const items = await loadTasks();
+			if (cancelled) return;
+			const active = (items || []).find(
+				task => task.run_id && ACTIVE_RUN_STATUSES.includes(task.run_status || task.status)
+			);
+			if (!active) return;
+			setBusy(true);
+			setNotice('Задача выполняется — прогресс виден ниже');
+			setCurrent(active);
+			const payload = await fetchRun(active.run_id, active.id);
+			if (cancelled) return;
+			if (payload && ACTIVE_RUN_STATUSES.includes(payload.status)) {
+				startWatch(active.run_id, active.id);
+			} else {
+				setBusy(false);
+			}
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, [fetchRun, loadTasks, startWatch]);
+
+	const currentRun = current?.run || null;
+	const runActive = !!currentRun && ACTIVE_RUN_STATUSES.includes(currentRun.status);
+
+	// Секундный тик нужен только пока запуск активен — и всегда очищается
+	useEffect(() => {
+		if (!runActive) return undefined;
+		setTick(Date.now());
+		const id = setInterval(() => setTick(Date.now()), 1000);
+		return () => clearInterval(id);
+	}, [runActive]);
 
 	const submit = useCallback(
 		async (overrideText, overrideMode) => {
@@ -148,9 +404,9 @@ const Harness = () => {
 			}
 			if (chosenMode !== 'explain' && !datasetChosen) {
 				setError('Сначала выберите набор данных и период');
-				setShowData(true);
 				return;
 			}
+			stopWatch();
 			setBusy(true);
 			setError(null);
 			setNotice(null);
@@ -167,8 +423,8 @@ const Harness = () => {
 				});
 				setCurrent(payload.task);
 				if (payload.run_id) {
-					setNotice('Задача выполняется — журнал шагов обновляется ниже');
-					watchRun(payload.run_id);
+					setNotice('Задача выполняется — прогресс виден ниже');
+					startWatch(payload.run_id, payload.task?.id);
 				} else {
 					setBusy(false);
 					setNotice('Готово');
@@ -180,7 +436,7 @@ const Harness = () => {
 				setError(err.response?.data?.detail || 'Не удалось обработать задачу');
 			}
 		},
-		[text, mode, model, datasetChosen, dataForRequest, watchRun, loadTasks]
+		[text, mode, model, datasetChosen, dataForRequest, loadTasks, startWatch, stopWatch]
 	);
 
 	const runExisting = useCallback(
@@ -189,17 +445,16 @@ const Harness = () => {
 			setError(null);
 			try {
 				const { data: payload } = await $axios.post(`/harness/task/${task.id}/run`);
-				setNotice('Задача выполняется — журнал шагов обновляется ниже');
-				watchRun(payload.run_id);
+				setNotice('Задача выполняется — прогресс виден ниже');
+				startWatch(payload.run_id, task.id);
 				setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
 			} catch (err) {
 				setBusy(false);
 				setError(err.response?.data?.detail || 'Не удалось запустить задачу');
 			}
 		},
-		[watchRun]
+		[startWatch]
 	);
-
 
 	// Скачиваем артефакт через $axios: у него baseURL уже заканчивается на /api,
 	// поэтому из ссылки вида /api/agent/artifact/... префикс /api надо убрать.
@@ -243,17 +498,111 @@ const Harness = () => {
 
 	// Полный текст запроса: раскрытие и копирование в буфер (запрос в списке обрезан CSS)
 	const [expandedTask, setExpandedTask] = useState(null);
-	// Живой статус в зелёной полосе: какой шаг идёт прямо сейчас
+
+	/* ---------- что показываем в полосе статуса ---------- */
+
+	// Свежесть запуска: время последнего события потока (progress/heartbeat) или записи запуска
+	const lastEventMs = useMemo(() => {
+		const stamp = currentRun?.last_event_ts;
+		if (stamp) return Number(stamp) * 1000;
+		let latest = 0;
+		events.forEach(event => {
+			const parsed = timeOf(event.ts);
+			if (parsed > latest) latest = parsed;
+		});
+		return latest || 0;
+	}, [currentRun, events]);
+
+	// Последнее событие прогресса: из потока или из записи запуска — что свежее
+	const progress = useMemo(() => {
+		let fromEvents = null;
+		for (let index = events.length - 1; index >= 0; index -= 1) {
+			const event = events[index];
+			if (event.type === 'progress' || event.type === 'heartbeat') {
+				fromEvents = event;
+				break;
+			}
+		}
+		const fromRun = currentRun?.progress || null;
+		if (!fromRun) return fromEvents;
+		if (!fromEvents) return fromRun;
+		return Number(fromEvents.elapsed || 0) >= Number(fromRun.elapsed || 0) ? fromEvents : fromRun;
+	}, [currentRun, events]);
+
+	const startedMs = useMemo(() => {
+		if (!currentRun) return 0;
+		if (currentRun.started_ts) return Number(currentRun.started_ts) * 1000;
+		const startEvent = events.find(event => event.type === 'start' && event.ts);
+		if (startEvent) return timeOf(startEvent.ts);
+		return serverTimeOf(currentRun.started_at || currentRun.created_at);
+	}, [currentRun, events]);
+
 	const liveStatus = useMemo(() => {
-		if (!events.length) return '';
-		const last = events[events.length - 1] || {};
-		const label = last.title || last.name || last.message || last.text || '';
-		const steps = events.filter(event => event.type === 'tool_start').length;
-		const finished = ['final', 'done'].includes(last.type);
-		return [finished ? 'готово' : steps ? `шаг ${steps}` : '', label ? String(label).slice(0, 80) : '']
-			.filter(Boolean)
-			.join(': ');
-	}, [events]);
+		const runStatus = currentRun?.status || current?.run_status || current?.status || '';
+		const active = ACTIVE_RUN_STATUSES.includes(runStatus);
+		const finished = ['completed', 'done'].includes(runStatus);
+		const failedStatuses = ['failed', 'error', 'interrupted'];
+		const failed = failedStatuses.includes(runStatus) || failedStatuses.includes(current?.run_status);
+		const elapsed = active && startedMs ? Math.max(0, Math.round((tick - startedMs) / 1000)) : 0;
+		const sinceEvent = active && lastEventMs ? Math.max(0, Math.round((tick - lastEventMs) / 1000)) : null;
+		const durationSec =
+			currentRun?.duration_sec ??
+			(currentRun?.finished_ts && currentRun?.started_ts
+				? Math.max(0, Math.round(Number(currentRun.finished_ts) - Number(currentRun.started_ts)))
+				: null) ??
+			current?.duration_sec ??
+			(active ? elapsed : null);
+
+		const stage = progress?.stage || '';
+		// Процент: детерминированный по плану шагов, иначе по под-прогрессу шага (пачки чтения)
+		const percent = progress?.percent ?? progress?.sub?.percent ?? null;
+		const step = progress?.step ?? null;
+		const total = progress?.total ?? null;
+		const eta = progress?.eta_seconds ?? null;
+		const etaScope = progress?.eta_scope || '';
+		const historyRun = progress?.history_run_sec ?? null;
+		let etaText = '';
+		if (active && eta !== null && eta !== undefined) {
+			etaText = etaScope === 'stage' ? `на шаг осталось ~${fmtDuration(eta)}` : `осталось ~${fmtDuration(eta)}`;
+		} else if (active && !total && historyRun) {
+			etaText = `обычно такой запуск ${fmtDuration(historyRun)}`;
+		}
+
+		let hint = '';
+		let alert = false;
+		if (active && sinceEvent !== null) {
+			if (sinceEvent > STALE_ALERT_SEC) {
+				alert = true;
+				hint = `Событий нет уже ${fmtDuration(sinceEvent)}. Возможно, сервер перезапускался: обновите страницу или нажмите «проверить статус» — состояние подтянется.`;
+			} else if (sinceEvent > STALE_HINT_SEC) {
+				hint = `Шаг выполняется долго (${stage || 'модель или чтение текстов'}), обычно это 2–3 минуты — процесс идёт, ждём ответа модели.`;
+			}
+		}
+
+		let title = '';
+		if (active) title = 'Задача выполняется';
+		else if (finished) title = `Выполнено за ${fmtDuration(durationSec)}`;
+		else if (failed) title = `Неуспешно: ${currentRun?.error || current?.error || 'причина не указана'}`;
+		else if (notice) title = notice;
+
+		return {
+			active,
+			finished,
+			failed,
+			elapsed,
+			sinceEvent,
+			durationSec,
+			stage,
+			percent,
+			step,
+			total,
+			etaText,
+			hint,
+			alert,
+			title,
+			detail: progress?.detail || '',
+		};
+	}, [current, currentRun, lastEventMs, notice, progress, startedMs, tick]);
 
 	const copyTaskText = useCallback(async taskText => {
 		try {
@@ -269,18 +618,28 @@ const Harness = () => {
 			setError(null);
 			setNotice(null);
 			setEvents([]);
+			stopWatch();
 			try {
 				const { data: payload } = await $axios.get(`/harness/task/${task.id}`);
 				setCurrent(payload.task);
 				setText(payload.task.text || '');
 				setMode(payload.task.mode || 'explain');
-				if (payload.task.run) setEvents((payload.task.run.events || []).slice(-70));
+				const runPayload = payload.task.run || null;
+				if (runPayload) setEvents((runPayload.events || []).slice(-80));
+				if (runPayload && ACTIVE_RUN_STATUSES.includes(runPayload.status)) {
+					// задача ещё идёт — продолжаем показывать прогресс в реальном времени
+					setBusy(true);
+					setNotice('Задача выполняется — прогресс виден ниже');
+					startWatch(runPayload.run_id || task.run_id, task.id);
+				} else {
+					setBusy(false);
+				}
 				setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
 			} catch (err) {
 				setError(err.response?.data?.detail || 'Не удалось открыть задачу');
 			}
 		},
-		[]
+		[startWatch, stopWatch]
 	);
 
 	const removeTask = useCallback(
@@ -310,6 +669,19 @@ const Harness = () => {
 	const modes = info?.modes || [];
 	const difyUrl = info?.dify_url || 'https://tellscope40.headsmade.com:8443';
 	const visibleTasks = showAllTasks ? tasks : tasks.slice(0, 5);
+
+	// Журнал шагов: heartbeat в списке не показываем — он нужен таймерам, а не журналу
+	const logEvents = useMemo(() => events.filter(event => event.type !== 'heartbeat').slice(-40), [events]);
+
+	const taskStatusLabel = useCallback(taskItem => {
+		const key = taskItem?.run_status || taskItem?.status || '';
+		const label = taskItem?.status_label || RUN_STATUS_LABELS[key] || TASK_STATUS_LABELS[key] || key;
+		const seconds = taskItem?.duration_sec;
+		if (['done', 'completed', 'failed', 'error', 'interrupted'].includes(key) && seconds) {
+			return `${label} за ${fmtDuration(seconds)}`;
+		}
+		return label;
+	}, []);
 
 	const datasetOption = useMemo(() => {
 		const list = Object.values(dataUser || {}).flat();
@@ -351,6 +723,23 @@ const Harness = () => {
 			)),
 		[modes, mode]
 	);
+
+	const checkStatus = useCallback(async () => {
+		if (!current) return;
+		if (current.run_id) {
+			const payload = await fetchRun(current.run_id, current.id);
+			if (payload && ACTIVE_RUN_STATUSES.includes(payload.status)) {
+				setBusy(true);
+				setNotice('Задача выполняется — прогресс виден ниже');
+				startWatch(current.run_id, current.id);
+			} else if (!payload) {
+				setError('Не удалось получить статус запуска — обновите страницу');
+			}
+		}
+		await loadTasks();
+	}, [current, fetchRun, loadTasks, startWatch]);
+
+	const showStatusBar = !!current || !!notice;
 
 	return (
 		<Layout>
@@ -454,10 +843,71 @@ const Harness = () => {
 						<p>{error}</p>
 					</div>
 				)}
-				{notice && (
-					<div className={styles.noticeBlock}>
-						{notice}
-						{liveStatus ? ` · ${liveStatus}` : ''}
+
+				{showStatusBar && (
+					<div
+						className={`${styles.noticeBlock} ${liveStatus.alert ? styles.noticeAlert : ''} ${
+							liveStatus.failed ? styles.noticeFailed : ''
+						}`}
+					>
+						<div className={styles.statusRow}>
+							{liveStatus.active && <span className={styles.statusPulse} aria-hidden='true' />}
+							<span className={styles.statusTitle}>{liveStatus.title || notice}</span>
+							{liveStatus.active && liveStatus.stage ? (
+								<span className={styles.statusStage}>{liveStatus.stage}</span>
+							) : null}
+							{liveStatus.active ? (
+								<span className={styles.statusMeta}>
+									{liveStatus.step ? (
+										<span>
+											шаг {liveStatus.step}
+											{liveStatus.total ? ` из ${liveStatus.total}` : ''}
+										</span>
+									) : null}
+									{liveStatus.percent !== null && liveStatus.percent !== undefined ? (
+										<span>{liveStatus.percent}%</span>
+									) : null}
+									<span>прошло {fmtClock(liveStatus.elapsed)}</span>
+									{liveStatus.sinceEvent !== null ? (
+										<span
+											className={liveStatus.sinceEvent > STALE_HINT_SEC ? styles.metaWarn : ''}
+											title='Время с последнего события запуска — главный признак, что задача жива'
+										>
+											последнее обновление {fmtAgo(liveStatus.sinceEvent)}
+										</span>
+									) : null}
+									{liveStatus.etaText ? <span>{liveStatus.etaText}</span> : null}
+								</span>
+							) : null}
+						</div>
+
+						{liveStatus.active ? (
+							<div className={styles.progressTrack}>
+								{liveStatus.percent !== null && liveStatus.percent !== undefined ? (
+									<div
+										className={styles.progressFill}
+										style={{ width: `${Math.min(100, Math.max(0, liveStatus.percent))}%` }}
+									/>
+								) : (
+									<div className={styles.progressIndeterminate} />
+								)}
+							</div>
+						) : null}
+
+						{liveStatus.active && liveStatus.detail ? (
+							<div className={styles.statusDetail}>{liveStatus.detail}</div>
+						) : null}
+						{liveStatus.active && liveStatus.hint ? (
+							<div className={styles.statusHint}>
+								{liveStatus.hint}
+								{liveStatus.alert ? (
+									<button type='button' className={styles.hintBtn} onClick={() => window.location.reload()}>
+										обновить страницу
+									</button>
+								) : null}
+							</div>
+						) : null}
+						{!liveStatus.active && notice ? <div className={styles.statusDetail}>{notice}</div> : null}
 					</div>
 				)}
 
@@ -476,28 +926,47 @@ const Harness = () => {
 									</button>
 							</h3>
 							<span className={styles.panelHint}>
-								{current.status}
+								{taskStatusLabel(current)}
+								{run?.duration_sec ? ` · за ${fmtDuration(run.duration_sec)}` : ''}
 								{result?.model?.cost_usd ? ` · $${result.model.cost_usd}` : ''}
 								{result?.model?.tokens ? ` · ${result.model.tokens} токенов` : ''}
 							</span>
 						</div>
 
-						{current.status === 'running' && run && (
+						{liveStatus.failed ? (
+							<div className={styles.errorBlock}>
+								<h4>Задача завершилась неуспешно</h4>
+								<p>{run?.error || current.error || 'причина не указана'}</p>
+							</div>
+						) : null}
+
+						{run && (liveStatus.active || logEvents.length) ? (
 							<div className={styles.runBox}>
 								<div className={styles.runHead}>
-									модель: {run.model_label || '—'} · статус: {run.status}
+									модель: {run.model_label || '—'} · статус: {RUN_STATUS_LABELS[run.status] || run.status}
+									{run.duration_sec ? ` · ${fmtDuration(run.duration_sec)}` : ''}
 									{run.cost_usd ? ` · $${run.cost_usd}` : ''}
 								</div>
 								<ol className={styles.log}>
-									{events.map((event, index) => (
-										<li key={`${event.type}-${index}`} className={event.ok === false ? styles.logBad : ''}>
-											<b>{event.type === 'tool_start' ? 'запуск' : event.type}</b>{' '}
-											{event.title || event.name || ''}
-											{event.summary ? ` — ${event.summary}` : ''}
+									{logEvents.map((event, index) => (
+										<li
+											key={`${event.type}-${event.ts || ''}-${index}`}
+											className={event.ok === false ? styles.logBad : ''}
+										>
+											<b>
+												{event.type === 'tool_start'
+													? 'запуск'
+													: event.type === 'progress'
+														? 'прогресс'
+														: event.type}
+											</b>{' '}
+											{event.type === 'progress' ? event.stage || '' : event.title || event.name || ''}
+											{event.type === 'progress' && event.detail ? ` — ${event.detail}` : ''}
+											{event.type !== 'progress' && event.summary ? ` — ${event.summary}` : ''}
 											{event.text ? ` ${String(event.text).slice(0, 150)}` : ''}
 										</li>
 									))}
-									{!events.length && <li>ожидаю первые шаги…</li>}
+									{!logEvents.length && <li>ожидаю первые шаги…</li>}
 								</ol>
 								{run.artifacts?.length ? (
 									<div className={styles.artifacts}>
@@ -514,7 +983,7 @@ const Harness = () => {
 									</div>
 								) : null}
 							</div>
-						)}
+						) : null}
 
 						{result?.summary && (
 							<div className={styles.card}>
@@ -602,6 +1071,9 @@ const Harness = () => {
 									открыть Dify и импортировать файл
 								</button>
 							) : null}
+							<button type='button' className={styles.linkBtn} onClick={checkStatus}>
+								проверить статус
+							</button>
 							<button type='button' className={styles.linkBtnDanger} onClick={() => removeTask(current)}>
 								удалить задачу
 							</button>
@@ -635,7 +1107,8 @@ const Harness = () => {
 									</span>
 
 									<span className={styles.taskMeta}>
-										{task.created_at} · {modeLabel(modes, task.mode)} · {task.run_status || task.status}
+										{task.created_at} · {modeLabel(modes, task.mode)} · {taskStatusLabel(task)}
+										{task.run_progress?.percent ? ` · ${task.run_progress.percent}%` : ''}
 									</span>
 								</button>
 																<span className={styles.taskActions}>
