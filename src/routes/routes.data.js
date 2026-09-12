@@ -104,7 +104,7 @@ export const routes = [
 	{
 		path: '/chat',
 		component: ChatLLM,
-		isAuth: true,
+		isAuth: false,
 	},
 	{
 		path: '/graph-analysis',

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 
 import { useDataAddFileMutation } from '../services/dataSet.service';
@@ -19,6 +19,14 @@ export const useDataInFolder = () => {
 	} = useActions();
 	const [dragging, setDragging] = useState(false);
 	const [buildEmbeddings, setBuildEmbeddings] = useState(null); // null=auto, true=force, false=only ES
+	const [uploads, setUploads] = useState([]);
+	const mountedRef = useRef(true);
+	useEffect(() => {
+		mountedRef.current = true;
+		return () => {
+			mountedRef.current = false;
+		};
+	}, []);
 	const { data } = useSelector(state => state.folderTarget);
 	const { buttonTarget } = useSelector(state => state.popupDelete);
 	const urlPathSeg = location.pathname.split('/').filter(Boolean);
@@ -56,6 +64,128 @@ export const useDataInFolder = () => {
 
 	const isDataSetPath = /^\/data-set(\/processed)\/[^/]+$/.test(
 		location.pathname,
+	);
+
+	// --- Загрузка файла с индикацией прогресса (включая эмбеддинги) ---
+	const removeUpload = useCallback(key => {
+		setUploads(prev => prev.filter(u => u.key !== key));
+	}, []);
+
+	const trackUpload = useCallback(
+		(taskId, fileName) => {
+			const key = `${taskId}__${fileName}`;
+			setUploads(prev => [
+				...prev,
+				{
+					key,
+					task_id: taskId,
+					filename: fileName,
+					progress: 0,
+					status: 'pending',
+					stage: '',
+					stage_details: 'Подготовка к загрузке...',
+					error: '',
+				},
+			]);
+
+			const poll = async () => {
+				if (!mountedRef.current) return;
+				try {
+					const r = await fetch(`/api/check-task-status/${taskId}`);
+					if (!r.ok) {
+						setUploads(prev =>
+							prev.map(u =>
+								u.key === key
+									? { ...u, status: 'failed', stage_details: 'Не удалось получить статус обработки' }
+									: u,
+							),
+						);
+						setTimeout(() => removeUpload(key), 4000);
+						return;
+					}
+					const d = await r.json();
+					const status = d.status || 'processing';
+					setUploads(prev =>
+						prev.map(u =>
+							u.key === key
+								? {
+										...u,
+										progress: parseInt(d.progress) || 0,
+										status,
+										stage: d.stage || u.stage,
+										stage_details: d.stage_details || d.stage || u.stage_details,
+										error: d.error || '',
+								  }
+								: u,
+						),
+					);
+					if (status === 'completed' || status === 'failed') {
+						setTimeout(() => {
+							removeUpload(key);
+							refetch();
+						}, 4000);
+					} else if (mountedRef.current) {
+						setTimeout(poll, 1200);
+					}
+				} catch (e) {
+					if (!mountedRef.current) return;
+					setUploads(prev =>
+						prev.map(u =>
+							u.key === key
+								? { ...u, status: 'failed', stage_details: 'Ошибка подключения при проверке статуса' }
+								: u,
+						),
+					);
+					setTimeout(() => removeUpload(key), 4000);
+				}
+			};
+			poll();
+		},
+		[refetch, removeUpload],
+	);
+
+	const uploadFile = useCallback(
+		async file => {
+			const formData = { uploaded_file: file };
+			let result;
+			try {
+				result = await trigger_dataAddFile({
+					data: formData,
+					name: activeFolderName,
+					fileName: file.name,
+					user: data_getUserId,
+					buildEmbeddings,
+				}).unwrap();
+			} catch (e) {
+				console.error('Ошибка загрузки файла:', e);
+				setUploads(prev => [
+					...prev,
+					{
+						key: `${Date.now()}__${file.name}`,
+						task_id: '',
+						filename: file.name,
+						progress: 0,
+						status: 'failed',
+						stage: '',
+						stage_details: 'Ошибка загрузки',
+						error: (e && e.message) || String(e),
+					},
+				]);
+				setTimeout(() => setUploads(prev => prev.filter(u => u.filename !== file.name || u.status !== 'failed')), 4000);
+				refetch();
+				return;
+			}
+
+			const taskId = result && result.task_id;
+			if (taskId) {
+				// Показываем файл как строку с прогрессом; реальная строка появится после завершения обработки
+				trackUpload(taskId, file.name);
+			} else {
+				// На случай ответа без task_id — просто обновляем список
+				refetch();
+			}
+		},
+		[trigger_dataAddFile, activeFolderName, data_getUserId, buildEmbeddings, trackUpload, refetch],
 	);
 
 	const onClick = async (file, button) => {
@@ -132,34 +262,14 @@ export const useDataInFolder = () => {
 		const droppedFiles = event.dataTransfer.files;
 
 		if (droppedFiles.length) {
-			const formData = {
-				uploaded_file: droppedFiles[0],
-			};
-			await trigger_dataAddFile({
-				data: formData,
-				name: activeFolderName,
-				fileName: droppedFiles[0].name,
-				user: data_getUserId,
-				buildEmbeddings,
-			}).unwrap();
-			refetch();
+			await uploadFile(droppedFiles[0]);
 		}
 	};
 
 	const handleFileChange = async event => {
 		const selectedFile = event.target.files[0];
 		if (selectedFile) {
-			const formData = {
-				uploaded_file: selectedFile,
-			};
-			await trigger_dataAddFile({
-				data: formData,
-				name: activeFolderName,
-				fileName: selectedFile.name,
-				user: data_getUserId,
-				buildEmbeddings,
-			}).unwrap();
-			refetch();
+			await uploadFile(selectedFile);
 		}
 	};
 
@@ -182,5 +292,6 @@ export const useDataInFolder = () => {
 		dragging,
 		buildEmbeddings,
 		setBuildEmbeddings,
+		uploads,
 	};
 };
