@@ -45,7 +45,7 @@
 	min-width: adapt(260px, 1440px);
 	background-color: $color_very_light_grey;
 	position: absolute;
-	left: -5%;
+	left: adapt(-72px, 1440px);
 	z-index: 5;
 
 	> .drawerHead {

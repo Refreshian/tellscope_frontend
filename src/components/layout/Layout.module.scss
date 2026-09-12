@@ -1,5 +1,15 @@
 @import '@st/variables';
 
+/* невидимый контейнер для предзагрузки иконок */
+.preload {
+	position: absolute;
+	width: 0;
+	height: 0;
+	overflow: hidden;
+	opacity: 0;
+	pointer-events: none;
+}
+
 .wrapper {
 	display: flex;
 	align-items: stretch;

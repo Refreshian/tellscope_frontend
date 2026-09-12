@@ -12,6 +12,8 @@
 	padding: adapt(32px, 1440px) adapt(48px, 1440px);
 	position: relative;
 	overflow: auto;
+	/* место под полосу прокрутки зарезервировано: при переходах ширина не меняется */
+	scrollbar-gutter: stable;
 
 	@media (max-width: 900px) {
 		padding: calc(56px + env(safe-area-inset-top)) 12px
