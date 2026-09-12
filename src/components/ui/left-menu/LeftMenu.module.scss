@@ -227,19 +227,24 @@
 	box-shadow: none;
 }
 
-/* тонкая рамка вокруг иконки того раздела, который открыт сейчас
-   (включая пункты ИИ-агентов и «Конструктор Dify» — у них класс agentActive) */
-.menu__item_active > img,
-.menu__item_agentActive > img {
-	border-radius: adapt(6px, 1440px);
-	outline: 1px solid rgba(23, 96, 232, 0.5);
-	outline-offset: adapt(3px, 1440px);
+/* тонкая рамка вокруг текущего раздела: обводит иконку вместе с короткой меткой
+   (AI / DIFY / ГРАФ) — у пунктов ИИ-агентов класс agentActive, у остальных active */
+.menu__item_active,
+.menu__item_agentActive {
+	border-radius: adapt(10px, 1440px);
+	outline: 1px solid rgba(23, 96, 232, 0.45);
+	outline-offset: adapt(-1px, 1440px);
 }
 .menu__item,
 .menu__item_active,
 .menu__item:focus,
 .menu__item_active:focus {
 	transform: none !important;
+}
+
+/* снимаем только фокусную обводку — рамку текущего раздела рисует правило выше */
+.menu__item:focus,
+.menu__item_active:focus {
 	outline: none !important;
 }
 
