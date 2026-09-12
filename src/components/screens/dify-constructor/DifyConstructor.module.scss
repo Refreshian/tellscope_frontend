@@ -1,53 +1,77 @@
+/* Конструктор Dify — в стиле «Центра ИИ-задач»: компактная шапка и максимум места редактору */
+
 .head {
   display: flex;
   align-items: center;
-  gap: calc(14 / 1440 * 100vw);
+  gap: 10px;
   flex-wrap: wrap;
-  margin: calc(6 / 1440 * 100vw) 0 calc(10 / 1440 * 100vw);
+  margin: 0 0 10px;
 }
 
-.title {
+.headMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 7px;
+  background: linear-gradient(90deg, #6c5ce7, #22b8f0);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.headTitle {
   margin: 0;
-  font-size: calc(20 / 1440 * 100vw);
+  font-size: 19px;
   font-weight: 600;
   color: #101828;
   white-space: nowrap;
 }
 
-.hint {
+.headHint {
   flex: 1 1 auto;
-  min-width: calc(240 / 1440 * 100vw);
-  font-size: calc(12 / 1440 * 100vw);
+  min-width: 240px;
+  font-size: 12px;
   color: #98a2b3;
 }
 
-.actions {
+.headActions {
   display: flex;
   align-items: center;
-  gap: calc(14 / 1440 * 100vw);
+  gap: 8px;
   margin-left: auto;
 }
 
-.linkBtn {
-  border: none;
-  background: none;
-  padding: 0;
-  color: #2f6bff;
-  font-size: calc(13 / 1440 * 100vw);
+.chipBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #e4e7ec;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #344054;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.2;
   cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 
   &:hover {
-    text-decoration: underline;
+    border-color: #b9c6ff;
+    background: #f2f6ff;
+    color: #1760e8;
   }
 }
 
 .frameWrap {
   position: relative;
   width: 100%;
-  height: calc(100vh - calc(150 / 1440 * 100vw));
-  min-height: calc(520 / 1440 * 100vw);
+  height: calc(100vh - 118px);
+  min-height: 460px;
   border: 1px solid #e4e7ec;
-  border-radius: calc(12 / 1440 * 100vw);
+  border-radius: 12px;
   overflow: hidden;
   background: #fff;
 }
@@ -67,18 +91,18 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: calc(12 / 1440 * 100vw);
-  padding: 0 calc(40 / 1440 * 100vw);
+  gap: 12px;
+  padding: 0 40px;
   text-align: center;
-  font-size: calc(14 / 1440 * 100vw);
+  font-size: 13px;
   color: #667085;
   background: #fff;
 }
 
 .spinner {
-  width: calc(28 / 1440 * 100vw);
-  height: calc(28 / 1440 * 100vw);
-  border: calc(3 / 1440 * 100vw) solid #d6e0ff;
+  width: 24px;
+  height: 24px;
+  border: 3px solid #d6e0ff;
   border-top-color: #2f6bff;
   border-radius: 50%;
   animation: spin 0.9s linear infinite;
@@ -91,42 +115,21 @@
 }
 
 @media (max-width: 900px) {
-  .head {
-    gap: 10px;
-    margin: 8px 0;
+  .headTitle {
+    font-size: 17px;
   }
 
-  .title {
-    font-size: 18px;
-  }
-
-  .hint {
-    font-size: 12px;
+  .headHint {
     flex-basis: 100%;
     min-width: 0;
   }
 
-  .actions {
-    gap: 12px;
-  }
-
-  .linkBtn {
-    font-size: 13px;
+  .headActions {
+    margin-left: 0;
   }
 
   .frameWrap {
-    height: calc(100vh - 168px);
-    min-height: 420px;
-  }
-
-  .frameLoader {
-    font-size: 13px;
-    padding: 0 20px;
-  }
-
-  .spinner {
-    width: 24px;
-    height: 24px;
-    border-width: 3px;
+    height: calc(100vh - 170px);
+    min-height: 380px;
   }
 }

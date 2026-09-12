@@ -4,7 +4,6 @@ import { useLocation } from 'react-router-dom';
 
 import Content from '@/components/content/Content';
 import Layout from '@/components/layout/Layout';
-import Button from '@/components/ui/button/Button';
 import LeftMenu from '@/components/ui/left-menu/LeftMenu';
 import LeftMenuActive from '@/components/ui/left-menu/left-menu-active/LeftMenuActive';
 
@@ -57,19 +56,18 @@ const DifyConstructor = () => {
 			{pathname !== '/home' && active_menu ? <LeftMenuActive /> : <LeftMenu />}
 			<Content>
 				<div className={styles.head}>
-					<h2 className={styles.title}>Конструктор Dify</h2>
-					<span className={styles.hint}>
-						инструменты Tellscope (14) уже подключены — узел «Инструмент» → провайдер tellscope
+					<span className={styles.headMark}>DIFY</span>
+					<h2 className={styles.headTitle}>Конструктор Dify</h2>
+					<span className={styles.headHint}>
+						схемы задач из блоков: инструменты Tellscope (14) уже подключены — узел «Инструмент» →
+						провайдер tellscope
 					</span>
-					<div className={styles.actions}>
-						<Button
-							style={{ width: 'calc(220/1440*100vw)', height: 'calc(40/1440*100vw)' }}
-							onClick={openInNewTab}
-						>
-							Открыть в новой вкладке
-						</Button>
-						<button type='button' className={styles.linkBtn} onClick={reload}>
+					<div className={styles.headActions}>
+						<button type='button' className={styles.chipBtn} onClick={reload}>
 							обновить
+						</button>
+						<button type='button' className={styles.chipBtn} onClick={openInNewTab}>
+							открыть в новой вкладке
 						</button>
 					</div>
 				</div>
