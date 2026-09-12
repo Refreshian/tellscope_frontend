@@ -1,5 +1,17 @@
 export const menuPageData = [
 	{
+		id: 20,
+		title: 'DeepSeek Harness',
+		text: 'DeepSeek Harness',
+		accent: true,
+		tileBadge: 'DSH',
+		accentHint: 'все задачи Tellscope: данные, отчёты, агенты, Dify',
+		badge: 'DSH',
+		src: '/images/icons/menu/harness.svg',
+		src_active: '/images/icons/menu/harness_active.svg',
+		path: '/harness',
+	},
+	{
 		id: 0,
 		title: 'Тональный ландшафт',
 		text: 'Тональный ландшафт',

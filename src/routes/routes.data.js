@@ -20,6 +20,7 @@ import Configs from '@/components/screens/configs/Configs';
 import MosinformRating from '@/components/screens/mosinform-rating/MosinformRating';
 import AdminPage from '@/components/screens/admin/AdminPage';
 import DifyConstructor from '@/components/screens/dify-constructor/DifyConstructor';
+import Harness from '@/components/screens/harness/Harness';
 
 
 import AnalysisOfThemesPage from '../components/screens/tables/ai-analytics-page/analysis-of-themes/AnalysisOfThemesPage';
@@ -148,6 +149,11 @@ export const routes = [
 	{
 		path: '/dify-constructor',
 		component: DifyConstructor,
+		isAuth: true,
+	},
+	{
+		path: '/harness',
+		component: Harness,
 		isAuth: true,
 	}
 ];
