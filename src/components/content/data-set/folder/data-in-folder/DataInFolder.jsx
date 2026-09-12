@@ -13,6 +13,7 @@ import {
 
 import styles from './DataInFolder.module.scss';
 import { useLazyFileLoadQuery } from '@/services/dataSet.service';
+import FileOrigin from '@/components/ui/file-origin/FileOrigin';
 
 const uploadStatusLabel = status => {
 	switch (status) {
@@ -363,6 +364,11 @@ const DataInFolder = () => {
                             alt='delete'
                           />
                         </button>
+                        <FileOrigin
+                          userId={data_getUserId}
+                          folder={activeFolderName}
+                          file={file['tsv-file']}
+                        />
                       </div>
                     </div>
                   )}
@@ -392,6 +398,11 @@ const DataInFolder = () => {
                             alt='delete'
                           />
                         </button>
+                        <FileOrigin
+                          userId={data_getUserId}
+                          folder={activeFolderName}
+                          file={file['txt-file']}
+                        />
                       </div>
                     </div>
                   )}
@@ -446,6 +457,11 @@ const DataInFolder = () => {
                             alt='delete'
                           />
                         </button>
+                        <FileOrigin
+                          userId={data_getUserId}
+                          folder={activeFolderName}
+                          file={file.file}
+                        />
                       </div>
                     </div>
                   )}

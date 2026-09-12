@@ -4,6 +4,7 @@ import Cookies from 'js-cookie';
 import { API_URL, TOKEN, USER_ID } from '@/app.constants';
 
 import styles from './Reports.module.scss';
+import FileOrigin from '@/components/ui/file-origin/FileOrigin';
 
 const fmtSize = bytes => {
 	const b = Number(bytes) || 0;
@@ -174,6 +175,12 @@ const Reports = ({ filterText = '' }) => {
 									>
 										{busy === key ? 'Скачивание…' : 'Скачать'}
 									</button>
+									<FileOrigin
+									  userId={userId}
+									  folder={group.folder}
+									  file={file.name}
+									  variant='pill'
+									/>
 								</div>
 							);
 						})}
