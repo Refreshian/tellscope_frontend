@@ -371,13 +371,9 @@ const SpreadFlow = ({ data }) => {
 	}, [layout.nodes, chainId]);
 
 	useEffect(() => {
-		if (chainNodes.length <= 3) {
-			setSummary({ loading: false, text: '' });
-			return undefined;
-		}
 		const origin =
 			chainNodes.find(node => node.kind === 'origin') || chainNodes[0];
-		const sourceText = origin?.text || '';
+		const sourceText = (origin?.text || '').trim();
 		if (!sourceText) {
 			setSummary({ loading: false, text: '' });
 			return undefined;

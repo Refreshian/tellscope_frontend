@@ -43,8 +43,9 @@ const ChainPanel = ({ chain, yLabel = 'Аудитория цепочки' }) => 
 	const [summary, setSummary] = useState({ loading: false, text: '' });
 
 	const origin = chain?.origin || chain?.posts?.[0];
-	const sourceText = origin?.text || '';
-	const longEnough = (chain?.posts?.length || 0) > 3;
+	const sourceText = (origin?.text || '').trim();
+	// пересказ собираем всегда, когда есть текст: и для цепочки, и для одиночного сообщения
+	const shouldSummarize = sourceText.length > 0;
 
 	useEffect(() => {
 		if (!chain) return undefined;
@@ -53,8 +54,8 @@ const ChainPanel = ({ chain, yLabel = 'Аудитория цепочки' }) => 
 			return undefined;
 		}
 		const local = localSummary(sourceText, query);
-		if (!longEnough) {
-			setSummary({ loading: false, text: local });
+		if (!shouldSummarize) {
+			setSummary({ loading: false, text: '' });
 			return undefined;
 		}
 		let cancelled = false;
@@ -81,7 +82,7 @@ const ChainPanel = ({ chain, yLabel = 'Аудитория цепочки' }) => 
 			cancelled = true;
 			controller.abort();
 		};
-	}, [chain?.id, sourceText, longEnough, query, themeName]);
+	}, [chain?.id, sourceText, shouldSummarize, query, themeName]);
 
 	if (!chain) {
 		return (
