@@ -200,6 +200,33 @@ const Harness = () => {
 		[watchRun]
 	);
 
+
+	// Скачиваем артефакт через $axios: обычная ссылка уходит без заголовка
+	// Authorization (только cookie), и бэкенд отвечает 401.
+	const downloadArtifact = useCallback(async artifact => {
+		try {
+			let target = artifact?.url || '';
+			try {
+				const parsed = new URL(target, window.location.origin);
+				target = parsed.pathname + parsed.search;
+			} catch (e) {
+				// оставляем как есть
+			}
+			const response = await $axios.get(target, { responseType: 'blob' });
+			const objectUrl = URL.createObjectURL(response.data);
+			const link = document.createElement('a');
+			link.href = objectUrl;
+			link.download = artifact?.name || 'file';
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+			URL.revokeObjectURL(objectUrl);
+		} catch (error) {
+			console.error('Не удалось скачать артефакт:', error);
+			window.alert('Не удалось скачать файл. Обновите страницу и попробуйте снова.');
+		}
+	}, []);
+
 	const openTask = useCallback(
 		async task => {
 			setError(null);
@@ -425,9 +452,14 @@ const Harness = () => {
 								{run.artifacts?.length ? (
 									<div className={styles.artifacts}>
 										{run.artifacts.map(artifact => (
-											<a key={artifact.name} href={artifact.url} target='_blank' rel='noreferrer'>
+											<button
+												key={artifact.name}
+												type='button'
+												className={styles.fileLink}
+												onClick={() => downloadArtifact(artifact)}
+											>
 												{artifact.name}
-											</a>
+											</button>
 										))}
 									</div>
 								) : null}
