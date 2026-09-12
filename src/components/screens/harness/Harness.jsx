@@ -243,9 +243,6 @@ const Harness = () => {
 
 	// Полный текст запроса: раскрытие и копирование в буфер (запрос в списке обрезан CSS)
 	const [expandedTask, setExpandedTask] = useState(null);
-	// Блок кнопок показываем только если запрос реально обрезан в строке
-	const taskActionsShown = useCallback(task => (String(task?.text || '').length > 110), []);
-
 	const copyTaskText = useCallback(async taskText => {
 		try {
 			await navigator.clipboard.writeText(taskText || '');
@@ -616,21 +613,19 @@ const Harness = () => {
 										{task.created_at} · {modeLabel(modes, task.mode)} · {task.run_status || task.status}
 									</span>
 								</button>
-								{taskActionsShown(task) ? (
-									<span className={styles.taskActions}>
-																			<button
-																				type='button'
-																				className={styles.taskBtn}
-																				title='Скопировать запрос'
-																				onClick={event => {
-																					event.stopPropagation();
-																					copyTaskText(task.text);
-																				}}
-																			>
-																				копировать запрос
-																			</button>
-																	</span>
-								) : null}
+																<span className={styles.taskActions}>
+																		<button
+																			type='button'
+																			className={styles.taskBtn}
+																			title='Скопировать запрос'
+																			onClick={event => {
+																				event.stopPropagation();
+																				copyTaskText(task.text);
+																			}}
+																		>
+																			копировать запрос
+																		</button>
+																</span>
 								<button type='button' className={styles.linkBtnDanger} onClick={() => removeTask(task)}>
 									удалить
 								</button>
