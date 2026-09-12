@@ -272,17 +272,16 @@
 }
 
 .menu__badge {
-	/* короткая метка раздела: в свёрнутом меню — в углу иконки */
-	position: absolute;
-	top: adapt(2px, 1440px);
-	right: adapt(2px, 1440px);
+	/* короткая метка раздела: в свёрнутом меню встаёт под иконкой по центру
+	   (пункт — flex-колонка, см. медиа-блок ниже) */
+	position: static;
 	padding: 0 adapt(4px, 1440px);
 	border-radius: adapt(6px, 1440px);
 	background: #2f6bff;
 	color: #fff;
 	font-size: adapt(8px, 1440px);
 	font-weight: 700;
-	line-height: adapt(12px, 1440px);
+	line-height: adapt(11px, 1440px);
 	letter-spacing: 0.04em;
 }
 
@@ -295,7 +294,11 @@
 	}
 
 	.menu__badge {
+		/* в мобильном меню подписи видны — метка стоит справа от текста */
 		position: static;
+		left: auto;
+		bottom: auto;
+		transform: none;
 		margin-left: auto;
 		font-size: 10px;
 		line-height: 16px;
@@ -373,5 +376,27 @@
 	.menu__item_active[data-tooltip]::after,
 	.menu__item_active[data-tooltip]::before {
 		display: none;
+	}
+}
+
+/* ---------- узкое меню на десктопе: иконка и короткая метка столбиком по центру ----------
+   Пункт — flex-колонка фиксированной высоты, поэтому иконка и метка стоят симметрично,
+   высота пунктов одинаковая, а рамка текущего раздела обводит их ровно по центру. */
+@media (min-width: 901px) {
+	.wrapper_menu > .menu > .menu__list > .menu__item,
+	.wrapper_menu > .menu > .menu__list > .menu__item_active {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: adapt(2px, 1440px);
+		width: 100%;
+		height: adapt(50px, 1440px);
+		padding: 0;
+	}
+
+	.menu__badge {
+		margin: 0;
+		transform: none;
 	}
 }
