@@ -287,6 +287,15 @@ const Harness = () => {
 	const [notice, setNotice] = useState(null);
 	const [events, setEvents] = useState([]);
 	const [showAllTasks, setShowAllTasks] = useState(false);
+	// Фильтр «Мои задачи» по базе/теме: какие тексты использовались в задаче.
+	// '' — все темы, 'none' — задачи без темы, иначе индекс датасета.
+	const [taskFilter, setTaskFilter] = useState('');
+	const [taskTopics, setTaskTopics] = useState({ topics: [], without_topic: 0, total: 0 });
+	const [tasksShown, setTasksShown] = useState(0);
+	const [tasksTotal, setTasksTotal] = useState(0);
+	// Фильтр читается через ref, чтобы loadTasks не менял свою идентичность: от неё зависят
+	// опрос статуса, отмена и наблюдение за запуском — перезапускать их на смене фильтра нельзя.
+	const taskFilterRef = useRef('');
 	// Тик раз в секунду: по нему считаются «прошло» и «последнее обновление», иначе
 	// таймеры в полосе статуса выглядят застывшими и непонятно, работает задача или нет.
 	const [tick, setTick] = useState(() => Date.now());
@@ -312,15 +321,47 @@ const Harness = () => {
 
 	const loadTasks = useCallback(async () => {
 		try {
-			const { data: payload } = await $axios.get('/harness/tasks');
+			const filter = taskFilterRef.current;
+			const query = filter ? `?dataset=${encodeURIComponent(filter)}` : '';
+			const { data: payload } = await $axios.get(`/harness/tasks${query}`);
 			const items = payload.tasks || [];
 			setTasks(items);
+			// Сервер отдаёт показанное и общее число задач: «показано N из M» считается по всему
+			// хранилищу, а не по урезанному списку.
+			setTasksShown(Number(payload.shown ?? items.length));
+			setTasksTotal(Number(payload.total ?? items.length));
+			if (payload.topic_counts) setTaskTopics(payload.topic_counts);
 			return items;
 		} catch (err) {
 			/* список задач не критичен */
 			return [];
 		}
 	}, []);
+
+	// Темы для фильтра: только те базы, которые реально использованы в задачах пользователя.
+	const loadTaskFilters = useCallback(async () => {
+		try {
+			const { data: payload } = await $axios.get('/harness/tasks/filters');
+			setTaskTopics({
+				topics: payload.topics || [],
+				without_topic: Number(payload.without_topic || 0),
+				total: Number(payload.total || 0)
+			});
+		} catch (err) {
+			/* без фильтра список задач всё равно работает */
+		}
+	}, []);
+
+	const applyTaskFilter = useCallback(
+		value => {
+			const next = String(value || '');
+			taskFilterRef.current = next;
+			setTaskFilter(next);
+			setShowAllTasks(false);
+			loadTasks();
+		},
+		[loadTasks]
+	);
 
 	const loadInfo = useCallback(async () => {
 		try {
@@ -335,6 +376,10 @@ const Harness = () => {
 	useEffect(() => {
 		loadInfo();
 	}, [loadInfo]);
+
+	useEffect(() => {
+		loadTaskFilters();
+	}, [loadTaskFilters]);
 
 	/* ---------- наблюдение за запуском: WebSocket + опрос с фолбэком ---------- */
 
@@ -1466,9 +1511,52 @@ const Harness = () => {
 				<div className={styles.panel}>
 					<div className={styles.panelHead}>
 						<h3>Мои задачи</h3>
-						<span className={styles.panelHint}>видны только вам · {tasks.length}</span>
+						<span className={styles.panelHint}>
+							видны только вам · показано {tasksShown} из {tasksTotal}
+						</span>
 					</div>
-					{!tasks.length && <p className={styles.muted}>Пока пусто — опишите первую задачу выше.</p>}
+					{taskTopics.topics?.length || taskTopics.without_topic ? (
+						<div className={styles.taskFilters}>
+							<button
+								type='button'
+								className={`${styles.filterChip} ${!taskFilter ? styles.filterChipOn : ''}`}
+								onClick={() => applyTaskFilter('')}
+							>
+								все темы · {taskTopics.total || tasksTotal}
+							</button>
+							{(taskTopics.topics || []).map(row => (
+								<button
+									key={String(row.index)}
+									type='button'
+									title={[row.name, row.period].filter(Boolean).join(' · ')}
+									className={`${styles.filterChip} ${
+										taskFilter === String(row.index) ? styles.filterChipOn : ''
+									}`}
+									onClick={() => applyTaskFilter(String(row.index))}
+								>
+									{row.label || row.name || `Датасет ${row.index}`} · {row.count}
+								</button>
+							))}
+							{taskTopics.without_topic ? (
+								<button
+									type='button'
+									className={`${styles.filterChip} ${
+										taskFilter === 'none' ? styles.filterChipOn : ''
+									}`}
+									onClick={() => applyTaskFilter('none')}
+								>
+									без темы · {taskTopics.without_topic}
+								</button>
+							) : null}
+						</div>
+					) : null}
+					{!tasks.length && (
+						<p className={styles.muted}>
+							{taskFilter
+								? 'По выбранной теме задач нет — выберите «все темы».'
+								: 'Пока пусто — опишите первую задачу выше.'}
+						</p>
+					)}
 					<div className={styles.taskList}>
 						{visibleTasks.map(task => {
 							const badge = taskBadge(task);
@@ -1492,6 +1580,7 @@ const Harness = () => {
 
 										<span className={styles.taskMeta}>
 											{task.created_at} · {modeLabel(modes, task.mode)}
+											{task.dataset_label ? ` · ${task.dataset_label}` : ''}
 											{task.run_progress?.percent ? ` · ${task.run_progress.percent}%` : ''}
 										</span>
 									</button>
