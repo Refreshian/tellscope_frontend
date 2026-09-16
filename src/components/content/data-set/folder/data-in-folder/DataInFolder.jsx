@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -14,6 +14,12 @@ import {
 import styles from './DataInFolder.module.scss';
 import { useLazyFileLoadQuery } from '@/services/dataSet.service';
 import FileOrigin from '@/components/ui/file-origin/FileOrigin';
+import FileSortSwitch from '@/components/ui/file-sort/FileSortSwitch';
+import { useFileSort } from '@/hooks/useFileSort';
+import { sortByMode } from '@/utils/fileSort';
+
+/* Имя строки списка: у обычной папки это `file`, у папки датасета — `tsv-file`/`txt-file`. */
+const rowName = file => file['file'] || file['tsv-file'] || file['txt-file'] || '';
 
 const uploadStatusLabel = status => {
 	switch (status) {
@@ -87,7 +93,9 @@ const DataInFolder = () => {
     isPopupDelete,
     buttonTarget,
   } = useSelector(state => state.popupDelete);
-  const [filterText, setFilterText] = useState('');
+  // filterText и currentPage приходят из useDataInFolder: там же их меняют обработчики
+  // поиска и пагинации (раньше это состояние было локальным и обработчики падали).
+  const [sortMode, setSortMode] = useFileSort();
 
   // Получаем имя папки из URL
   const pathSegments = location.pathname.split('/');
@@ -125,12 +133,27 @@ const DataInFolder = () => {
   const { data, isError, error, isLoading, isSuccess, refetch } =
     useGetUserFoldersQuery(data_getUserId);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const filesPerPage = 9;
+  const {
+    onClick,
+    handleInputChange,
+    handlePageChange,
+    handleFileChange,
+    handleDrop,
+    handleDragLeave,
+    handleDragOver,
+    dragging,
+    buildEmbeddings,
+    setBuildEmbeddings,
+    uploads,
+    filterText,
+    currentPage,
+  } = useDataInFolder();
 
   const isDataSetPath = /^\/data-set(\/processed)\/[^/]+$/.test(
     location.pathname,
   );
+
+  const filesPerPage = 9;
 
   // Эффект для проверки и обновления данных при изменении URL
   useEffect(() => {
@@ -171,19 +194,30 @@ const DataInFolder = () => {
     ? ['tsv-file', 'txt-file']
     : ['file'];
 
-  const files = renderFiles(activeFolderName, data).json_files_directory.filter(
-    file => {
+  // Сортировка идёт после поиска и до пагинации: свежий файл попадает на первую строку
+  // первой страницы. Дата — поле `created` (секунды Unix), которое отдаёт API папок.
+  const files = sortByMode(
+    renderFiles(activeFolderName, data).json_files_directory.filter(file => {
       return dynamicDirectoryFile.some(
         key =>
           file[key] &&
           file[key].toLowerCase().includes(filterText.toLowerCase()),
       );
-    },
+    }),
+    sortMode,
+    file => file.created,
+    rowName,
   );
 
   const allFiles = renderFiles(activeFolderName, data).json_files_directory;
 
   const totalPages = Math.ceil(files.length / filesPerPage);
+
+  // После поиска страниц может стать меньше — не показываем пустой список.
+  const safePage = Math.min(
+    Math.max(1, currentPage),
+    Math.max(1, totalPages),
+  );
 
   const style = {
     block__files: {
@@ -201,20 +235,6 @@ const DataInFolder = () => {
     display: isPopupDelete && folderName === name ? 'none' : 'flex',
   });
 
-  const {
-    onClick,
-    handleInputChange,
-    handlePageChange,
-    handleFileChange,
-    handleDrop,
-    handleDragLeave,
-    handleDragOver,
-    dragging,
-    buildEmbeddings,
-    setBuildEmbeddings,
-    uploads,
-  } = useDataInFolder();
-
   if (!data || !allData || !processedData) {
     return <p>Загрузка данных...</p>;
   }
@@ -227,6 +247,13 @@ const DataInFolder = () => {
       </button>
       <div className={styles.block__title}>
         <h3 className={styles.title}>{data.name}</h3>
+        {allFiles.length > 0 && (
+          <FileSortSwitch
+            value={sortMode}
+            onChange={setSortMode}
+            className={styles.sortSwitch}
+          />
+        )}
         <div className={styles.block__field} style={style.block__field}>
           <img
             src='/images/icons/input_button/search.svg'
@@ -329,8 +356,8 @@ const DataInFolder = () => {
           <>
             {files
               .slice(
-                (currentPage - 1) * filesPerPage,
-                currentPage * filesPerPage,
+                (safePage - 1) * filesPerPage,
+                safePage * filesPerPage,
               )
               .map((file, ind) => (
                 <div
@@ -468,7 +495,7 @@ const DataInFolder = () => {
                 </div>
               ))}
             <Pagination
-              currentPage={currentPage}
+              currentPage={safePage}
               totalPages={totalPages}
               onPageChange={handlePageChange}
             />

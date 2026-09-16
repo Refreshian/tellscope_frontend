@@ -20,6 +20,11 @@ export const useDataInFolder = () => {
 	const [dragging, setDragging] = useState(false);
 	const [buildEmbeddings, setBuildEmbeddings] = useState(null); // null=auto, true=force, false=only ES
 	const [uploads, setUploads] = useState([]);
+	// Поиск по названию и номер страницы живут здесь, потому что обработчики ниже
+	// (handleInputChange / handlePageChange) меняют именно это состояние: раньше переменных
+	// в этой области видимости не было, и обработчики падали с ReferenceError.
+	const [filterText, setFilterText] = useState('');
+	const [currentPage, setCurrentPage] = useState(1);
 	const mountedRef = useRef(true);
 	useEffect(() => {
 		mountedRef.current = true;
@@ -277,8 +282,11 @@ export const useDataInFolder = () => {
 		setCurrentPage(page);
 	};
 
+	// Новый запрос в поиске возвращает на первую страницу: иначе можно остаться на странице,
+	// которой в укороченном списке уже нет, и увидеть пустоту.
 	const handleInputChange = event => {
 		setFilterText(event.target.value);
+		setCurrentPage(1);
 	};
 
 	return {
@@ -293,5 +301,7 @@ export const useDataInFolder = () => {
 		buildEmbeddings,
 		setBuildEmbeddings,
 		uploads,
+		filterText,
+		currentPage,
 	};
 };

@@ -6,6 +6,9 @@ import { API_URL, TOKEN, USER_ID } from '@/app.constants';
 
 import styles from './Reports.module.scss';
 import FileOrigin from '@/components/ui/file-origin/FileOrigin';
+import FileSortSwitch from '@/components/ui/file-sort/FileSortSwitch';
+import { useFileSort } from '@/hooks/useFileSort';
+import { sortByMode, sortGroupsByMode } from '@/utils/fileSort';
 
 /* ------------------------------------------------------------------ утилиты */
 
@@ -178,6 +181,10 @@ const Reports = ({ filterText = '' }) => {
 	const [deleting, setDeleting] = useState('');
 	const [selected, setSelected] = useState('');
 	const [userId, setUserId] = useState(() => Cookies.get(USER_ID) || '');
+
+	// Порядок файлов. По умолчанию — «сначала новые»: свежий отчёт виден сразу, без поиска
+	// глазами (API отдаёт файлы по алфавиту, а не по дате). Выбор запоминается в localStorage.
+	const [sortMode, setSortMode] = useFileSort();
 
 	const userIdRef = useRef('');
 	const resourceRef = useRef('');
@@ -426,13 +433,38 @@ const Reports = ({ filterText = '' }) => {
 
 	const groups = useMemo(() => {
 		const q = (filterText || '').trim().toLowerCase();
-		return (data || [])
+
+		// Поиск по названию и сортировка работают вместе: сначала отбираем по подстроке,
+		// затем упорядочиваем — и файлы внутри папки, и сами папки.
+		const matching = (data || [])
 			.map(group => ({
 				...group,
 				files: (group.files || []).filter(f => !q || f.name.toLowerCase().includes(q)),
 			}))
 			.filter(group => group.files.length > 0);
-	}, [data, filterText]);
+
+		const sorted = matching.map(group => ({
+			...group,
+			// Дата берётся из поля `modified` (ISO-строка из API), а не из имени файла:
+			// `2024-08_summary.json` новее `2024-05_summary.json`, хотя по алфавиту идёт ниже.
+			files: sortByMode(
+				group.files,
+				sortMode,
+				file => file.modified,
+				file => file.name,
+			),
+		}));
+
+		return sortGroupsByMode(
+			sorted,
+			sortMode,
+			group => group.files,
+			group => group.folder,
+			file => file.modified,
+		);
+	}, [data, filterText, sortMode]);
+
+	const totalFiles = groups.reduce((sum, group) => sum + group.files.length, 0);
 
 	if (loading) {
 		return <div className={styles.state}>Загрузка отчётов…</div>;
@@ -467,6 +499,15 @@ const Reports = ({ filterText = '' }) => {
 					</button>
 				</div>
 			)}
+
+			<div className={styles.toolbar}>
+				<span className={styles.toolbarLabel}>Сортировка</span>
+				<FileSortSwitch value={sortMode} onChange={setSortMode} />
+				<span className={styles.toolbarMeta}>
+					{totalFiles} {plural(totalFiles, 'файл', 'файла', 'файлов')} в{' '}
+					{groups.length} {plural(groups.length, 'папке', 'папках', 'папках')}
+				</span>
+			</div>
 
 			<div className={styles.list}>
 				{groups.map(group => {

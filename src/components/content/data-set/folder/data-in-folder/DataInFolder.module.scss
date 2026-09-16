@@ -30,12 +30,22 @@
 .block__title {
 	margin-top: adapt(16px, 1440px);
 	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: adapt(12px, 1440px);
 	justify-content: space-between;
 }
 
 .title {
+	flex: 1 1 auto;
+	min-width: 0;
 	font-size: 1rem;
 	font-weight: 500;
+}
+
+/* Переключатель «Сначала новые / Сначала старые / По имени» — слева от поиска. */
+.sortSwitch {
+	align-self: center;
 }
 
 .block__field {
