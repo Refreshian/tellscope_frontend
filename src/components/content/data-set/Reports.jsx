@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Cookies from 'js-cookie';
+import { Modal, message } from 'antd';
 
 import { API_URL, TOKEN, USER_ID } from '@/app.constants';
 
 import styles from './Reports.module.scss';
 import FileOrigin from '@/components/ui/file-origin/FileOrigin';
+
+/* ------------------------------------------------------------------ утилиты */
 
 const fmtSize = bytes => {
 	const b = Number(bytes) || 0;
@@ -14,112 +17,421 @@ const fmtSize = bytes => {
 };
 
 const fmtDate = iso => {
+	if (!iso) return '—';
+	const parsed = new Date(iso);
+	if (Number.isNaN(parsed.getTime())) return '—';
+	return parsed.toLocaleString('ru-RU', {
+		day: '2-digit',
+		month: '2-digit',
+		year: 'numeric',
+		hour: '2-digit',
+		minute: '2-digit',
+	});
+};
+
+const plural = (n, one, few, many) => {
+	const mod10 = n % 10;
+	const mod100 = n % 100;
+	if (mod10 === 1 && mod100 !== 11) return one;
+	if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+	return many;
+};
+
+/* Тип файла — по расширению. Цвет иконки зависит от типа, как в системном проводнике. */
+const FILE_KINDS = {
+	doc: { color: '#2563eb', title: 'Документ Word' },
+	sheet: { color: '#16a34a', title: 'Таблица' },
+	pdf: { color: '#dc2626', title: 'Документ PDF' },
+	json: { color: '#6b7280', title: 'Данные JSON' },
+	html: { color: '#7c3aed', title: 'Веб-страница' },
+	image: { color: '#0891b2', title: 'Изображение' },
+	text: { color: '#6b7280', title: 'Текст' },
+	other: { color: '#6b7280', title: 'Файл' },
+};
+
+const EXT_KINDS = {
+	docx: 'doc',
+	doc: 'doc',
+	rtf: 'doc',
+	pdf: 'pdf',
+	xlsx: 'sheet',
+	xls: 'sheet',
+	csv: 'sheet',
+	tsv: 'sheet',
+	json: 'json',
+	html: 'html',
+	htm: 'html',
+	png: 'image',
+	jpg: 'image',
+	jpeg: 'image',
+	gif: 'image',
+	webp: 'image',
+	svg: 'image',
+	md: 'text',
+	txt: 'text',
+	log: 'text',
+};
+
+const kindOf = name => {
+	const dot = String(name || '').lastIndexOf('.');
+	if (dot < 0) return 'other';
+	return EXT_KINDS[String(name).slice(dot + 1).toLowerCase()] || 'other';
+};
+
+/* ------------------------------------------------------------------ иконки */
+
+const FolderIcon = () => (
+	<svg className={styles.glyph} width='16' height='16' viewBox='0 0 16 16' aria-hidden='true'>
+		<path
+			d='M1.6 4.1c0-.8.65-1.45 1.45-1.45h2.5c.4 0 .78.16 1.06.44l.72.72c.28.28.66.44 1.06.44h3.55c.8 0 1.45.65 1.45 1.45v6.2c0 .8-.65 1.45-1.45 1.45H3.05c-.8 0-1.45-.65-1.45-1.45V4.1Z'
+			fill='#d9a441'
+		/>
+		<path d='M1.6 5.6h12.8' stroke='#c08f2c' strokeWidth='1' strokeLinecap='round' />
+	</svg>
+);
+
+const FileIcon = ({ kind }) => {
+	const meta = FILE_KINDS[kind] || FILE_KINDS.other;
+	return (
+		<svg
+			className={styles.glyph}
+			width='16'
+			height='16'
+			viewBox='0 0 16 16'
+			aria-hidden='true'
+		>
+			<title>{meta.title}</title>
+			<path
+				d='M3.9 1.6h4.9L12.1 5v9.4H3.9V1.6Z'
+				fill={meta.color}
+				fillOpacity='0.12'
+				stroke={meta.color}
+				strokeWidth='1.15'
+				strokeLinejoin='round'
+			/>
+			<path
+				d='M8.8 1.6V5h3.3'
+				fill='none'
+				stroke={meta.color}
+				strokeWidth='1.15'
+				strokeLinejoin='round'
+			/>
+			<path
+				d='M6 9.1h4M6 11.3h4'
+				fill='none'
+				stroke={meta.color}
+				strokeWidth='1.15'
+				strokeLinecap='round'
+			/>
+		</svg>
+	);
+};
+
+const TrashIcon = () => (
+	<svg
+		className={styles.glyph}
+		width='15'
+		height='15'
+		viewBox='0 0 16 16'
+		aria-hidden='true'
+		fill='none'
+		stroke='currentColor'
+		strokeWidth='1.2'
+		strokeLinecap='round'
+		strokeLinejoin='round'
+	>
+		<path d='M3.2 4.5h9.6' />
+		<path d='M6.4 4.5V3.2h3.2v1.3' />
+		<path d='M4.7 4.5l.55 8.3h5.5l.55-8.3' />
+		<path d='M6.7 6.7v4.3M9.3 6.7v4.3' />
+	</svg>
+);
+
+/* ------------------------------------------------------------------ ошибки */
+
+const describeError = (response, payload) => {
+	const detail = payload && payload.detail;
+	if (typeof detail === 'string' && detail) return `HTTP ${response.status}: ${detail}`;
+	if (detail && typeof detail === 'object') {
+		const parts = [detail.message || `HTTP ${response.status}`];
+		if (detail.count) parts.push(`файлов: ${detail.count}`);
+		return parts.join(', ');
+	}
+	return `HTTP ${response.status}`;
+};
+
+const readJson = async response => {
 	try {
-		return new Date(iso).toLocaleString('ru-RU', {
-			day: '2-digit',
-			month: '2-digit',
-			year: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit',
-		});
+		return await response.json();
 	} catch (e) {
-		return '';
+		return null;
 	}
 };
 
-const iconFor = name => {
-	const low = (name || '').toLowerCase();
-	if (low.endsWith('.pdf')) return '📕';
-	if (low.endsWith('.docx')) return '📘';
-	if (low.endsWith('.png')) return '🖼️';
-	if (low.endsWith('.html')) return '🌐';
-	if (low.endsWith('.md')) return '📝';
-	return '📄';
-};
+/* ------------------------------------------------------------------ компонент */
 
 const Reports = ({ filterText = '' }) => {
 	const [data, setData] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState('');
 	const [busy, setBusy] = useState('');
+	const [deleting, setDeleting] = useState('');
+	const [selected, setSelected] = useState('');
+	const [userId, setUserId] = useState(() => Cookies.get(USER_ID) || '');
 
-	const userId = Cookies.get(USER_ID);
+	const userIdRef = useRef('');
+	const resourceRef = useRef('');
 
-	const resolveUserId = async () => {
-		let uid = Cookies.get(USER_ID);
-		if (uid) return uid;
-		try {
-			const r = await fetch(`${API_URL}/user-id`, {
-				headers: { Authorization: `Bearer ${Cookies.get(TOKEN)}` },
-			});
-			if (!r.ok) return null;
-			const d = await r.json();
-			if (d && typeof d === 'object') return d.user_id || d.id || d.userId || null;
-			return d;
-		} catch (e) {
-			return null;
+	const headers = () => ({ Authorization: `Bearer ${Cookies.get(TOKEN) || ''}` });
+
+	/**
+	 * Идентификатор пользователя.
+	 *
+	 * Cookie `user_id` ставит только страница графа (useInitUserData), поэтому сразу после
+	 * входа её нет. Раньше здесь запрашивался `/user-id` — он подписан другим JWT-секретом,
+	 * чем токен входа, и всегда отвечал 401: список отчётов не мог загрузиться в принципе.
+	 * Рабочий источник — `/me` (тот же эндпоинт, что и в useInitUserData).
+	 */
+	const resolveUserId = useCallback(async () => {
+		if (userIdRef.current) return userIdRef.current;
+
+		const fromCookie = Cookies.get(USER_ID);
+		if (fromCookie && fromCookie !== 'undefined' && fromCookie !== 'null') {
+			userIdRef.current = String(fromCookie);
+			setUserId(userIdRef.current);
+			return userIdRef.current;
 		}
-	};
 
-	const load = async () => {
-		setLoading(true);
-		setError('');
-		try {
-			const uid = userId || (await resolveUserId());
-			if (!uid) throw new Error('no user id');
-			const r = await fetch(`${API_URL}/reports/${uid}`, {
-				headers: { Authorization: `Bearer ${Cookies.get(TOKEN)}` },
-			});
-			if (!r.ok) throw new Error(`HTTP ${r.status}`);
-			const d = await r.json();
-			setData(d?.values || []);
-		} catch (e) {
-			setError('Не удалось загрузить список отчётов');
-			setData([]);
-		} finally {
-			setLoading(false);
+		const response = await fetch(`${API_URL}/me`, { headers: headers() });
+		if (!response.ok) throw new Error(`GET /me → HTTP ${response.status}`);
+		const payload = await readJson(response);
+		const id = payload && (payload.id ?? payload.user_id);
+		if (id === undefined || id === null || id === '') {
+			throw new Error('в ответе /me нет идентификатора пользователя');
 		}
-	};
+
+		Cookies.set(USER_ID, String(id));
+		userIdRef.current = String(id);
+		setUserId(userIdRef.current);
+		return userIdRef.current;
+	}, []);
+
+	const load = useCallback(
+		async ({ silent = false } = {}) => {
+			if (!silent) setLoading(true);
+			setError('');
+			try {
+				const uid = await resolveUserId();
+				const controller = new AbortController();
+				const timer = setTimeout(() => controller.abort(), 30000);
+				let response;
+				try {
+					response = await fetch(`${API_URL}/reports/${uid}`, {
+						headers: headers(),
+						signal: controller.signal,
+					});
+				} finally {
+					clearTimeout(timer);
+				}
+
+				if (!response.ok) {
+					const payload = await readJson(response);
+					const detail = payload && payload.detail ? `: ${payload.detail}` : '';
+					throw new Error(`GET /reports/${uid} → HTTP ${response.status}${detail}`);
+				}
+
+				const payload = await readJson(response);
+				const values = Array.isArray(payload && payload.values) ? payload.values : [];
+				setData(values);
+				resourceRef.current = `${uid}/reports`;
+			} catch (e) {
+				const reason =
+					e && e.name === 'AbortError'
+						? 'превышено время ожидания (30 с)'
+						: (e && e.message) || 'неизвестная ошибка';
+				console.error('[Отчёты] не удалось загрузить список', e);
+				setError(`Не удалось загрузить список отчётов — ${reason}`);
+				if (!silent) setData([]);
+			} finally {
+				if (!silent) setLoading(false);
+			}
+		},
+		[resolveUserId],
+	);
 
 	useEffect(() => {
 		load();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
+	/* --------------------------------------------------------------- скачивание */
+
 	const download = async (folder, file) => {
 		const key = `${folder}/${file.name}`;
 		setBusy(key);
 		try {
-			const uid = userId || (await resolveUserId());
-			const r = await fetch(
-				`${API_URL}/reports/download/${uid}/${encodeURIComponent(folder)}/${encodeURIComponent(file.name)}`,
-				{ headers: { Authorization: `Bearer ${Cookies.get(TOKEN)}` } },
+			const uid = await resolveUserId();
+			const response = await fetch(
+				`${API_URL}/reports/download/${encodeURIComponent(uid)}/${encodeURIComponent(folder)}/${encodeURIComponent(file.name)}`,
+				{ headers: headers() },
 			);
-			if (!r.ok) throw new Error(`HTTP ${r.status}`);
-			const blob = await r.blob();
+			if (!response.ok) throw new Error(`HTTP ${response.status}`);
+			const blob = await response.blob();
 			const url = URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = file.name;
-			document.body.appendChild(a);
-			a.click();
-			a.remove();
+			const anchor = document.createElement('a');
+			anchor.href = url;
+			anchor.download = file.name;
+			document.body.appendChild(anchor);
+			anchor.click();
+			anchor.remove();
 			setTimeout(() => URL.revokeObjectURL(url), 4000);
 		} catch (e) {
-			setError(`Не удалось скачать ${file.name}`);
+			console.error('[Отчёты] не удалось скачать файл', file.name, e);
+			message.error(`Не удалось скачать «${file.name}»: ${(e && e.message) || 'ошибка'}`);
 		} finally {
 			setBusy('');
 		}
 	};
 
+	/* ----------------------------------------------------------------- удаление */
+
+	const deleteRequest = async path => {
+		const uid = await resolveUserId();
+		const response = await fetch(
+			`${API_URL}/reports/${path.replace('{uid}', encodeURIComponent(uid))}`,
+			{ method: 'DELETE', headers: headers() },
+		);
+		return { response, payload: await readJson(response) };
+	};
+
+	const askDeleteFile = (folder, file) => {
+		Modal.confirm({
+			title: 'Удалить файл?',
+			icon: null,
+			width: 460,
+			content: (
+				<div className={styles.confirmBody}>
+					<div className={styles.confirmName}>{file.name}</div>
+					<div className={styles.confirmHint}>
+						Папка: {folder}. Файл будет удалён с диска без возможности восстановления.
+					</div>
+				</div>
+			),
+			okText: 'Удалить',
+			okButtonProps: { danger: true },
+			cancelText: 'Отмена',
+			onOk: async () => {
+				const key = `${folder}/${file.name}`;
+				setDeleting(key);
+				try {
+					const { response, payload } = await deleteRequest(
+						`file/{uid}/${encodeURIComponent(folder)}/${encodeURIComponent(file.name)}`,
+					);
+					if (!response.ok) throw new Error(describeError(response, payload));
+					message.success(`Файл «${file.name}» удалён`);
+					setSelected('');
+					await load({ silent: true });
+				} catch (e) {
+					console.error('[Отчёты] не удалось удалить файл', file.name, e);
+					message.error(`Не удалось удалить «${file.name}»: ${(e && e.message) || 'ошибка'}`);
+				} finally {
+					setDeleting('');
+				}
+			},
+		});
+	};
+
+	const removeFolder = async (folder, { force = false } = {}) => {
+		setDeleting(`folder:${folder}`);
+		try {
+			const { response, payload } = await deleteRequest(
+				`folder/{uid}/${encodeURIComponent(folder)}${force ? '?force=true' : ''}`,
+			);
+
+			// Папка не пуста: сервер отвечает 409 и списком файлов — уточняем у пользователя.
+			if (response.status === 409 && payload && payload.detail) {
+				const detail = payload.detail;
+				const files = Array.isArray(detail.files) ? detail.files : [];
+				const count = Number(detail.count) || files.length;
+				setDeleting('');
+				Modal.confirm({
+					title: 'Папка не пуста',
+					icon: null,
+					width: 460,
+					content: (
+						<div className={styles.confirmBody}>
+							<div className={styles.confirmName}>{folder}</div>
+							<div className={styles.confirmHint}>
+								В папке {count} {plural(count, 'файл', 'файла', 'файлов')}. Удалить папку
+								вместе со всем содержимым?
+							</div>
+							{files.length > 0 && (
+								<ul className={styles.confirmList}>
+									{files.slice(0, 5).map(name => (
+										<li key={name}>{name}</li>
+									))}
+									{count > files.length && <li>…и ещё {count - files.length}</li>}
+								</ul>
+							)}
+						</div>
+					),
+					okText: 'Удалить папку с файлами',
+					okButtonProps: { danger: true },
+					cancelText: 'Отмена',
+					onOk: () => removeFolder(folder, { force: true }),
+				});
+				return;
+			}
+
+			if (!response.ok) throw new Error(describeError(response, payload));
+			const removed = Number(payload && payload.removed_files) || 0;
+			message.success(
+				removed > 0
+					? `Папка «${folder}» удалена вместе с ${removed} ${plural(removed, 'файлом', 'файлами', 'файлами')}`
+					: `Папка «${folder}» удалена`,
+			);
+			setSelected('');
+			await load({ silent: true });
+		} catch (e) {
+			console.error('[Отчёты] не удалось удалить папку', folder, e);
+			message.error(`Не удалось удалить папку «${folder}»: ${(e && e.message) || 'ошибка'}`);
+		} finally {
+			setDeleting('');
+		}
+	};
+
+	const askDeleteFolder = (folder, count) => {
+		Modal.confirm({
+			title: 'Удалить папку?',
+			icon: null,
+			width: 460,
+			content: (
+				<div className={styles.confirmBody}>
+					<div className={styles.confirmName}>{folder}</div>
+					<div className={styles.confirmHint}>
+						{count > 0
+							? `В папке ${count} ${plural(count, 'файл', 'файла', 'файлов')}. Папка будет удалена без возможности восстановления.`
+							: 'Папка пуста. Она будет удалена без возможности восстановления.'}
+					</div>
+				</div>
+			),
+			okText: 'Удалить',
+			okButtonProps: { danger: true },
+			cancelText: 'Отмена',
+			onOk: () => removeFolder(folder),
+		});
+	};
+
+	/* ------------------------------------------------------------------- вывод */
+
 	const groups = useMemo(() => {
 		const q = (filterText || '').trim().toLowerCase();
 		return (data || [])
-			.map(g => ({
-				...g,
-				files: (g.files || []).filter(f => !q || f.name.toLowerCase().includes(q)),
+			.map(group => ({
+				...group,
+				files: (group.files || []).filter(f => !q || f.name.toLowerCase().includes(q)),
 			}))
-			.filter(g => g.files.length > 0);
+			.filter(group => group.files.length > 0);
 	}, [data, filterText]);
 
 	if (loading) {
@@ -129,8 +441,8 @@ const Reports = ({ filterText = '' }) => {
 	if (error && groups.length === 0) {
 		return (
 			<div className={styles.state}>
-				{error}
-				<button type='button' className={styles.retry} onClick={load}>
+				<span className={styles.stateError}>{error}</span>
+				<button type='button' className={styles.retry} onClick={() => load()}>
 					Повторить
 				</button>
 			</div>
@@ -147,46 +459,119 @@ const Reports = ({ filterText = '' }) => {
 
 	return (
 		<div className={styles.wrapper}>
-			{error && <div className={styles.warn}>{error}</div>}
-			{groups.map(group => (
-				<div key={group.folder} className={styles.group}>
-					<div className={styles.groupHead}>
-						<span className={styles.groupIcon}>🗂️</span>
-						<h3 className={styles.groupTitle}>{group.folder}</h3>
-						<span className={styles.groupCount}>{group.files.length} файл(ов)</span>
-					</div>
-					<div className={styles.files}>
-						{group.files.map(file => {
-							const key = `${group.folder}/${file.name}`;
-							return (
-								<div key={key} className={styles.fileRow}>
-									<span className={styles.fileIcon}>{iconFor(file.name)}</span>
-									<div className={styles.fileInfo}>
-										<span className={styles.fileName}>{file.name}</span>
-										<span className={styles.fileMeta}>
-											{fmtSize(file.size)} · {fmtDate(file.modified)}
-										</span>
-									</div>
-									<button
-										type='button'
-										className={styles.downloadBtn}
-										disabled={busy === key}
-										onClick={() => download(group.folder, file)}
-									>
-										{busy === key ? 'Скачивание…' : 'Скачать'}
-									</button>
-									<FileOrigin
-									  userId={userId}
-									  folder={group.folder}
-									  file={file.name}
-									  variant='pill'
-									/>
-								</div>
-							);
-						})}
-					</div>
+			{error && (
+				<div className={styles.warn}>
+					<span className={styles.warnText}>{error}</span>
+					<button type='button' className={styles.warnRetry} onClick={() => load()}>
+						Повторить
+					</button>
 				</div>
-			))}
+			)}
+
+			<div className={styles.list}>
+				{groups.map(group => {
+					const folderKey = `folder:${group.folder}`;
+					return (
+						<section key={group.folder} className={styles.group}>
+							<header className={styles.groupHead}>
+								<FolderIcon />
+								<h3 className={styles.groupTitle} title={group.folder}>
+									{group.folder}
+								</h3>
+								<span className={styles.groupCount}>
+									{group.files.length}{' '}
+									{plural(group.files.length, 'файл', 'файла', 'файлов')}
+								</span>
+								<button
+									type='button'
+									className={styles.iconBtn}
+									title={`Удалить папку «${group.folder}»`}
+									aria-label={`Удалить папку ${group.folder}`}
+									disabled={deleting === folderKey}
+									onClick={() => askDeleteFolder(group.folder, group.files.length)}
+								>
+									{deleting === folderKey ? (
+										<span className={styles.spinner} />
+									) : (
+										<TrashIcon />
+									)}
+								</button>
+							</header>
+
+							<div className={styles.columns}>
+								<span className={styles.colName}>Имя</span>
+								<span className={styles.colSize}>Размер</span>
+								<span className={styles.colDate}>Дата</span>
+								<span className={styles.colActions} />
+							</div>
+
+							<div className={styles.rows}>
+								{group.files.map(file => {
+									const key = `${group.folder}/${file.name}`;
+									const isBusy = busy === key || deleting === key;
+									return (
+										<div
+											key={key}
+											className={`${styles.row} ${
+												selected === key ? styles.rowSelected : ''
+											}`}
+											onClick={() => setSelected(key)}
+										>
+											<span className={styles.cellName}>
+												<FileIcon kind={kindOf(file.name)} />
+												<span className={styles.fileName} title={file.name}>
+													{file.name}
+												</span>
+											</span>
+
+											<span className={styles.cellSize}>{fmtSize(file.size)}</span>
+
+											<span className={styles.cellDate}>{fmtDate(file.modified)}</span>
+
+											<span className={styles.cellActions}>
+												<button
+													type='button'
+													className={styles.downloadBtn}
+													disabled={isBusy}
+													onClick={event => {
+														event.stopPropagation();
+														download(group.folder, file);
+													}}
+												>
+													{busy === key ? 'Скачивание…' : 'Скачать'}
+												</button>
+												<FileOrigin
+													userId={userId}
+													folder={group.folder}
+													file={file.name}
+													variant='pill'
+												/>
+												<button
+													type='button'
+													className={styles.deleteBtn}
+													title={`Удалить файл «${file.name}»`}
+													aria-label={`Удалить файл ${file.name}`}
+													disabled={isBusy}
+													onClick={event => {
+														event.stopPropagation();
+														askDeleteFile(group.folder, file);
+													}}
+												>
+													{deleting === key ? (
+														<span className={styles.spinner} />
+													) : (
+														<TrashIcon />
+													)}
+												</button>
+											</span>
+										</div>
+									);
+								})}
+							</div>
+						</section>
+					);
+				})}
+			</div>
 		</div>
 	);
 };

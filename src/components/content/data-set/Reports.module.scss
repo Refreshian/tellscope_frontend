@@ -1,127 +1,360 @@
+/* Список отчётов: нейтральная «системная» таблица — белые и светло-серые строки,
+   тонкие разделители, компактные отступы в px, без теней и градиентов. */
+
 .wrapper {
 	width: 100%;
-	max-width: calc(1100 / 1440 * 100vw);
+	max-width: 1180px;
 	display: flex;
 	flex-direction: column;
-	gap: calc(18 / 1440 * 100vw);
+	gap: 12px;
 }
+
+/* ------------------------------------------------------------- состояния */
 
 .state {
 	width: 100%;
-	padding: calc(40 / 1440 * 100vw) 0;
-	text-align: center;
-	color: #5a6a8a;
-	font-size: calc(15 / 1440 * 100vw);
+	padding: 40px 0;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: calc(12 / 1440 * 100vw);
+	gap: 12px;
+	text-align: center;
+	color: #5b6472;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.stateError {
+	color: #b42318;
+	max-width: 720px;
 }
 
 .retry {
-	border: 1px solid rgba(108, 92, 231, 0.45);
+	border: 1px solid #d0d5dd;
+	border-radius: 6px;
 	background: #ffffff;
-	color: #5b5bd6;
-	border-radius: calc(10 / 1440 * 100vw);
-	padding: calc(8 / 1440 * 100vw) calc(16 / 1440 * 100vw);
-	cursor: pointer;
+	color: #1f2937;
 	font-family: inherit;
+	font-size: 13px;
+	padding: 6px 14px;
+	cursor: pointer;
+
+	&:hover {
+		background: #f2f4f7;
+		border-color: #b9c0cb;
+	}
 }
 
 .warn {
-	padding: calc(10 / 1440 * 100vw) calc(14 / 1440 * 100vw);
-	border-radius: calc(10 / 1440 * 100vw);
-	background: rgba(229, 72, 77, 0.08);
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 12px;
+	border: 1px solid #f3c9c4;
+	border-radius: 6px;
+	background: #fef3f2;
 	color: #b42318;
-	font-size: calc(13 / 1440 * 100vw);
+	font-size: 12.5px;
+	line-height: 1.45;
+}
+
+.warnText {
+	min-width: 0;
+}
+
+.warnRetry {
+	margin-left: auto;
+	flex: 0 0 auto;
+	border: 1px solid #f0b4ae;
+	border-radius: 6px;
+	background: #ffffff;
+	color: #b42318;
+	font-family: inherit;
+	font-size: 12px;
+	padding: 4px 10px;
+	cursor: pointer;
+
+	&:hover {
+		background: #fff5f4;
+	}
+}
+
+/* ------------------------------------------------------------- список */
+
+.list {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
 }
 
 .group {
 	background: #ffffff;
-	border: 1px solid rgba(11, 27, 59, 0.08);
-	border-radius: calc(16 / 1440 * 100vw);
-	box-shadow: 0 6px 18px rgba(11, 27, 59, 0.06);
-	padding: calc(16 / 1440 * 100vw) calc(18 / 1440 * 100vw);
+	border: 1px solid #e4e7ec;
+	border-radius: 8px;
+	overflow: hidden;
 }
 
 .groupHead {
 	display: flex;
 	align-items: center;
-	gap: calc(8 / 1440 * 100vw);
-	margin-bottom: calc(12 / 1440 * 100vw);
-}
-
-.groupIcon {
-	font-size: calc(18 / 1440 * 100vw);
+	gap: 8px;
+	padding: 8px 12px;
+	background: #f9fafb;
+	border-bottom: 1px solid #eceff3;
 }
 
 .groupTitle {
 	margin: 0;
-	font-size: calc(16 / 1440 * 100vw);
-	color: #0b1b3b;
-	font-weight: 600;
-}
-
-.groupCount {
-	margin-left: auto;
-	font-size: calc(12 / 1440 * 100vw);
-	color: #6b7a99;
-}
-
-.files {
-	display: flex;
-	flex-direction: column;
-}
-
-.fileRow {
-	display: flex;
-	align-items: center;
-	gap: calc(12 / 1440 * 100vw);
-	padding: calc(10 / 1440 * 100vw) 0;
-	border-top: 1px solid rgba(11, 27, 59, 0.06);
-
-	&:first-child {
-		border-top: none;
-	}
-}
-
-.fileIcon {
-	font-size: calc(18 / 1440 * 100vw);
-}
-
-.fileInfo {
-	display: flex;
-	flex-direction: column;
 	min-width: 0;
-}
-
-.fileName {
-	color: #152a5a;
-	font-size: calc(14 / 1440 * 100vw);
+	font-size: 13.5px;
+	font-weight: 600;
+	color: #1f2937;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.fileMeta {
-	color: #6b7a99;
-	font-size: calc(12 / 1440 * 100vw);
-	margin-top: calc(2 / 1440 * 100vw);
+.groupCount {
+	margin-left: auto;
+	flex: 0 0 auto;
+	font-size: 12px;
+	color: #6b7280;
+	white-space: nowrap;
 }
 
+/* Заголовок колонок и строки используют одну и ту же сетку с фиксированной шириной
+   колонок (иначе каждая строка — свой грид-контейнер и колонки не выравниваются). */
+.columns,
+.row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 92px 132px 216px;
+	align-items: center;
+	column-gap: 12px;
+}
+
+.columns {
+	padding: 6px 12px;
+	background: #ffffff;
+	border-bottom: 1px solid #eceff3;
+	font-size: 10.5px;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: #98a1af;
+}
+
+.colName {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.colSize,
+.colDate {
+	text-align: right;
+}
+
+.rows {
+	display: flex;
+	flex-direction: column;
+}
+
+.row {
+	padding: 7px 12px;
+	border-top: 1px solid #f1f3f5;
+	grid-template-areas: 'name size date actions';
+	transition: background-color 0.12s ease;
+
+	&:first-child {
+		border-top: none;
+	}
+
+	&:hover {
+		background: #f7f8fa;
+	}
+}
+
+.rowSelected {
+	background: #eef2f7;
+
+	&:hover {
+		background: #e8edf4;
+	}
+}
+
+.cellName {
+	grid-area: name;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+
+.fileName {
+	min-width: 0;
+	color: #1f2937;
+	font-size: 13px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cellSize {
+	grid-area: size;
+	text-align: right;
+	font-size: 12px;
+	color: #4b5563;
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}
+
+.cellDate {
+	grid-area: date;
+	text-align: right;
+	font-size: 12px;
+	color: #4b5563;
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}
+
+.cellActions {
+	grid-area: actions;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
+.glyph {
+	display: block;
+	flex: 0 0 auto;
+}
+
+/* ------------------------------------------------------------- кнопки */
+
 .downloadBtn {
-	margin-left: auto;
-	border: none;
-	border-radius: calc(10 / 1440 * 100vw);
-	background: linear-gradient(90deg, #6c5ce7 0%, #22b8f0 100%);
-	color: #ffffff;
+	border: 1px solid #d0d5dd;
+	border-radius: 6px;
+	background: #ffffff;
+	color: #1f2937;
 	font-family: inherit;
-	font-size: calc(13 / 1440 * 100vw);
-	padding: calc(9 / 1440 * 100vw) calc(18 / 1440 * 100vw);
+	font-size: 12px;
+	padding: 4px 10px;
 	cursor: pointer;
+	white-space: nowrap;
+
+	&:hover:not(:disabled) {
+		background: #f2f4f7;
+		border-color: #b9c0cb;
+	}
 
 	&:disabled {
-		opacity: 0.6;
+		opacity: 0.55;
 		cursor: default;
+	}
+}
+
+.deleteBtn,
+.iconBtn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	border: 1px solid #d0d5dd;
+	border-radius: 6px;
+	background: #ffffff;
+	color: #6b7280;
+	cursor: pointer;
+
+	&:hover:not(:disabled) {
+		color: #b42318;
+		border-color: #f0b4ae;
+		background: #fef3f2;
+	}
+
+	&:disabled {
+		opacity: 0.55;
+		cursor: default;
+	}
+}
+
+.spinner {
+	display: inline-block;
+	width: 12px;
+	height: 12px;
+	border: 2px solid #d0d5dd;
+	border-top-color: #6b7280;
+	border-radius: 50%;
+	animation: reports-spin 0.7s linear infinite;
+}
+
+@keyframes reports-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* ------------------------------------------------------------- подтверждение удаления */
+
+.confirmBody {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.confirmName {
+	font-size: 13px;
+	font-weight: 600;
+	color: #1f2937;
+	word-break: break-word;
+}
+
+.confirmHint {
+	font-size: 12.5px;
+	line-height: 1.5;
+	color: #4b5563;
+}
+
+.confirmList {
+	margin: 8px 0 0;
+	padding-left: 18px;
+	font-size: 12px;
+	line-height: 1.6;
+	color: #6b7280;
+}
+
+/* ------------------------------------------------------------- узкая ширина */
+
+@media (max-width: 900px) {
+	.columns {
+		display: none;
+	}
+
+	.row {
+		grid-template-columns: minmax(0, 1fr) max-content;
+		grid-template-areas:
+			'name name'
+			'size date'
+			'actions actions';
+		row-gap: 4px;
+		padding: 8px 10px;
+	}
+	.cellSize {
+		text-align: left;
+	}
+
+	.cellActions {
+		justify-content: flex-start;
+	}
+
+	.groupCount {
+		display: none;
+	}
+
+	.warn {
+		flex-wrap: wrap;
 	}
 }
