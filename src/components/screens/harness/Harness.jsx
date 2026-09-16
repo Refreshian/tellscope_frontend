@@ -1088,6 +1088,8 @@ const Harness = () => {
 	// «Пока вас не было»: задачи, завершившиеся без наблюдения (успех/ошибка/отмена),
 	// помечены в хранилище как непросмотренные — плашка висит до первого открытия.
 	const [awayHidden, setAwayHidden] = useState([]);
+	const [awayBusy, setAwayBusy] = useState(false);
+	const [awayError, setAwayError] = useState('');
 	const awayTask = useMemo(() => {
 		const items = tasks.filter(
 			item =>
@@ -1110,6 +1112,34 @@ const Harness = () => {
 		if (status === 'interrupted') return 'запуск прерван: сервис перезапускался';
 		return `задача завершилась с ошибкой: ${awayTask.error || 'причина не указана'}`;
 	}, [awayTask]);
+
+	/**
+	 * «Скрыть» плашку «Пока вас не было».
+	 *
+	 * Сначала сохраняем просмотр на сервере (POST /harness/task/{id}/seen проставляет
+	 * unseen: false и seen_at), и только потом прячем плашку локально: иначе после
+	 * перезагрузки задача снова приходит с unseen: true и плашка возвращается.
+	 */
+	const hideAway = useCallback(async () => {
+		if (!awayTask || awayBusy) return;
+		setAwayBusy(true);
+		setAwayError('');
+		try {
+			await $axios.post(`/harness/task/${awayTask.id}/seen`);
+			setAwayHidden(prev => (prev.includes(awayTask.id) ? prev : [...prev, awayTask.id]));
+		} catch (err) {
+			setAwayError(
+				err.response?.data?.detail ||
+					'Не удалось сохранить: плашка вернётся после перезагрузки страницы. Попробуйте ещё раз.'
+			);
+		} finally {
+			setAwayBusy(false);
+		}
+	}, [awayTask, awayBusy]);
+
+	useEffect(() => {
+		setAwayError('');
+	}, [awayTask?.id]);
 
 	const showStatusBar = !!current || !!notice;
 
@@ -1225,10 +1255,13 @@ const Harness = () => {
 						<button
 							type='button'
 							className={styles.awayDismiss}
-							onClick={() => setAwayHidden(prev => [...prev, awayTask.id])}
+							disabled={awayBusy}
+							title='Скрыть плашку — она не вернётся после перезагрузки'
+							onClick={hideAway}
 						>
-							скрыть
+							{awayBusy ? 'скрываю…' : 'скрыть'}
 						</button>
+						{awayError ? <span className={styles.awayError}>{awayError}</span> : null}
 					</div>
 				) : null}
 

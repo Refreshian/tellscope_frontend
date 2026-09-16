@@ -581,9 +581,23 @@
   font-size: 11.5px;
   cursor: pointer;
 
-  &:hover {
+  &:hover:not(:disabled) {
     text-decoration: underline;
   }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+}
+
+/* Ошибка сохранения «скрыть»: плашка остаётся на месте, поэтому причина видна рядом с ней */
+.awayError {
+  flex-basis: 100%;
+  margin-top: 2px;
+  color: #b42318;
+  font-size: 11.5px;
+  line-height: 1.45;
 }
 
 .taskChip {
