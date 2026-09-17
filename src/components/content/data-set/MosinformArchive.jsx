@@ -124,6 +124,8 @@ const MosinformArchive = ({ filterText = '' }) => {
 		<div className={styles.list}>
 			<div className={styles.head}>
 				<p className={styles.lead}>
+					Общий архив расчётов Мосинформ.Рейтинг по всему тенанту: расчёты запускают
+					администраторы, поэтому здесь могут быть расчёты других пользователей.
 					Результаты сохраняются на сервере. Можно закрыть браузер и вернуться сюда.
 				</p>
 				<Link className={styles.link} to="/mosinform-rating">

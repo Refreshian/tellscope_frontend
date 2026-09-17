@@ -87,6 +87,7 @@ const MlopsQueue = ({ filterText = '' }) => {
 				<p className={styles.lead}>
 					Общий журнал GPU-задач: Мосинформ, ИИ-анализ, smart-agent, загрузка файлов.
 					Пока одна из них живая, вторая тяжёлая задача на Qwen не стартует.
+					Журнал общий на весь тенант: в нём видны задачи и других пользователей.
 				</p>
 				<Link className={styles.link} to="/mosinform-rating">
 					Новый рейтинг

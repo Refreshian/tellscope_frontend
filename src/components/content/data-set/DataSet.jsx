@@ -50,8 +50,9 @@ const DataSet = () => {
 		error: error_getUserId,
 		isLoading: isLoading_getUserId,
 	} = useGetUserIdQuery();
+	// Пока /me не вернул id, запрос папок не отправляем: иначе улетал бы /user-folders/undefined.
 	const { data, isError, error, isLoading, isSuccess } =
-		useGetUserFoldersQuery(data_getUserId);
+		useGetUserFoldersQuery(data_getUserId, { skip: !data_getUserId });
 
 	const { processedData } = useSelector(state => state.folderTarget);
 	const { index_doc, post, progress_load } = useSelector(state => state.aiData);

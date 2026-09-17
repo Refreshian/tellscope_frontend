@@ -130,8 +130,9 @@ const DataInFolder = () => {
     isLoading: isLoading_getUserId,
   } = useGetUserIdQuery();
   
+  // Без id из /me запрос не отправляем: чужие/пустые значения не подставляем.
   const { data, isError, error, isLoading, isSuccess, refetch } =
-    useGetUserFoldersQuery(data_getUserId);
+    useGetUserFoldersQuery(data_getUserId, { skip: !data_getUserId });
 
   const {
     onClick,

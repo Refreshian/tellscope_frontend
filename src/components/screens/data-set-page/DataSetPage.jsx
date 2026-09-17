@@ -368,20 +368,30 @@ const DataSetPage = () => {
     const [baPass, setBaPass] = useState('');
     const [baAccMsg, setBaAccMsg] = useState('');
     const [baAccErr, setBaAccErr] = useState('');
+    const [baHint, setBaHint] = useState('');
 
     const loadBaThemes = uid => {
-        fetch('/api/ba/themes' + (uid ? '?user_id=' + uid : ''), { headers: authHeaders() })
+        // Запрос без user_id не отправляем: сервер отдал бы данные владельца по умолчанию,
+        // и новый пользователь увидел бы чужие темы Brand Analytics.
+        if (!uid) return;
+        fetch('/api/ba/themes?user_id=' + encodeURIComponent(uid), { headers: authHeaders() })
             .then(r => r.json())
-            .then(d => { setBaConfigured(Boolean(d.account_configured)); setBaThemes(d.themes || []); })
+            .then(d => {
+                setBaConfigured(Boolean(d.account_configured));
+                setBaThemes(d.themes || []);
+                setBaHint(d.hint || '');
+            })
             .catch(() => {});
     };
 
     const refreshBaThemes = async () => {
+        if (!data_getUserId) return;
         setBaRefreshing(true);
         try {
             const r = await fetch('/api/ba/themes?user_id=' + encodeURIComponent(data_getUserId) + '&refresh=1', { headers: authHeaders() });
             const d = await r.json();
             if (d && Array.isArray(d.themes)) setBaThemes(d.themes);
+            if (d && d.hint) setBaHint(d.hint);
             if (d && d.refresh_error && window.console) console.warn('BA refresh:', d.refresh_error);
         } catch (e) {
             if (window.console) console.warn('BA refresh error', e);
@@ -542,7 +552,7 @@ const DataSetPage = () => {
                     <details style={{ width: '100%', margin: '6px 0', fontSize: 12 }}>
                         <summary style={{ cursor: 'pointer', color: '#667085' }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-                                <span>Brand Analytics: {baConfigured ? ('доступно тем: ' + baThemes.length) : 'аккаунт не настроен'}</span>
+                                <span title={baHint}>Brand Analytics: {baConfigured ? ('доступно тем: ' + baThemes.length) : 'аккаунт не настроен'}</span>
                                 <button
                                     type='button'
                                     title='Обновить список тем из Brand Analytics'
@@ -568,7 +578,11 @@ const DataSetPage = () => {
                             {baAccMsg && <div style={{ color: '#047857', marginTop: 4 }}>{baAccMsg}</div>}
                             {baAccErr && <div style={{ color: '#c53030', marginTop: 4 }}>{baAccErr}</div>}
                             {baThemes.length === 0 ? (
-                                <div style={{ color: '#98a2b3', padding: '4px 0', fontSize: 12 }}>Темы не найдены — нажмите «Обновить» или сохраните аккаунт BA.</div>
+                                <div style={{ color: '#98a2b3', padding: '4px 0', fontSize: 12 }}>
+                                    {baConfigured
+                                        ? 'Темы не найдены — нажмите «Обновить».'
+                                        : 'Подключите свой аккаунт Brand Analytics, чтобы получить темы и данные: папки и файлы появятся здесь после первой выгрузки. До подключения папки и отчёты других пользователей не показываются.'}
+                                </div>
                             ) : (
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '6px 0 2px' }}>
                                     {baThemes.map(th => (
@@ -615,6 +629,13 @@ const DataSetPage = () => {
                         </div>
                         {baOpen && (
                             <div style={{ marginTop: 10, padding: 12, border: '1px solid rgba(23,96,232,.25)', borderRadius: 10, background: '#f6f9ff', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
+                                {baThemes.length === 0 && (
+                                    <div style={{ flexBasis: '100%', fontSize: 12, color: '#98a2b3' }}>
+                                        {baConfigured
+                                            ? 'Список тем пуст — обновите его в блоке Brand Analytics выше.'
+                                            : 'Сначала подключите свой аккаунт Brand Analytics (блок «Brand Analytics» выше) — без него темы и выгрузка недоступны.'}
+                                    </div>
+                                )}
                                 <label style={{ fontSize: 12, color: '#344054' }}>
                                     Тема Brand Analytics
                                     <select style={{ display: 'block', marginTop: 4, minWidth: 220, padding: '7px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }} value={baTheme} onChange={e => setBaTheme(e.target.value)}>
