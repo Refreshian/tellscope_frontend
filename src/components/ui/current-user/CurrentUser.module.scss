@@ -1,0 +1,132 @@
+@import '@st/functions';
+
+/* Подпись текущей учётной записи.
+   Живёт в общем каркасе (Layout) и не участвует в потоке: position: fixed,
+   поэтому ни один элемент страницы не сдвигается и не меняет размеров.
+   На широких экранах — нижняя полоса левого меню (под иконками),
+   на узких — узкая полоска справа от кнопки-бургера, т.к. меню уезжает в шторку. */
+.currentUser {
+	position: fixed;
+	left: 0;
+	bottom: 0;
+	z-index: 90;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1px;
+	width: adapt(80px, 1440px); /* ширина свёрнутого левого меню */
+	padding: 0 adapt(4px, 1440px) 1px;
+	font-size: 11px;
+	line-height: 1;
+	color: #98a2b3;
+	text-align: center;
+	/* подпись не перехватывает клики по меню: их ловят только сами строки текста */
+	pointer-events: none;
+}
+
+/* меню развёрнуто: полоса подписи совпадает по ширине с развёрнутым меню,
+   и там подпись встаёт в одну строку — «почта · администратор» */
+.currentUserExpanded {
+	left: adapt(-8px, 1440px);
+	width: adapt(260px, 1440px);
+	flex-direction: row;
+	align-items: baseline;
+	justify-content: center;
+	gap: 5px;
+}
+
+.currentUserExpanded .role::before {
+	content: '·';
+	margin-right: 5px;
+}
+
+.email {
+	max-width: 100%;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	pointer-events: auto;
+	cursor: default;
+}
+
+.role {
+	font-size: 9px;
+	line-height: 1;
+	letter-spacing: 0.03em;
+	color: #a9b1c0;
+	pointer-events: auto;
+	cursor: default;
+}
+
+/* подсказка с полной учётной записью — в духе подсказок левого меню */
+.currentUser::after {
+	content: attr(data-tooltip);
+	position: absolute;
+	left: calc(100% + adapt(10px, 1440px));
+	bottom: 0;
+	padding: 7px 11px;
+	background: #101828;
+	color: #ffffff;
+	font-size: 11px;
+	line-height: 1.45;
+	letter-spacing: 0;
+	text-align: left;
+	white-space: pre-line;
+	/* ширина по содержимому: подпись узкая, поэтому без этого подсказка сжимается в столбик */
+	width: max-content;
+	max-width: 300px;
+	border-radius: 8px;
+	box-shadow: 0 8px 20px rgba(16, 24, 40, 0.25);
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+	transition: opacity 0.14s ease;
+	z-index: 300;
+}
+
+.currentUser:hover::after {
+	opacity: 1;
+	visibility: visible;
+}
+
+@supports selector(:has(*)) {
+	.currentUser:has(.email:hover)::after,
+	.currentUser:has(.role:hover)::after {
+		opacity: 1;
+		visibility: visible;
+	}
+}
+
+@media (max-width: 900px) {
+	/* меню — выдвижная шторка, поэтому подпись встаёт в свободной полоске
+	   справа от кнопки-бургера (10px отступ + 44px кнопка + 8px зазор) */
+	.currentUser,
+	.currentUserExpanded {
+		left: 62px;
+		top: 4px;
+		bottom: auto;
+		width: auto;
+		max-width: 40vw;
+		flex-direction: row;
+		align-items: baseline;
+		gap: 5px;
+		padding: 0;
+		text-align: left;
+	}
+
+	.email {
+		min-width: 0;
+	}
+
+	.role::before {
+		content: '·';
+		margin-right: 5px;
+	}
+
+	.currentUser::after {
+		left: 0;
+		top: calc(100% + 6px);
+		bottom: auto;
+		max-width: 62vw;
+	}
+}

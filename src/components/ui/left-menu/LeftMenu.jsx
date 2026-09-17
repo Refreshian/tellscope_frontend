@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useActions } from '@/hooks/useActions';
 import { useLogout } from '@/hooks/useLogout';
 import { useAuth } from '@/hooks/useAuth';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 import styles from './LeftMenu.module.scss';
 import { menuPageData, menuSettings, agentMenuData } from '@/data/menuPage.data';
@@ -14,21 +15,8 @@ const LeftMenu = () => {
 	const navigate = useNavigate();
 	const logoutHandler = useLogout();
 	const { user } = useAuth();
-	const [me, setMe] = useState(null);
-
-	useEffect(() => {
-		let on = true;
-		(async () => {
-			try {
-				const m = document.cookie.split('; ').find(x => x.startsWith('token='));
-				const tok = m ? decodeURIComponent(m.slice('token='.length)) : '';
-				if (!tok) return;
-				const r = await fetch('/api/me', { headers: { Authorization: 'Bearer ' + tok } });
-				if (r.ok && on) setMe(await r.json());
-			} catch (e) {}
-		})();
-		return () => { on = false; };
-	}, []);
+	// Учётная запись берётся из общего кэша /api/me
+	const me = useCurrentUser();
 
 	const [hoveredItem, setHoveredItem] = useState(null);
 	const [mobileOpen, setMobileOpen] = useState(false);

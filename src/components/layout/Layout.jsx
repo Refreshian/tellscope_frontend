@@ -1,5 +1,6 @@
 import styles from './Layout.module.scss';
 import { menuPageData, menuSettings } from '@/data/menuPage.data';
+import CurrentUser from '@/components/ui/current-user/CurrentUser';
 
 // Заранее загружаем иконки меню: при переключении вкладки картинка меняется
 // (серая ↔ активная) и без прогрева заметна вспышка/моргание.
@@ -20,6 +21,7 @@ const Layout = ({ children, style }) => {
 				))}
 			</div>
 			{children}
+			<CurrentUser />
 		</div>
 	);
 };

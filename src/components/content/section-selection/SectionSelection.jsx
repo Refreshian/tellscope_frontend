@@ -1,27 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import styles from './SectionSelection.module.scss';
 import SectionInfo from './section-info/SectionInfo';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { menuPageData } from '@/data/menuPage.data';
 
 const SectionSelection = () => {
-	const [me, setMe] = useState(null);
+	// Учётная запись берётся из общего кэша /api/me
+	const me = useCurrentUser();
 	const navigate = useNavigate();
-
-	useEffect(() => {
-		let on = true;
-		(async () => {
-			try {
-				const m = document.cookie.split('; ').find(x => x.startsWith('token='));
-				const tok = m ? decodeURIComponent(m.slice('token='.length)) : '';
-				if (!tok) return;
-				const r = await fetch('/api/me', { headers: { Authorization: 'Bearer ' + tok } });
-				if (r.ok && on) setMe(await r.json());
-			} catch (e) {}
-		})();
-		return () => { on = false; };
-	}, []);
 
 	const isAdmin = me && me.is_superuser;
 
