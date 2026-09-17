@@ -342,8 +342,10 @@ const DataSetPage = () => {
 
     const [baOpen, setBaOpen] = useState(false);
     const [baRefreshing, setBaRefreshing] = useState(false);
+    const [baSaving, setBaSaving] = useState(false);
     const [baThemes, setBaThemes] = useState([]);
     const [baConfigured, setBaConfigured] = useState(false);
+    const [baAccount, setBaAccount] = useState(null);
     const [baTheme, setBaTheme] = useState('');
     const [baFrom, setBaFrom] = useState('');
     const [baTo, setBaTo] = useState('');
@@ -370,16 +372,59 @@ const DataSetPage = () => {
     const [baAccErr, setBaAccErr] = useState('');
     const [baHint, setBaHint] = useState('');
 
+    // Статус своего подключения Brand Analytics: none | unverified | verified | error
+    const baStatusInfo = () => {
+        const st = (baAccount && baAccount.status) || (baConfigured ? 'unverified' : 'none');
+        if (!baConfigured || st === 'none') {
+            return { label: 'Не подключён', color: '#667085', bg: '#f2f4f7', border: '#e4e7ec' };
+        }
+        if (st === 'verified') {
+            return { label: 'Подключено и проверено', color: '#067647', bg: '#ecfdf3', border: '#abefc6' };
+        }
+        if (st === 'error') {
+            return { label: 'Ошибка подключения', color: '#b42318', bg: '#fef3f2', border: '#fecdca' };
+        }
+        return { label: 'Подключено, не проверено', color: '#b54708', bg: '#fffaeb', border: '#fedf89' };
+    };
+
+    const baApplyPayload = d => {
+        if (!d || typeof d !== 'object') return;
+        if (Array.isArray(d.themes)) setBaThemes(d.themes);
+        setBaConfigured(Boolean(d.account_configured));
+        setBaHint(d.hint || '');
+        setBaAccount({
+            configured: Boolean(d.account_configured),
+            login_masked: d.login_masked || '',
+            status: d.account_status || (d.account_configured ? 'unverified' : 'none'),
+            error: d.account_error || '',
+            verified_at: d.verified_at || '',
+        });
+    };
+
     const loadBaThemes = uid => {
         // Запрос без user_id не отправляем: сервер отдал бы данные владельца по умолчанию,
         // и новый пользователь увидел бы чужие темы Brand Analytics.
         if (!uid) return;
         fetch('/api/ba/themes?user_id=' + encodeURIComponent(uid), { headers: authHeaders() })
             .then(r => r.json())
+            .then(d => { baApplyPayload(d); })
+            .catch(() => {});
+    };
+
+    const loadBaAccount = uid => {
+        if (!uid) return;
+        fetch('/api/ba/account?user_id=' + encodeURIComponent(uid), { headers: authHeaders() })
+            .then(r => r.json())
             .then(d => {
-                setBaConfigured(Boolean(d.account_configured));
-                setBaThemes(d.themes || []);
-                setBaHint(d.hint || '');
+                if (!d || typeof d !== 'object') return;
+                setBaConfigured(Boolean(d.configured));
+                setBaAccount({
+                    configured: Boolean(d.configured),
+                    login_masked: d.login_masked || '',
+                    status: d.status || 'none',
+                    error: d.error || '',
+                    verified_at: d.verified_at || '',
+                });
             })
             .catch(() => {});
     };
@@ -387,14 +432,18 @@ const DataSetPage = () => {
     const refreshBaThemes = async () => {
         if (!data_getUserId) return;
         setBaRefreshing(true);
+        setBaAccErr('');
         try {
             const r = await fetch('/api/ba/themes?user_id=' + encodeURIComponent(data_getUserId) + '&refresh=1', { headers: authHeaders() });
             const d = await r.json();
-            if (d && Array.isArray(d.themes)) setBaThemes(d.themes);
-            if (d && d.hint) setBaHint(d.hint);
-            if (d && d.refresh_error && window.console) console.warn('BA refresh:', d.refresh_error);
+            baApplyPayload(d);
+            if (d && d.refresh_error) {
+                setBaAccErr('Не удалось обновить темы: ' + d.refresh_error);
+            } else if (d && Array.isArray(d.themes)) {
+                setBaAccMsg(d.themes.length ? ('Темы обновлены из вашего аккаунта: ' + d.themes.length) : '');
+            }
         } catch (e) {
-            if (window.console) console.warn('BA refresh error', e);
+            setBaAccErr('Не удалось обновить темы: ' + String((e && e.message) || e));
         } finally {
             setBaRefreshing(false);
         }
@@ -405,8 +454,13 @@ const DataSetPage = () => {
             setBaAccErr('Введите логин Brand Analytics');
             return;
         }
+        if (!baPass) {
+            setBaAccErr('Введите пароль Brand Analytics');
+            return;
+        }
         setBaAccErr('');
-        setBaAccMsg('Сохраняю…');
+        setBaSaving(true);
+        setBaAccMsg('Проверяю подключение в Brand Analytics… это занимает до минуты');
         try {
             const r = await fetch('/api/ba/account', {
                 method: 'POST',
@@ -422,12 +476,46 @@ const DataSetPage = () => {
             if (!r.ok) {
                 setBaAccMsg('');
                 setBaAccErr(d.detail || 'Ошибка сохранения');
+                loadBaAccount(data_getUserId);
                 return;
             }
-            setBaAccMsg('Сохранено. Папки по темам созданы.');
+            if (d.account) setBaAccount(d.account);
+            setBaConfigured(true);
             setBaPass('');
+            setBaAccMsg((d.message || 'Аккаунт проверен и сохранён') + '. Папки по темам созданы.');
             loadBaThemes(data_getUserId);
             refetch();
+        } catch (e) {
+            setBaAccMsg('');
+            setBaAccErr(String((e && e.message) || e));
+        } finally {
+            setBaSaving(false);
+        }
+    };
+
+    const baDisconnect = async () => {
+        if (!data_getUserId) return;
+        if (!window.confirm('Отключить аккаунт Brand Analytics? Подключение и список тем будут удалены. Загруженные датасеты останутся.')) return;
+        setBaAccErr('');
+        setBaAccMsg('Отключаю аккаунт…');
+        try {
+            const r = await fetch('/api/ba/account/disconnect?user_id=' + encodeURIComponent(String(data_getUserId)), {
+                method: 'POST',
+                headers: authHeaders(),
+            });
+            const d = await r.json();
+            if (!r.ok) {
+                setBaAccMsg('');
+                setBaAccErr(d.detail || 'Не удалось отключить аккаунт');
+                return;
+            }
+            setBaThemes([]);
+            setBaConfigured(false);
+            setBaAccount({ configured: false, login_masked: '', status: 'none', error: '', verified_at: '' });
+            setBaLogin('');
+            setBaPass('');
+            setBaHint((d && d.hint) || '');
+            setBaAccMsg('Аккаунт отключён. Подключите свой аккаунт Brand Analytics, чтобы снова видеть темы и выгружать данные.');
         } catch (e) {
             setBaAccMsg('');
             setBaAccErr(String((e && e.message) || e));
@@ -438,6 +526,7 @@ const DataSetPage = () => {
     useEffect(() => {
         if (!baLoadedRef.current && data_getUserId) {
             baLoadedRef.current = true;
+            loadBaAccount(data_getUserId);
             loadBaThemes(data_getUserId);
         }
         return () => {
@@ -551,8 +640,26 @@ const DataSetPage = () => {
                 {pathname === '/data-set' && (
                     <details style={{ width: '100%', margin: '6px 0', fontSize: 12 }}>
                         <summary style={{ cursor: 'pointer', color: '#667085' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-                                <span title={baHint}>Brand Analytics: {baConfigured ? ('доступно тем: ' + baThemes.length) : 'аккаунт не настроен'}</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                <span>Brand Analytics:</span>
+                                <span
+                                    style={{
+                                        color: baStatusInfo().color,
+                                        background: baStatusInfo().bg,
+                                        border: '1px solid ' + baStatusInfo().border,
+                                        borderRadius: 999,
+                                        padding: '1px 9px',
+                                        fontSize: 11,
+                                        lineHeight: 1.6,
+                                    }}
+                                >
+                                    {baStatusInfo().label}
+                                </span>
+                                <span title={baHint} style={{ color: '#101828' }}>
+                                    {baConfigured
+                                        ? ('ваш аккаунт' + (baAccount && baAccount.login_masked ? ' ' + baAccount.login_masked : '') + ' · доступно тем: ' + baThemes.length)
+                                        : 'аккаунт не подключён'}
+                                </span>
                                 <button
                                     type='button'
                                     title='Обновить список тем из Brand Analytics'
@@ -562,18 +669,62 @@ const DataSetPage = () => {
                                     }}
                                     style={{ background: 'none', border: '1px solid #d0d7e2', borderRadius: 6, cursor: 'pointer', padding: '2px 8px', fontSize: 13, lineHeight: 1.2, color: '#1760e8' }}
                                 >
-                                    {baRefreshing ? '…' : '⟳ Обновить'}
+                                    {baRefreshing ? 'обновляю…' : '⟳ Обновить'}
                                 </button>
                             </span>
                         </summary>
-                        <div style={{ padding: '6px 10px', border: '1px solid rgba(16,24,40,.08)', borderRadius: 8, marginTop: 6, background: '#fbfcfe' }}>
+                        <div style={{ padding: '8px 10px', border: '1px solid rgba(16,24,40,.08)', borderRadius: 8, marginTop: 6, background: '#fbfcfe' }}>
                             <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Ваш аккаунт Brand Analytics</div>
+
+                            {baConfigured && baAccount && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', margin: '2px 0 8px' }}>
+                                    <span style={{ color: '#344054' }}>
+                                        Логин: <b>{baAccount.login_masked || '—'}</b>
+                                    </span>
+                                    <span
+                                        style={{
+                                            color: baStatusInfo().color,
+                                            background: baStatusInfo().bg,
+                                            border: '1px solid ' + baStatusInfo().border,
+                                            borderRadius: 6,
+                                            padding: '1px 8px',
+                                        }}
+                                    >
+                                        {baStatusInfo().label}
+                                    </span>
+                                    {baAccount.verified_at && (
+                                        <span style={{ color: '#667085' }}>
+                                            проверено: {String(baAccount.verified_at).replace('T', ' ').slice(0, 16)}
+                                        </span>
+                                    )}
+                                    <button
+                                        type='button'
+                                        onClick={baDisconnect}
+                                        style={{ background: 'none', border: '1px solid #fecdca', color: '#b42318', borderRadius: 6, cursor: 'pointer', padding: '3px 10px', fontSize: 12 }}
+                                    >
+                                        Отключить аккаунт
+                                    </button>
+                                </div>
+                            )}
+
+                            {baConfigured && baAccount && baAccount.status === 'error' && baAccount.error && (
+                                <div style={{ color: '#b42318', margin: '0 0 6px' }}>Ошибка: {baAccount.error}</div>
+                            )}
+                            {baConfigured && baAccount && baAccount.status !== 'verified' && baAccount.status !== 'error' && (
+                                <div style={{ color: '#b54708', margin: '0 0 6px' }}>
+                                    Подключение ещё не проверялось. Нажмите «Обновить» — Tellscope войдёт в Brand Analytics и подтвердит доступ.
+                                </div>
+                            )}
+
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
                                 <input placeholder='Логин BA (email)' autoComplete='off' value={baLogin} onChange={e => setBaLogin(e.target.value)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2', minWidth: 220 }} />
                                 <input type='password' placeholder='Пароль BA' autoComplete='new-password' value={baPass} onChange={e => setBaPass(e.target.value)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }} />
-                                <button type='button' className={styles.button__title} onClick={baSaveAccount}>
-                                    Сохранить и создать папки
+                                <button type='button' className={styles.button__title} onClick={baSaveAccount} disabled={baSaving} style={baSaving ? { opacity: 0.6, cursor: 'wait' } : undefined}>
+                                    {baSaving ? 'Проверяю…' : (baConfigured ? 'Проверить и сохранить' : 'Подключить аккаунт')}
                                 </button>
+                            </div>
+                            <div style={{ color: '#98a2b3', marginTop: 4 }}>
+                                Логин и пароль проверяются реальным входом в Brand Analytics — неподтверждённое подключение не сохраняется.
                             </div>
                             {baAccMsg && <div style={{ color: '#047857', marginTop: 4 }}>{baAccMsg}</div>}
                             {baAccErr && <div style={{ color: '#c53030', marginTop: 4 }}>{baAccErr}</div>}
