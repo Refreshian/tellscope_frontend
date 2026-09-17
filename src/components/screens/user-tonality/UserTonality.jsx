@@ -231,7 +231,7 @@ const UserTonality = () => {
         error,
         isLoading,
         isSuccess
-    } = useGetUserFoldersQuery(data_getUserId);
+    } = useGetUserFoldersQuery(data_getUserId, { skip: !data_getUserId });
 
     // Состояния для фильтрации данных
     const [commentsRange, setCommentsRange] = useState([0, 1000]);

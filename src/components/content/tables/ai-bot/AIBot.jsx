@@ -155,7 +155,7 @@ const AIBot = () => {
 	const dataForRequest = useSelector(state => state.dataForRequest);
 
 	const { data: data_getUserId } = useGetUserIdQuery();
-	const { refetch: refetchFolders } = useGetUserFoldersQuery(data_getUserId);
+	const { refetch: refetchFolders } = useGetUserFoldersQuery(data_getUserId, { skip: !data_getUserId });
 
 	const [activeButton, setActiveButton] = useState('Обзор');
 	const [messages, setMessages] = useState([]);

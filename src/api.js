@@ -2,6 +2,7 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 
 import { API_URL, TOKEN, REFRESH_TOKEN } from './app.constants';
+import { clearUserSession } from './utils/userSession';
 
 export const $axios = axios.create({
   baseURL: API_URL,
@@ -36,8 +37,9 @@ const redirectToLogin = () => {
       /* приватный режим — не критично */
     }
   }
-  Cookies.remove(TOKEN);
-  Cookies.remove(REFRESH_TOKEN);
+  // Сессия истекла: чистим cookie целиком, включая per-user `user_id`, — иначе следующий
+  // вход в этом браузере начнётся с чужого идентификатора.
+  clearUserSession();
   if (window.location.pathname !== '/') {
     window.location.href = '/';
   }

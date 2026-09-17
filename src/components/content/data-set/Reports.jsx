@@ -2,12 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Cookies from 'js-cookie';
 import { Modal, message } from 'antd';
 
-import { API_URL, TOKEN, USER_ID } from '@/app.constants';
+import { API_URL, TOKEN } from '@/app.constants';
 
 import styles from './Reports.module.scss';
 import FileOrigin from '@/components/ui/file-origin/FileOrigin';
 import FileSortSwitch from '@/components/ui/file-sort/FileSortSwitch';
 import { useFileSort } from '@/hooks/useFileSort';
+import { resolveCurrentUserId, useCurrentUserId } from '@/hooks/useCurrentUser';
 import { sortByMode, sortGroupsByMode } from '@/utils/fileSort';
 
 /* ------------------------------------------------------------------ утилиты */
@@ -180,7 +181,10 @@ const Reports = ({ filterText = '' }) => {
 	const [busy, setBusy] = useState('');
 	const [deleting, setDeleting] = useState('');
 	const [selected, setSelected] = useState('');
-	const [userId, setUserId] = useState(() => Cookies.get(USER_ID) || '');
+	// id текущего пользователя приходит из /me (см. resolveUserId), а не из cookie
+	const [userId, setUserId] = useState('');
+	// Серверный id текущего пользователя: пока /me не ответил — пустая строка
+	const currentUserId = useCurrentUserId();
 
 	// Порядок файлов. По умолчанию — «сначала новые»: свежий отчёт виден сразу, без поиска
 	// глазами (API отдаёт файлы по алфавиту, а не по дате). Выбор запоминается в localStorage.
@@ -194,33 +198,16 @@ const Reports = ({ filterText = '' }) => {
 	/**
 	 * Идентификатор пользователя.
 	 *
-	 * Cookie `user_id` ставит только страница графа (useInitUserData), поэтому сразу после
-	 * входа её нет. Раньше здесь запрашивался `/user-id` — он подписан другим JWT-секретом,
-	 * чем токен входа, и всегда отвечал 401: список отчётов не мог загрузиться в принципе.
-	 * Рабочий источник — `/me` (тот же эндпоинт, что и в useInitUserData).
+	 * Источник истины — `/api/me` (общий кэширующий хук `useCurrentUser`). Cookie `user_id`
+	 * для чтения больше не используется: она переживала выход, и после входа под другой
+	 * учётной записью список отчётов запрашивался по чужому id — сервер отвечал
+	 * «403: Нет доступа» (`GET /reports/32` токеном пользователя с id 1).
 	 */
 	const resolveUserId = useCallback(async () => {
-		if (userIdRef.current) return userIdRef.current;
-
-		const fromCookie = Cookies.get(USER_ID);
-		if (fromCookie && fromCookie !== 'undefined' && fromCookie !== 'null') {
-			userIdRef.current = String(fromCookie);
-			setUserId(userIdRef.current);
-			return userIdRef.current;
-		}
-
-		const response = await fetch(`${API_URL}/me`, { headers: headers() });
-		if (!response.ok) throw new Error(`GET /me → HTTP ${response.status}`);
-		const payload = await readJson(response);
-		const id = payload && (payload.id ?? payload.user_id);
-		if (id === undefined || id === null || id === '') {
-			throw new Error('в ответе /me нет идентификатора пользователя');
-		}
-
-		Cookies.set(USER_ID, String(id));
-		userIdRef.current = String(id);
-		setUserId(userIdRef.current);
-		return userIdRef.current;
+		const id = await resolveCurrentUserId();
+		userIdRef.current = id;
+		setUserId(id);
+		return id;
 	}, []);
 
 	const load = useCallback(
@@ -244,7 +231,11 @@ const Reports = ({ filterText = '' }) => {
 				if (!response.ok) {
 					const payload = await readJson(response);
 					const detail = payload && payload.detail ? `: ${payload.detail}` : '';
-					throw new Error(`GET /reports/${uid} → HTTP ${response.status}${detail}`);
+					const failure = new Error(
+						`GET /reports/${uid} → HTTP ${response.status}${detail}`,
+					);
+					failure.status = response.status;
+					throw failure;
 				}
 
 				const payload = await readJson(response);
@@ -252,12 +243,20 @@ const Reports = ({ filterText = '' }) => {
 				setData(values);
 				resourceRef.current = `${uid}/reports`;
 			} catch (e) {
-				const reason =
-					e && e.name === 'AbortError'
-						? 'превышено время ожидания (30 с)'
-						: (e && e.message) || 'неизвестная ошибка';
+				// Технические детали — только в консоль: пользователь не должен видеть
+				// «GET /reports/32 → HTTP 403: Нет доступа» вместо понятного сообщения.
 				console.error('[Отчёты] не удалось загрузить список', e);
-				setError(`Не удалось загрузить список отчётов — ${reason}`);
+				const aborted = e && e.name === 'AbortError';
+				const status = e && e.status;
+				if (aborted) {
+					setError(
+						'Не удалось загрузить отчёты: истекло время ожидания. Обновите страницу или войдите заново.',
+					);
+				} else if (status === 401 || status === 403) {
+					setError('Не удалось загрузить отчёты. Обновите страницу или войдите заново.');
+				} else {
+					setError('Не удалось загрузить отчёты. Попробуйте ещё раз или обновите страницу.');
+				}
 				if (!silent) setData([]);
 			} finally {
 				if (!silent) setLoading(false);
@@ -271,6 +270,21 @@ const Reports = ({ filterText = '' }) => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
+	// Смена пользователя без перезагрузки страницы (вход после выхода в другой вкладке):
+	// перечитываем список уже под серверным id, чтобы на экране не остались данные прошлой
+	// учётной записи. Первый ответ /me здесь пропускаем — загрузку уже начал эффект выше,
+	// иначе один и тот же список запрашивался бы дважды.
+	useEffect(() => {
+		if (!currentUserId) return;
+		if (!userIdRef.current) {
+			userIdRef.current = currentUserId;
+			return;
+		}
+		if (userIdRef.current === currentUserId) return;
+		load();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [currentUserId]);
+
 	/* --------------------------------------------------------------- скачивание */
 
 	const download = async (folder, file) => {
@@ -282,7 +296,11 @@ const Reports = ({ filterText = '' }) => {
 				`${API_URL}/reports/download/${encodeURIComponent(uid)}/${encodeURIComponent(folder)}/${encodeURIComponent(file.name)}`,
 				{ headers: headers() },
 			);
-			if (!response.ok) throw new Error(`HTTP ${response.status}`);
+			if (!response.ok) {
+				const failure = new Error(`HTTP ${response.status}`);
+				failure.status = response.status;
+				throw failure;
+			}
 			const blob = await response.blob();
 			const url = URL.createObjectURL(blob);
 			const anchor = document.createElement('a');
@@ -294,7 +312,12 @@ const Reports = ({ filterText = '' }) => {
 			setTimeout(() => URL.revokeObjectURL(url), 4000);
 		} catch (e) {
 			console.error('[Отчёты] не удалось скачать файл', file.name, e);
-			message.error(`Не удалось скачать «${file.name}»: ${(e && e.message) || 'ошибка'}`);
+			const status = e && e.status;
+			message.error(
+				status === 401 || status === 403
+					? `Не удалось скачать «${file.name}». Обновите страницу или войдите заново.`
+					: `Не удалось скачать «${file.name}». Попробуйте ещё раз.`,
+			);
 		} finally {
 			setBusy('');
 		}

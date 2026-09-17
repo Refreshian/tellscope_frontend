@@ -29,7 +29,7 @@ const PopupInFolder = () => {
 		isLoading: isLoading_getUserId,
 	} = useGetUserIdQuery();
 
-	const { refetch } = useGetUserFoldersQuery(data_getUserId);
+	const { refetch } = useGetUserFoldersQuery(data_getUserId, { skip: !data_getUserId });
 
 	const [
 		trigger_createFolder,

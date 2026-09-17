@@ -5,6 +5,7 @@ import Cookies from 'js-cookie';
 import { $axios as api } from '../api';
 import { actions as dataUsersActions } from '../store/data-users/dataUsers.slice';
 import { TOKEN, USER_ID } from '../app.constants';
+import { clearUserSession } from '../utils/userSession';
 import { message } from 'antd';
 
 export const useInitUserData = () => {
@@ -13,7 +14,6 @@ export const useInitUserData = () => {
   useEffect(() => {
     const initUserData = async () => {
       const token = Cookies.get(TOKEN);
-      const userId = Cookies.get(USER_ID);
 
       if (!token) {
         console.log('⚠️ No token, skipping user data init');
@@ -21,16 +21,21 @@ export const useInitUserData = () => {
       }
 
       try {
-        let finalUserId = userId;
+        // Источник истины — /me, а не cookie. Раньше cookie `user_id` считалась готовым
+        // ответом, поэтому после смены учётной записи папки запрашивались по чужому id
+        // (`/user-folders/32` токеном пользователя с id 1) и сервер отвечал 403.
+        const userResponse = await api.get('/me');
+        const payload = userResponse.data;
+        const finalUserId =
+          payload && typeof payload === 'object' ? payload.id ?? payload.user_id : payload;
 
-        // Если user_id нет в cookie, запрашиваем из API
-        if (!finalUserId) {
-          console.log('📡 Fetching user_id from API...');
-          const userResponse = await api.get('/me');
-          finalUserId = userResponse.data.id || userResponse.data;
-          Cookies.set(USER_ID, finalUserId);
-          console.log('✅ User ID saved:', finalUserId);
+        if (finalUserId === undefined || finalUserId === null || finalUserId === '') {
+          throw new Error('/me не вернул идентификатор пользователя');
         }
+
+        // cookie остаётся только быстрым кэшем и всегда содержит серверное значение
+        Cookies.set(USER_ID, String(finalUserId));
+        console.log('✅ User ID from /me:', finalUserId);
 
         // Загружаем данные папок пользователя
         console.log('📂 Fetching user folders for:', finalUserId);
@@ -51,8 +56,8 @@ export const useInitUserData = () => {
             await api.get('/me');
           } catch (e) {
             if (e.response?.status === 401) {
-              Cookies.remove(TOKEN);
-              Cookies.remove(USER_ID);
+              // Токен действительно мёртв: убираем всю сессию, а не только токен
+              clearUserSession();
               window.location.href = '/auth';
             }
           }

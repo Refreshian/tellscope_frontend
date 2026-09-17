@@ -44,7 +44,7 @@ const PopupDelete = () => {
 		isLoading: isLoading_getUserId,
 	} = useGetUserIdQuery();
 	const { refetch, data, isError, error, isLoading, isSuccess } =
-		useGetUserFoldersQuery(data_getUserId);
+		useGetUserFoldersQuery(data_getUserId, { skip: !data_getUserId });
 
 	const [delErr, setDelErr] = useState('');
 

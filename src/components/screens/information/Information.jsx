@@ -55,7 +55,7 @@ const Information = () => {
 		isError,
 		isLoading,
 		isSuccess,
-	} = useGetUserFoldersQuery(data_getUserId);
+	} = useGetUserFoldersQuery(data_getUserId, { skip: !data_getUserId });
 
 	useAddBaseAndDate(
 		dataUser,

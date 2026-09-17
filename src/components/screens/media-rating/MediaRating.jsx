@@ -204,7 +204,7 @@ const MediaRating = () => {
   const { json_files_directory: dataUser } = useSelector(store => store.dataUsersSlice);
 
   const { data: data_getUserId } = useGetUserIdQuery();
-  const { data, isError, isLoading, isSuccess } = useGetUserFoldersQuery(data_getUserId);
+  const { data, isError, isLoading, isSuccess } = useGetUserFoldersQuery(data_getUserId, { skip: !data_getUserId });
 
   useAddBaseAndDate(
     dataUser,

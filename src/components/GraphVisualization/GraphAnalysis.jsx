@@ -4,8 +4,9 @@ import GraphVisualization from './GraphVisualization';
 import { $axios as api } from '../../api';
 import { useSelector, useDispatch } from 'react-redux';
 import Cookies from 'js-cookie';
-import { USER_ID, TOKEN } from '../../app.constants';
+import { TOKEN } from '../../app.constants';
 import { useInitUserData } from '../../hooks/useInitUserData';
+import { useCurrentUserId } from '../../hooks/useCurrentUser';
 import { useLocation } from 'react-router-dom';
 import useClickOutside from '../../hooks/useClickOutside';
 
@@ -107,20 +108,20 @@ const GraphAnalysis = () => {
 
   const [isLoadingFolders, setIsLoadingFolders] = useState(true);
 
+  // Идентификатор берём из /me (общий кэш `useCurrentUser`), а не из cookie: cookie `user_id`
+  // оставалась от предыдущего входа, и папки датасета запрашивались по чужому id — сервер
+  // отвечал 403. Redux-значение идёт запасным вариантом: его тоже пишет серверный ответ.
+  const meUserId = useCurrentUserId();
   const userIdRedux = useSelector((store) => store.dataUsersSlice?.user_id);
-  const cookieUserId = Cookies.get(USER_ID);
-  const userId =
-    cookieUserId && String(cookieUserId) !== String(userIdRedux)
-      ? cookieUserId
-      : userIdRedux || cookieUserId;
+  const userId = meUserId || (userIdRedux ? String(userIdRedux) : '');
 
   const dispatch = useDispatch();
 
   useEffect(() => {
-    if (cookieUserId && userIdRedux && String(cookieUserId) !== String(userIdRedux)) {
+    if (meUserId && userIdRedux && String(meUserId) !== String(userIdRedux)) {
       console.log('🔄 Обнаружена смена пользователя. Очистка старых данных Redux...');
     }
-  }, [cookieUserId, userIdRedux, dispatch]);
+  }, [meUserId, userIdRedux, dispatch]);
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [csvTreeData, setCsvTreeData] = useState([]);

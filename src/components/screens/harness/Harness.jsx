@@ -274,7 +274,7 @@ const Harness = () => {
 	const { json_files_directory: dataUser } = useSelector(state => state.dataUsersSlice);
 
 	const { data: data_getUserId } = useGetUserIdQuery();
-	const { data, isError, isLoading, isSuccess } = useGetUserFoldersQuery(data_getUserId);
+	const { data, isError, isLoading, isSuccess } = useGetUserFoldersQuery(data_getUserId, { skip: !data_getUserId });
 
 	const [info, setInfo] = useState(null);
 	const [tasks, setTasks] = useState([]);

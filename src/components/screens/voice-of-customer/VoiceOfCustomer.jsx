@@ -130,7 +130,7 @@ const VoiceOfCustomer = () => {
 	const { json_files_directory: dataUser } = useSelector(store => store.dataUsersSlice);
 
 	const { data: data_getUserId, isLoading: isLoading_getUserId } = useGetUserIdQuery();
-	const { data, isLoading, isSuccess } = useGetUserFoldersQuery(data_getUserId);
+	const { data, isLoading, isSuccess } = useGetUserFoldersQuery(data_getUserId, { skip: !data_getUserId });
 
 	useAddBaseAndDate(
 		dataUser,

@@ -46,7 +46,7 @@ export const useDataInFolder = () => {
 		isLoading: isLoading_getUserId,
 	} = useGetUserIdQuery();
 	const { refetch, isError, error, isLoading, isSuccess } =
-		useGetUserFoldersQuery(data_getUserId);
+		useGetUserFoldersQuery(data_getUserId, { skip: !data_getUserId });
 	const [
 		trigger_fileLoad,
 		{

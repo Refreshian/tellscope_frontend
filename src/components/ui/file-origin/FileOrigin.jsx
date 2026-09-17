@@ -3,9 +3,10 @@ import { createPortal } from 'react-dom';
 import Cookies from 'js-cookie';
 import { message } from 'antd';
 
-import { API_URL, TOKEN, USER_ID } from '@/app.constants';
+import { API_URL, TOKEN } from '@/app.constants';
 
 import styles from './FileOrigin.module.scss';
+import { useCurrentUserId } from '@/hooks/useCurrentUser';
 
 const STATUS_LABELS = {
 	done: 'завершено',
@@ -177,7 +178,11 @@ const FileOrigin = ({ userId, folder = '', file = '', variant = 'icon' }) => {
 	const popoverRef = useRef(null);
 	const aliveRef = useRef(true);
 
-	const uid = userId || Cookies.get(USER_ID) || '';
+	// Запасной источник id — /me (общий кэш `useCurrentUser`). Cookie `user_id` для этого
+	// не годится: она оставалась от предыдущего входа, и запрос «откуда файл» уходил на
+	// чужой id — сервер отвечал 403, а кнопка молча не появлялась.
+	const meUserId = useCurrentUserId();
+	const uid = userId || meUserId || '';
 
 	useEffect(() => {
 		aliveRef.current = true;

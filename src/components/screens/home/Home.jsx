@@ -27,7 +27,7 @@ const Home = () => {
 		isLoading: isLoading_getUserId,
 	} = useGetUserIdQuery();
 	const { data, isError, error, isLoading, isSuccess } =
-		useGetUserFoldersQuery(data_getUserId);
+		useGetUserFoldersQuery(data_getUserId, { skip: !data_getUserId });
 
 	// const [selectedFile, setSelectedFile] = useState(null);
 	// const handleFileChange = event => {
