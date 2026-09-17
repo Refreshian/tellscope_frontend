@@ -132,3 +132,46 @@
 		font: inherit;
 	}
 }
+
+/* Переключатель «Показать все задачи» (виден только администратору) и пометка «без автора». */
+.scope {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: adapt(12px, 1440px);
+	flex-wrap: wrap;
+}
+
+.scopeToggle {
+	display: inline-flex;
+	align-items: center;
+	gap: adapt(8px, 1440px);
+	color: $color_black;
+	font-weight: 600;
+	cursor: pointer;
+	user-select: none;
+
+	input {
+		width: adapt(18px, 1440px);
+		height: adapt(18px, 1440px);
+		margin: 0;
+		accent-color: $color_blue;
+		cursor: pointer;
+	}
+}
+
+.scopeHint {
+	color: rgba($color_black, 0.65);
+	line-height: 1.45;
+}
+
+.flag {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 8px;
+	border-radius: 999px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	background: #fef3f2;
+	color: #b42318;
+}
