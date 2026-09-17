@@ -344,6 +344,7 @@ const DataSetPage = () => {
     const [baRefreshing, setBaRefreshing] = useState(false);
     const [baSaving, setBaSaving] = useState(false);
     const [baThemes, setBaThemes] = useState([]);
+    const [baThemesLoading, setBaThemesLoading] = useState(false);
     const [baConfigured, setBaConfigured] = useState(false);
     const [baAccount, setBaAccount] = useState(null);
     const [baTheme, setBaTheme] = useState('');
@@ -353,6 +354,7 @@ const DataSetPage = () => {
     const [baStatus, setBaStatus] = useState(null);
     const baLoadedRef = useRef(false);
     const baPollRef = useRef(null);
+    const baThemesPollRef = useRef(0);
     const [myShared, setMyShared] = useState([]);
 
     const getToken = () => {
@@ -387,6 +389,13 @@ const DataSetPage = () => {
         return { label: 'Подключено, не проверено', color: '#b54708', bg: '#fffaeb', border: '#fedf89' };
     };
 
+    const baStopThemesPoll = () => {
+        if (baThemesPollRef.current) {
+            clearInterval(baThemesPollRef.current);
+            baThemesPollRef.current = 0;
+        }
+    };
+
     const baApplyPayload = d => {
         if (!d || typeof d !== 'object') return;
         if (Array.isArray(d.themes)) setBaThemes(d.themes);
@@ -399,6 +408,25 @@ const DataSetPage = () => {
             error: d.account_error || '',
             verified_at: d.verified_at || '',
         });
+        // Подключение есть, а тем ещё нет: сервер сам пошёл за ними в Brand Analytics
+        // (фоновый вход занимает до минуты). Показываем «загружаю темы» и тихо опрашиваем,
+        // пока снапшот не появится — иначе пользователь видел пустой список без объяснения.
+        const loading = Boolean(d.themes_loading);
+        setBaThemesLoading(loading);
+        if (loading && !baThemesPollRef.current) {
+            let left = 24;
+            baThemesPollRef.current = setInterval(() => {
+                left -= 1;
+                if (left <= 0 || !data_getUserId) {
+                    baStopThemesPoll();
+                    setBaThemesLoading(false);
+                    return;
+                }
+                loadBaThemes(data_getUserId);
+            }, 5000);
+        } else if (!loading) {
+            baStopThemesPoll();
+        }
     };
 
     const loadBaThemes = uid => {
@@ -531,6 +559,7 @@ const DataSetPage = () => {
         }
         return () => {
             if (baPollRef.current) clearInterval(baPollRef.current);
+            if (baThemesPollRef.current) clearInterval(baThemesPollRef.current);
         };
     }, [data_getUserId]);
 
@@ -729,9 +758,11 @@ const DataSetPage = () => {
                             {baAccMsg && <div style={{ color: '#047857', marginTop: 4 }}>{baAccMsg}</div>}
                             {baAccErr && <div style={{ color: '#c53030', marginTop: 4 }}>{baAccErr}</div>}
                             {baThemes.length === 0 ? (
-                                <div style={{ color: '#98a2b3', padding: '4px 0', fontSize: 12 }}>
+                                <div style={{ color: baThemesLoading ? '#1760e8' : '#98a2b3', padding: '4px 0', fontSize: 12 }}>
                                     {baConfigured
-                                        ? 'Темы не найдены — нажмите «Обновить».'
+                                        ? (baThemesLoading
+                                            ? 'Загружаю список тем из вашего аккаунта Brand Analytics — это занимает до минуты, список появится здесь сам.'
+                                            : (baHint || 'Темы не найдены — нажмите «Обновить».'))
                                         : 'Подключите свой аккаунт Brand Analytics, чтобы получить темы и данные: папки и файлы появятся здесь после первой выгрузки. До подключения папки и отчёты других пользователей не показываются.'}
                                 </div>
                             ) : (
@@ -783,7 +814,9 @@ const DataSetPage = () => {
                                 {baThemes.length === 0 && (
                                     <div style={{ flexBasis: '100%', fontSize: 12, color: '#98a2b3' }}>
                                         {baConfigured
-                                            ? 'Список тем пуст — обновите его в блоке Brand Analytics выше.'
+                                            ? (baThemesLoading
+                                                ? 'Загружаю список тем из вашего аккаунта Brand Analytics — список появится здесь сам через несколько десятков секунд.'
+                                                : 'Список тем пуст — обновите его в блоке Brand Analytics выше.')
                                             : 'Сначала подключите свой аккаунт Brand Analytics (блок «Brand Analytics» выше) — без него темы и выгрузка недоступны.'}
                                     </div>
                                 )}
