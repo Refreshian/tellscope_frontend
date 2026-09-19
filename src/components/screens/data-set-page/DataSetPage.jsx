@@ -786,6 +786,9 @@ const DataSetPage = () => {
     const [tcSize, setTcSize] = useState(500);
     const [tcDsOpen, setTcDsOpen] = useState(false);
     const [tcDeleting, setTcDeleting] = useState('');
+    const [tcDsErr, setTcDsErr] = useState('');
+    // Настройки области проверки скрыты: блок должен занимать пару строк, а не пол-экрана.
+    const [tcSettingsOpen, setTcSettingsOpen] = useState(false);
     const tcDsBoxRef = useRef(null);
     const [tcJob, setTcJob] = useState(null);
     const [tcErr, setTcErr] = useState('');
@@ -795,6 +798,13 @@ const DataSetPage = () => {
     const [tcCancelling, setTcCancelling] = useState(false);
     const tcPollRef = useRef(null);
     const tcLoadedRef = useRef(false);
+
+    // Внутри папки набор этой папки подставляется сам: пользователь работает с её данными.
+    useEffect(() => {
+        if (!isInsideFolder || tcIndex || !tcDatasets.length) return;
+        const hit = tcDatasets.find(ds => String(ds.folder || '') === String(folderSeg));
+        if (hit) setTcIndex(String(hit.index != null ? hit.index : hit.name));
+    }, [isInsideFolder, folderSeg, tcIndex, tcDatasets]);
 
     const tcStopPoll = () => {
         if (tcPollRef.current) {
@@ -1183,7 +1193,9 @@ const DataSetPage = () => {
         );
         if (!ok) return;
         setTcDeleting(value);
+        setTcDsErr('');
         setTcErr('');
+        setTcDsOpen(true);
         try {
             const r = await fetch('/api/tone-check/datasets/' + encodeURIComponent(value), {
                 method: 'DELETE',
@@ -1191,13 +1203,15 @@ const DataSetPage = () => {
             });
             const d = await r.json().catch(() => ({}));
             if (!r.ok) {
-                setTcErr(d.detail || 'Не удалось удалить набор данных');
+                // Ошибку показываем прямо в списке наборов, а не только в блоке выше.
+                setTcDsErr(d.detail || 'Не удалось удалить набор данных (код ' + r.status + ')');
                 return;
             }
             setTcDatasets(list => list.filter(item => tcDatasetValue(item) !== value));
             if (tcIndex === value) setTcIndex('');
+            if (d && d.note) setTcDsErr(d.note);
         } catch (e) {
-            setTcErr('Не удалось удалить набор данных: нет связи с сервером');
+            setTcDsErr('Не удалось удалить набор данных: нет связи с сервером');
         } finally {
             setTcDeleting('');
         }
@@ -1427,28 +1441,45 @@ const DataSetPage = () => {
                     </div>
                 )}
 
-                {pathname === '/data-set' && (
+                {(pathname === '/data-set' || isInsideFolder) && (
                     <div
                         style={{
                             width: '100%',
-                            margin: '6px 0',
-                            padding: '10px 14px',
+                            maxWidth: 820,
+                            margin: '4px 0 6px auto',
+                            padding: '8px 12px',
                             border: '1px solid rgba(23,96,232,.25)',
                             borderRadius: 10,
                             background: '#f6f9ff',
-                            fontSize: 13,
+                            fontSize: 12,
                         }}
                     >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                            <b style={{ fontSize: 14 }}>Проверка тональности</b>
+                            <b style={{ fontSize: 13 }}>Проверка тональности</b>
                             <span style={{ color: '#667085' }}>
-                                Наши модели перечитают сообщения и определят тональность сами, а спорные случаи
-                                разберёт более сильная модель. Разметку источника мы не меняем: вы увидите,
-                                насколько ей можно доверять, и получите собственную оценку тональности по каждому
-                                сообщению. Проверять можно весь набор или только нужную область — объект,
-                                инфоповод, период, площадку, автора.
+                                Модели сами определят тональность и отношение к объекту, разметку источника
+                                мы не меняем — вы получите собственную оценку по каждому сообщению.
                             </span>
+                            <button
+                                type='button'
+                                onClick={() => setTcSettingsOpen(v => !v)}
+                                style={{
+                                    marginLeft: 'auto',
+                                    background: 'none',
+                                    border: '1px solid #c7d7fe',
+                                    color: '#1760e8',
+                                    borderRadius: 6,
+                                    cursor: 'pointer',
+                                    padding: '3px 10px',
+                                    fontSize: 12,
+                                }}
+                            >
+                                {tcSettingsOpen ? 'Свернуть настройки' : 'Настроить область'}
+                            </button>
                         </div>
+
+                        {tcSettingsOpen && (
+                        <>
 
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', marginTop: 8 }}>
                             <label style={{ fontSize: 12, color: '#344054' }}>
@@ -1570,6 +1601,8 @@ const DataSetPage = () => {
                                 </span>
                             </label>
                         </div>
+                        </>
+                        )}
 
                         <div style={{ marginTop: 8, padding: '8px 10px', border: '1px solid rgba(16,24,40,.08)', borderRadius: 8, background: '#fff' }}>
                             {tcObjects.length > 0 && (
@@ -1606,6 +1639,8 @@ const DataSetPage = () => {
                                     </span>
                                 )}
                             </div>
+                            {tcSettingsOpen && (
+                            <>
                             {tcScope && Array.isArray(tcScope.by_hub) && tcScope.by_hub.length > 0 && (
                                 <div style={{ color: '#98a2b3', marginTop: 2 }}>
                                     площадки в области:{' '}
@@ -1688,6 +1723,8 @@ const DataSetPage = () => {
                                     })}
                                 </div>
                             )}
+                            </>
+                            )}
                         </div>
 
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', marginTop: 8 }}>
@@ -1738,12 +1775,18 @@ const DataSetPage = () => {
                                             : (() => {
                                                   const sel = tcDatasets.find(ds => tcDatasetValue(ds) === tcIndex);
                                                   return sel
-                                                      ? (sel.label || sel.name) + ' · ' + sel.docs + ' сообщ.'
+                                                      ? (sel.label || sel.name) + ' · ' + sel.docs + ' сообщ.' +
+                                                            (sel.folder ? ' · папка «' + sel.folder + '»' : '')
                                                       : '— выберите набор данных —';
                                               })()}
                                     </span>
                                     <span style={{ color: '#667085', fontSize: 10 }}>{tcDsOpen ? '▲' : '▼'}</span>
                                 </div>
+                                {tcDsErr && (
+                                    <div style={{ marginTop: 4, color: tcDsErr.indexOf('Запись в списке') === 0 ? '#667085' : '#b42318', maxWidth: 460 }}>
+                                        {tcDsErr}
+                                    </div>
+                                )}
                                 {tcDsOpen && (
                                     <div
                                         style={{
@@ -1806,6 +1849,7 @@ const DataSetPage = () => {
                                                     >
                                                         {ds.label || ds.name} · {ds.docs} сообщ.
                                                         {ds.labeled ? ' · размечено ' + ds.labeled : ''}
+                                                        {ds.folder ? ' · папка «' + ds.folder + '»' : ''}
                                                     </span>
                                                     <button
                                                         type='button'
@@ -1830,6 +1874,11 @@ const DataSetPage = () => {
                                                 </div>
                                             );
                                         })}
+                                        {tcDsErr && (
+                                            <div style={{ padding: '7px 10px', borderTop: '1px solid #f2f4f7', color: tcDsErr.indexOf('Запись в списке') === 0 ? '#667085' : '#b42318' }}>
+                                                {tcDsErr}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
