@@ -80,7 +80,7 @@ const FileProgressBar = ({ progress, status, filename, details }) => {
 // Общий процент идёт отдельной строкой как взвешенная сумма двух проходов. «Обновлено N с
 // назад» тикает локально каждую секунду (свой таймер, без перерисовки всей страницы), а
 // оценка остатка считается по средней скорости — вместе это отличает «идёт медленно» от «висит».
-const ToneProgressCard = ({ job, onCancel }) => {
+const ToneProgressCard = ({ job, onCancel, cancelling }) => {
     const [, setTick] = useState(0);
     const seenRef = useRef(0);
     const updatedRef = useRef(null);
@@ -128,6 +128,12 @@ const ToneProgressCard = ({ job, onCancel }) => {
                 : Math.floor(agoSec / 60) + ' мин назад';
 
     const stale = Boolean(job.stalled) || (running && agoSec != null && agoSec > 120);
+    // «Останавливаю»: сразу после нажатия кнопки и до подтверждения сервера.
+    const stopping = Boolean(cancelling) || Boolean(job.cancelling);
+    // У остановленной задачи берём общий процент, а не процент последнего этапа: иначе
+    // карточка показывала «96 %» при 200 размеченных сообщениях из 1500.
+    const shownPercent =
+        status === 'cancelled' ? (job.percent != null ? job.percent : stagePercent) : stagePercent;
     const color =
         status === 'error'
             ? '#D92D20'
@@ -151,30 +157,43 @@ const ToneProgressCard = ({ job, onCancel }) => {
                 <span style={{ color: '#667085' }}>
                     {stageTotal ? 'обработано ' + stageDone + ' из ' + stageTotal : 'обработано ' + stageDone}
                 </span>
-                <span style={{ marginLeft: 'auto', fontWeight: 600, color }}>{stagePercent}%</span>
+                <span style={{ marginLeft: 'auto', fontWeight: 600, color }}>{shownPercent}%</span>
                 {running && onCancel && (
                     <button
                         type='button'
                         onClick={onCancel}
+                        disabled={stopping}
+                        title={
+                            stopping
+                                ? 'Команда отправлена — проход завершает текущую пачку сообщений'
+                                : 'Остановить проверку'
+                        }
                         style={{
                             background: 'none',
                             border: '1px solid #fecdca',
-                            color: '#b42318',
+                            color: stopping ? '#b54708' : '#b42318',
                             borderRadius: 6,
-                            cursor: 'pointer',
+                            cursor: stopping ? 'default' : 'pointer',
                             padding: '3px 10px',
                             fontSize: 12,
+                            opacity: stopping ? 0.75 : 1,
                         }}
                     >
-                        Отменить
+                        {stopping ? 'Останавливаю…' : 'Отменить'}
                     </button>
                 )}
             </div>
+            {stopping && (
+                <div style={{ marginTop: 4, color: '#b54708', fontSize: 12 }}>
+                    Команда принята: проход завершает текущую пачку сообщений и сохраняет уже
+                    размеченное. Обычно это занимает меньше минуты, повторно нажимать не нужно.
+                </div>
+            )}
             <div className={styles.progressBar}>
                 <div
                     className={styles.progressFill}
                     style={{
-                        width: Math.max(1, Math.min(100, stagePercent)) + '%',
+                        width: Math.max(1, Math.min(100, shownPercent)) + '%',
                         background: color,
                         transition: 'width 0.4s ease',
                     }}
@@ -195,10 +214,10 @@ const ToneProgressCard = ({ job, onCancel }) => {
                         перепроверки спорных, поэтому подписан явно, а не просто «всего». */}
                     выполнено {job.percent || 0}%
                     {agoText ? ' · обновлено ' + agoText : ''}
-                    {job.eta_text ? ' · осталось ≈ ' + job.eta_text : ''}
+                    {running && job.eta_text ? ' · осталось ≈ ' + job.eta_text : ''}
                     {rate > 0 ? ' · ' + Math.round(rate) + ' сообщений в минуту' : ''}
                 </div>
-                {job.note && <div style={{ color: stale ? '#B54708' : '#667085' }}>{job.note}</div>}
+                {job.note && <div style={{ color: stale || stopping ? '#B54708' : '#667085' }}>{job.note}</div>}
             </div>
         </div>
     );
@@ -767,6 +786,9 @@ const DataSetPage = () => {
     const [tcJob, setTcJob] = useState(null);
     const [tcErr, setTcErr] = useState('');
     const [tcStarting, setTcStarting] = useState(false);
+    // Остановка кооперативная: проход доводит текущую пачку сообщений, поэтому признак
+    // «останавливаю» держим сразу после нажатия, не дожидаясь ответа сервера.
+    const [tcCancelling, setTcCancelling] = useState(false);
     const tcPollRef = useRef(null);
     const tcLoadedRef = useRef(false);
 
@@ -787,6 +809,7 @@ const DataSetPage = () => {
             }
             setTcJob(d);
             if (d.status === 'done' || d.status === 'cancelled' || d.status === 'error') {
+                setTcCancelling(false);
                 tcStopPoll();
             }
         } catch (e) {}
@@ -1026,6 +1049,7 @@ const DataSetPage = () => {
                 processed: 0,
                 total: 0,
             });
+            setTcCancelling(false);
             tcStopPoll();
             tcPollRef.current = setInterval(() => tcPoll(d.job_id), 2500);
             tcPoll(d.job_id);
@@ -1055,13 +1079,26 @@ const DataSetPage = () => {
 
     const tcCancel = async () => {
         if (!tcJob || !tcJob.job_id) return;
+        // Сразу показываем, что команда принята: сервер останавливает проход не мгновенно —
+        // он доводит текущую пачку сообщений, а затем сохраняет уже размеченное.
+        setTcErr('');
+        setTcCancelling(true);
         try {
-            await fetch('/api/tone-check/' + tcJob.job_id + '/cancel', {
+            const r = await fetch('/api/tone-check/' + tcJob.job_id + '/cancel', {
                 method: 'POST',
                 headers: authHeaders(),
             });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) {
+                setTcCancelling(false);
+                setTcErr(d.detail || 'Не удалось остановить проверку');
+                return;
+            }
             tcPoll(tcJob.job_id);
-        } catch (e) {}
+        } catch (e) {
+            setTcCancelling(false);
+            setTcErr('Не удалось остановить проверку: нет связи с сервером');
+        }
     };
 
     return (
@@ -1592,7 +1629,7 @@ const DataSetPage = () => {
 
                         {tcJob && tcJob.job_id && (
                             <div>
-                                <ToneProgressCard job={tcJob} onCancel={tcCancel} />
+                                <ToneProgressCard job={tcJob} onCancel={tcCancel} cancelling={tcCancelling} />
 
                                 {tcJob.status === 'done' && tcJob.summary && (tcJob.summary.agreement != null || (Array.isArray(tcJob.aspect_objects) && tcJob.aspect_objects.length > 0)) && (
                                     <div style={{ marginTop: 8, color: '#101828' }}>
@@ -1691,7 +1728,11 @@ const DataSetPage = () => {
 
                                 {tcJob.status === 'cancelled' && (
                                     <div style={{ marginTop: 8, color: '#b54708' }}>
-                                        Проверка остановлена. Отчёт собран по уже проверенным сообщениям.
+                                        Проверка остановлена
+                                        {tcJob.processed != null && tcJob.total
+                                            ? ': размечено ' + tcJob.processed + ' из ' + tcJob.total + ' сообщений'
+                                            : ''}
+                                        . Отчёт собран по уже проверенным сообщениям.
                                     </div>
                                 )}
                                 {tcJob.status === 'error' && (
