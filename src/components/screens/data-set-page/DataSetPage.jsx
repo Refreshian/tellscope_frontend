@@ -1646,7 +1646,7 @@ const DataSetPage = () => {
                                     fontSize: 12,
                                 }}
                             >
-                                {tcSettingsOpen ? 'Скрыть фильтры' : 'Фильтры области ▼'}
+                                {tcSettingsOpen ? 'Скрыть' : 'Фильтры ▼'}
                             </button>
                             {!tcSettingsOpen && (
                                 <span style={{ color: '#98a2b3', fontSize: 12 }}>
