@@ -628,6 +628,129 @@ const DataSetPage = () => {
         }
     };
 
+
+    // --- Проверка тональности: двухпроходная разметка локальными моделями vLLM ---
+    const [tcDatasets, setTcDatasets] = useState([]);
+    const [tcLoadingDs, setTcLoadingDs] = useState(false);
+    const [tcIndex, setTcIndex] = useState('');
+    const [tcMode, setTcMode] = useState('sample');
+    const [tcSize, setTcSize] = useState(1000);
+    const [tcJob, setTcJob] = useState(null);
+    const [tcErr, setTcErr] = useState('');
+    const [tcStarting, setTcStarting] = useState(false);
+    const tcPollRef = useRef(null);
+    const tcLoadedRef = useRef(false);
+
+    const tcStopPoll = () => {
+        if (tcPollRef.current) {
+            clearInterval(tcPollRef.current);
+            tcPollRef.current = null;
+        }
+    };
+
+    const tcPoll = async jobId => {
+        try {
+            const r = await fetch('/api/tone-check/' + jobId, { headers: authHeaders() });
+            const d = await r.json();
+            if (!r.ok) {
+                setTcErr(d.detail || 'Не удалось получить статус проверки');
+                return;
+            }
+            setTcJob(d);
+            if (d.status === 'done' || d.status === 'cancelled' || d.status === 'error') {
+                tcStopPoll();
+            }
+        } catch (e) {}
+    };
+
+    const tcLoadDatasets = () => {
+        setTcLoadingDs(true);
+        fetch('/api/tone-check/datasets', { headers: authHeaders() })
+            .then(r => r.json())
+            .then(d => {
+                // Датасет по умолчанию не выбираем: запуск только осознанным нажатием,
+                // чтобы случайно не поставить «полностью» на индекс в миллионы сообщений.
+                setTcDatasets((d && d.datasets) || []);
+            })
+            .catch(() => {})
+            .finally(() => setTcLoadingDs(false));
+    };
+
+    // Автозапуска нет: показываем только уже существующую задачу, чтобы прогресс
+    // не терялся после закрытия браузера.
+    useEffect(() => {
+        if (tcLoadedRef.current || !data_getUserId) return;
+        tcLoadedRef.current = true;
+        tcLoadDatasets();
+        fetch('/api/tone-check/jobs', { headers: authHeaders() })
+            .then(r => r.json())
+            .then(d => {
+                const list = (d && d.jobs) || [];
+                if (!list.length) return;
+                const active = list.find(j => j.status === 'running' || j.status === 'queued');
+                const shown = active || list[0];
+                setTcJob(shown);
+                if (active) {
+                    tcStopPoll();
+                    tcPollRef.current = setInterval(() => tcPoll(active.job_id), 2500);
+                }
+            })
+            .catch(() => {});
+        return () => tcStopPoll();
+    }, [data_getUserId]);
+
+    const tcStart = async () => {
+        if (!tcIndex) {
+            setTcErr('Выберите датасет');
+            return;
+        }
+        setTcErr('');
+        setTcStarting(true);
+        try {
+            const r = await fetch('/api/tone-check', {
+                method: 'POST',
+                headers: authHeaders(true),
+                body: JSON.stringify({
+                    index: tcIndex,
+                    mode: tcMode,
+                    sample_size: tcMode === 'full' ? 1000 : Number(tcSize) || 1000,
+                }),
+            });
+            const d = await r.json();
+            if (!r.ok) {
+                setTcErr(d.detail || 'Не удалось запустить проверку');
+                return;
+            }
+            setTcJob({
+                job_id: d.job_id,
+                status: 'queued',
+                stage: 'preparing',
+                stage_label: 'подготовка',
+                percent: 0,
+                processed: 0,
+                total: 0,
+            });
+            tcStopPoll();
+            tcPollRef.current = setInterval(() => tcPoll(d.job_id), 2500);
+            tcPoll(d.job_id);
+        } catch (e) {
+            setTcErr(String((e && e.message) || e));
+        } finally {
+            setTcStarting(false);
+        }
+    };
+
+    const tcCancel = async () => {
+        if (!tcJob || !tcJob.job_id) return;
+        try {
+            await fetch('/api/tone-check/' + tcJob.job_id + '/cancel', {
+                method: 'POST',
+                headers: authHeaders(),
+            });
+            tcPoll(tcJob.job_id);
+        } catch (e) {}
+    };
+
     return (
         <Layout>
             {isPopupInFolder && <PopupInFolder />}
@@ -847,6 +970,188 @@ const DataSetPage = () => {
                                     </div>
                                 )}
                                 {baErr && <div style={{ fontSize: 13, color: '#c53030' }}>{baErr}</div>}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {pathname === '/data-set' && (
+                    <div
+                        style={{
+                            width: '100%',
+                            margin: '6px 0',
+                            padding: '10px 14px',
+                            border: '1px solid rgba(23,96,232,.25)',
+                            borderRadius: 10,
+                            background: '#f6f9ff',
+                            fontSize: 13,
+                        }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                            <b style={{ fontSize: 14 }}>Проверка тональности</b>
+                            <span style={{ color: '#667085' }}>
+                                Локальные модели vLLM: быстрая 4B размечает выборку, спорные случаи
+                                перепроверяет 32B. Разметка источника не меняется — результат в полях
+                                tone_llm, tone_llm_conf, tone_llm_by.
+                            </span>
+                        </div>
+
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', marginTop: 8 }}>
+                            <label style={{ fontSize: 12, color: '#344054' }}>
+                                Датасет
+                                <select
+                                    style={{ display: 'block', marginTop: 4, minWidth: 280, maxWidth: 420, padding: '7px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }}
+                                    value={tcIndex}
+                                    onChange={e => setTcIndex(e.target.value)}
+                                    disabled={tcLoadingDs}
+                                >
+                                    <option value=''>{tcLoadingDs ? '— загружаю список —' : '— выберите датасет —'}</option>
+                                    {tcDatasets.map(ds => (
+                                        <option
+                                            key={String(ds.index != null ? ds.index : ds.name)}
+                                            value={String(ds.index != null ? ds.index : ds.name)}
+                                        >
+                                            {ds.label || ds.name} · {ds.docs} сообщ.{ds.labeled ? ' · размечено ' + ds.labeled : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label style={{ fontSize: 12, color: '#344054', display: 'flex', gap: 12, alignItems: 'center', paddingBottom: 8, flexWrap: 'wrap' }}>
+                                <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                                    <input
+                                        type='radio'
+                                        name='tcMode'
+                                        checked={tcMode === 'sample' && Number(tcSize) === 500}
+                                        onChange={() => {
+                                            setTcMode('sample');
+                                            setTcSize(500);
+                                        }}
+                                    />
+                                    выборка 500
+                                </span>
+                                <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                                    <input
+                                        type='radio'
+                                        name='tcMode'
+                                        checked={tcMode === 'sample' && Number(tcSize) === 1000}
+                                        onChange={() => {
+                                            setTcMode('sample');
+                                            setTcSize(1000);
+                                        }}
+                                    />
+                                    выборка 1000
+                                </span>
+                                <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                                    <input type='radio' name='tcMode' checked={tcMode === 'full'} onChange={() => setTcMode('full')} />
+                                    полностью
+                                </span>
+                            </label>
+
+                            <button
+                                type='button'
+                                className={styles.button__title}
+                                onClick={tcStart}
+                                disabled={tcStarting || (tcJob && (tcJob.status === 'running' || tcJob.status === 'queued'))}
+                                style={tcStarting ? { opacity: 0.6, cursor: 'wait' } : undefined}
+                            >
+                                {tcStarting ? 'Запускаю…' : 'Проверить тональность'}
+                            </button>
+                            {tcJob && tcJob.job_id && (
+                                <span style={{ color: '#98a2b3', paddingBottom: 8 }}>задача {tcJob.job_id}</span>
+                            )}
+                        </div>
+
+                        {tcErr && <div style={{ color: '#c53030', marginTop: 8 }}>{tcErr}</div>}
+
+                        {tcJob && tcJob.job_id && (
+                            <div className={styles.progressContainer} style={{ margin: '10px 0 0' }}>
+                                <div className={styles.progressLabel} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <b>{tcJob.dataset_label || tcJob.index_name || ''}</b>
+                                    <span style={{ color: tcJob.status === 'error' ? '#c53030' : '#1760e8' }}>
+                                        {tcJob.stage_label || tcJob.status}
+                                    </span>
+                                    <span style={{ color: '#667085' }}>
+                                        {tcJob.processed}
+                                        {tcJob.total ? ' / ' + tcJob.total + ' сообщений' : ''}
+                                        {tcJob.pass2_total ? ' · спорных на 32B: ' + tcJob.pass2_done + '/' + tcJob.pass2_total : ''}
+                                    </span>
+                                    <span style={{ marginLeft: 'auto' }}>{tcJob.percent}%</span>
+                                    {(tcJob.status === 'running' || tcJob.status === 'queued') && (
+                                        <button
+                                            type='button'
+                                            onClick={tcCancel}
+                                            style={{ background: 'none', border: '1px solid #fecdca', color: '#b42318', borderRadius: 6, cursor: 'pointer', padding: '3px 10px', fontSize: 12 }}
+                                        >
+                                            Отменить
+                                        </button>
+                                    )}
+                                </div>
+                                <div className={styles.progressBar}>
+                                    <div
+                                        className={styles.progressFill}
+                                        style={{
+                                            width: Math.max(1, Math.min(100, tcJob.percent || 0)) + '%',
+                                            background: tcJob.status === 'error' ? '#D92D20' : tcJob.status === 'cancelled' ? '#F79009' : '#1760e8',
+                                        }}
+                                    />
+                                </div>
+
+                                {tcJob.status === 'done' && tcJob.summary && (
+                                    <div style={{ marginTop: 8, color: '#101828' }}>
+                                        <div>
+                                            Согласие с источником: <b>{Math.round((tcJob.summary.agreement || 0) * 1000) / 10}%</b>
+                                            {' · '}каппа Коэна: <b>{Math.round((tcJob.summary.kappa || 0) * 100) / 100}</b>
+                                            {' · '}расхождений: <b>{tcJob.summary.mismatches}</b>
+                                            {tcJob.summary.pass2_share != null ? ' · решала 32B: ' + Math.round((tcJob.summary.pass2_share || 0) * 100) + '%' : ''}
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6 }}>
+                                            <a
+                                                href={'/api/tone-check/' + tcJob.job_id + '/report/file?fmt=docx'}
+                                                target='_blank'
+                                                rel='noreferrer'
+                                                style={{ color: '#1760e8', fontWeight: 600 }}
+                                            >
+                                                Скачать отчёт DOCX
+                                            </a>
+                                            <a
+                                                href={'/api/tone-check/' + tcJob.job_id + '/report/file?fmt=pdf'}
+                                                target='_blank'
+                                                rel='noreferrer'
+                                                style={{ color: '#1760e8', fontWeight: 600 }}
+                                            >
+                                                Скачать отчёт PDF
+                                            </a>
+                                            <a
+                                                href={'/api/tone-check/' + tcJob.job_id + '/report'}
+                                                target='_blank'
+                                                rel='noreferrer'
+                                                style={{ color: '#667085' }}
+                                            >
+                                                Отчёт в JSON
+                                            </a>
+                                        </div>
+                                        {Array.isArray(tcJob.conclusions) && tcJob.conclusions.length > 0 && (
+                                            <ul style={{ margin: '6px 0 0 18px', color: '#344054' }}>
+                                                {tcJob.conclusions.slice(0, 4).map((line, i) => (
+                                                    <li key={i}>{line}</li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                        {tcJob.recommendation && (
+                                            <div style={{ marginTop: 6, fontWeight: 600 }}>{tcJob.recommendation}</div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {tcJob.status === 'cancelled' && (
+                                    <div style={{ marginTop: 8, color: '#b54708' }}>
+                                        Проверка остановлена. По уже размеченным сообщениям отчёт собран.
+                                    </div>
+                                )}
+                                {tcJob.status === 'error' && (
+                                    <div style={{ marginTop: 8, color: '#c53030' }}>Ошибка: {tcJob.error || 'неизвестная'}</div>
+                                )}
                             </div>
                         )}
                     </div>
