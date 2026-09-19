@@ -1739,7 +1739,7 @@ const DataSetPage = () => {
                                         <input
                                             type='checkbox'
                                             checked={tcToneMode.mode === 'relabeled'}
-                                            disabled={tcToneModeBusy || !Number(tcToneMode.stats && tcToneMode.stats.labeled)}
+                                            disabled={tcToneModeBusy || tcToneMode.status === 'running' || !Number(tcToneMode.stats && tcToneMode.stats.labeled)}
                                             onChange={e => tcSetToneMode(e.target.checked)}
                                             style={{ marginTop: 2 }}
                                         />
