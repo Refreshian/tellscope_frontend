@@ -1635,8 +1635,9 @@ const DataSetPage = () => {
                             <button
                                 type='button'
                                 onClick={() => setTcSettingsOpen(v => !v)}
+                                title='Фильтры, которые сужают выборку: режим оценки, объекты, тема, даты, площадка, автор'
                                 style={{
-                                    background: 'none',
+                                    background: tcSettingsOpen ? '#eef2ff' : 'none',
                                     border: '1px solid #c7d7fe',
                                     color: '#1760e8',
                                     borderRadius: 6,
@@ -1645,8 +1646,13 @@ const DataSetPage = () => {
                                     fontSize: 12,
                                 }}
                             >
-                                {tcSettingsOpen ? 'Свернуть настройки' : 'Настроить область'}
+                                {tcSettingsOpen ? 'Скрыть фильтры' : 'Фильтры области ▼'}
                             </button>
+                            {!tcSettingsOpen && (
+                                <span style={{ color: '#98a2b3', fontSize: 12 }}>
+                                    что оцениваем и на чём: объекты, тема, даты, площадка, автор
+                                </span>
+                            )}
                         </div>
 
                         {tcSettingsOpen && (
@@ -1821,29 +1827,32 @@ const DataSetPage = () => {
                                             onChange={e => tcSetToneMode(e.target.checked)}
                                             style={{ marginTop: 2 }}
                                         />
-                                        <span>
-                                            <b>Считать по обновлённой разметке</b>
+                                        <span
+                                            title={
+                                                'Наша разметка переносится в тональность сообщений — её увидят таблицы, ' +
+                                                'графики, аналитика и конструктор отчётов. Разметка источника сохраняется ' +
+                                                'отдельно и возвращается при выключении. У сообщений без нашей разметки ' +
+                                                'остаётся разметка источника.'
+                                            }
+                                        >
+                                            <b>Считать по нашей разметке</b>
                                             {Number(tcToneMode.stats && tcToneMode.stats.labeled) > 0 ? (
                                                 <>
-                                                    {' — наша разметка есть у '}
+                                                    {' — покрыто '}
                                                     <b>{tcToneMode.stats.labeled}</b>
                                                     {' из '}
                                                     {tcToneMode.stats.docs}
-                                                    {' сообщений ('}
+                                                    {' ('}
                                                     {Math.round((tcToneMode.coverage || 0) * 100)}
-                                                    {'%). У этих сообщений она станет тональностью во всех разделах: '}
-                                                    таблицы, графики, аналитика, конструктор отчётов. У остальных останется
-                                                    разметка источника.
+                                                    {'%), остальные — по источнику.'}
                                                 </>
                                             ) : (
-                                                ' — пока нечего переносить: сначала выполните проверку тональности по этому набору.'
+                                                ' — пока нечего переносить: сначала выполните проверку.'
                                             )}
                                             {tcToneMode.mode === 'relabeled' && (
-                                                <span style={{ color: '#067647' }}>
-                                                    {' '}Включено: разделы считают по нашей разметке. Разметка источника
-                                                    сохранена — при выключении всё вернётся.
-                                                </span>
+                                                <span style={{ color: '#067647', fontWeight: 600 }}>{' '}включено</span>
                                             )}
+                                            <span style={{ color: '#98a2b3' }}> (наведите, чтобы прочитать подробнее)</span>
                                         </span>
                                     </label>
                                     {tcToneModeBusy && <div style={{ color: '#1760e8', marginTop: 2 }}>Переключаю…</div>}
@@ -2131,9 +2140,20 @@ const DataSetPage = () => {
                                 onClick={() => tcStart()}
                                 disabled={tcStarting || (tcJob && (tcJob.status === 'running' || tcJob.status === 'queued'))}
                                 style={tcStarting ? { opacity: 0.6, cursor: 'wait' } : undefined}
+                                title='Сколько сообщений попадёт в проверку — видно на кнопке и в строке «Проверяю»'
                             >
-                                {tcStarting ? 'Запускаю…' : 'Проверить тональность'}
+                                {tcStarting
+                                    ? 'Запускаю…'
+                                    : tcScope && tcScope.count
+                                      ? 'Проверить ' + Number(tcScope.count).toLocaleString('ru-RU') + ' сообщ.'
+                                      : 'Проверить тональность'}
                             </button>
+                            {tcScope && tcScope.count > 0 && (
+                                <span style={{ color: '#667085', fontSize: 12, paddingBottom: 8 }}>
+                                    {tcMode === 'full' ? 'весь объём области' : 'выборка 500 из ' + Number(tcScope.count).toLocaleString('ru-RU')}
+                                    {tcScope.labeled ? ' · уже размечено ' + tcScope.labeled : ''}
+                                </span>
+                            )}
                         </div>
                         </>
                         )}
