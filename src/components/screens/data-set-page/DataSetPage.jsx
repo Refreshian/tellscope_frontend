@@ -985,11 +985,17 @@ const DataSetPage = () => {
     const tcSavePreset = async () => {
         const name = tcPresetName.trim();
         if (!name) {
-            setTcPresetMsg('Введите имя набора');
+            setTcPresetMsg('Введите имя шаблона');
             return;
         }
         if (!tcIndex) {
             setTcPresetMsg('Выберите набор данных');
+            return;
+        }
+        // Шаблон без объектов нельзя будет запустить (проверка по объектам требует хотя бы один),
+        // поэтому не сохраняем его молча — иначе кнопка «Запустить» потом ничего не делает.
+        if (tcLabelMode === 'aspect' && !tcObjects.filter(Boolean).length) {
+            setTcPresetMsg('Проверка по объектам: сначала добавьте объект кнопкой «Добавить», иначе шаблон нельзя будет запустить');
             return;
         }
         setTcPresetMsg('');
@@ -1001,11 +1007,11 @@ const DataSetPage = () => {
             });
             const d = await r.json();
             if (!r.ok) {
-                setTcPresetMsg(d.detail || 'Не удалось сохранить набор');
+                setTcPresetMsg(d.detail || 'Не удалось сохранить настройки проверки');
                 return;
             }
             setTcPresets((d && d.presets) || []);
-            setTcPresetMsg('Набор сохранён');
+            setTcPresetMsg('Настройки проверки сохранены');
         } catch (e) {
             setTcPresetMsg(String((e && e.message) || e));
         }
@@ -1065,7 +1071,47 @@ const DataSetPage = () => {
         }
     };
 
+    // Что именно запустит шаблон и что мешает запуску: раньше подпись была одна на всех
+    // («по объектам»), и по ней нельзя было понять ни набор, ни объекты, ни период.
+    const tcPresetInfo = item => {
+        if (!item) return { text: '', bad: '' };
+        const ds = tcDatasets.find(d => String(d.index) === String(item.index));
+        const objects = (Array.isArray(item.objects) ? item.objects : []).filter(Boolean);
+        const parts = [ds ? (ds.label || ds.name) : 'набор данных не найден'];
+        if ((item.label_mode || 'message') === 'aspect') {
+            parts.push(objects.length ? 'объекты: ' + objects.map(o => '«' + o + '»').join(', ') : 'объекты не указаны');
+        } else {
+            parts.push('тональность сообщения целиком');
+        }
+        if (item.theme) parts.push('тема: «' + item.theme + '»');
+        if (item.hub) parts.push('площадка: ' + item.hub);
+        if (item.author) parts.push('автор: ' + item.author);
+        const day = sec => (sec ? new Date(sec * 1000).toLocaleDateString('ru-RU') : null);
+        if (item.min_date || item.max_date) {
+            parts.push((day(item.min_date) || 'с начала') + ' — ' + (day(item.max_date) || 'по конец'));
+        } else {
+            parts.push('весь период');
+        }
+        parts.push(item.mode === 'full' ? 'все сообщения набора' : 'выборка 500 сообщений');
+        let bad = '';
+        if ((item.label_mode || 'message') === 'aspect' && !objects.length) {
+            bad = 'В шаблоне не указаны объекты — нажмите «Заполнить», добавьте объект и сохраните шаблон заново.';
+        } else if (!ds) {
+            bad = 'Набор данных этого шаблона удалён — выберите набор и сохраните шаблон заново.';
+        }
+        return { text: parts.join(' · '), bad };
+    };
+
     const tcRunPreset = async item => {
+        const info = tcPresetInfo(item);
+        if (info.bad) {
+            // Раньше кнопка в этом случае молча ничего не делала.
+            setTcPresetMsg(info.bad);
+            setTcErr(info.bad);
+            tcApplyPreset(item);
+            return;
+        }
+        setTcPresetMsg('');
         tcApplyPreset(item);
         await tcStart({
             index: item.index != null ? String(item.index) : '',
@@ -1446,6 +1492,12 @@ const DataSetPage = () => {
                                         ))}
                                     </datalist>
                                 </span>
+                                {tcObjectInput.trim() !== '' && (
+                                    <span style={{ display: 'block', marginTop: 2, color: '#b54708' }}>
+                                        «{tcObjectInput.trim()}» ещё не добавлен — нажмите «Добавить» или Enter,
+                                        иначе он не попадёт в проверку
+                                    </span>
+                                )}
                             </label>
 
                             <label style={{ fontSize: 12, color: '#344054' }}>
@@ -1564,9 +1616,13 @@ const DataSetPage = () => {
                                 </div>
                             )}
 
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 8 }}>
+                            <div style={{ color: '#98a2b3', marginTop: 8 }}>
+                                Шаблон хранит настройки проверки — набор данных, объекты, период, площадку и
+                                режим. В списке «Набор данных» шаблоны не появляются: там сами сообщения.
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 4 }}>
                                 <input
-                                    placeholder="имя набора, например «Rostic's, качество еды, лето 2026»"
+                                    placeholder="имя шаблона, например «Rostic's, качество еды, лето 2026»"
                                     value={tcPresetName}
                                     onChange={e => setTcPresetName(e.target.value)}
                                     style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2', minWidth: 280 }}
@@ -1576,44 +1632,60 @@ const DataSetPage = () => {
                                     onClick={tcSavePreset}
                                     style={{ background: 'none', border: '1px solid #c7d7fe', color: '#1760e8', borderRadius: 8, cursor: 'pointer', padding: '6px 10px' }}
                                 >
-                                    Сохранить набор
+                                    Сохранить настройки проверки
                                 </button>
                                 {tcPresetMsg && <span style={{ color: '#667085' }}>{tcPresetMsg}</span>}
                             </div>
 
                             {tcPresets.length > 0 && (
                                 <div style={{ marginTop: 6 }}>
-                                    <div style={{ color: '#667085' }}>Сохранённые наборы:</div>
-                                    {tcPresets.map(item => (
-                                        <div
-                                            key={item.name}
-                                            style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', padding: '3px 0', borderBottom: '1px dashed #e4e7ec' }}
-                                        >
-                                            <b>{item.name}</b>
-                                            <span style={{ color: '#667085' }}>{item.note || ''}</span>
-                                            <button
-                                                type='button'
-                                                onClick={() => tcRunPreset(item)}
-                                                style={{ marginLeft: 'auto', background: 'none', border: '1px solid #c7d7fe', color: '#1760e8', borderRadius: 6, cursor: 'pointer', padding: '2px 10px', fontSize: 12 }}
+                                    <div style={{ color: '#667085' }}>Сохранённые настройки проверки (шаблоны):</div>
+                                    {tcPresets.map(item => {
+                                        const info = tcPresetInfo(item);
+                                        return (
+                                            <div
+                                                key={item.name}
+                                                style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', padding: '3px 0', borderBottom: '1px dashed #e4e7ec' }}
                                             >
-                                                Запустить
-                                            </button>
-                                            <button
-                                                type='button'
-                                                onClick={() => tcApplyPreset(item)}
-                                                style={{ background: 'none', border: '1px solid #d0d7e2', color: '#344054', borderRadius: 6, cursor: 'pointer', padding: '2px 10px', fontSize: 12 }}
-                                            >
-                                                Заполнить
-                                            </button>
-                                            <button
-                                                type='button'
-                                                onClick={() => tcDeletePreset(item.name)}
-                                                style={{ background: 'none', border: '1px solid #fecdca', color: '#b42318', borderRadius: 6, cursor: 'pointer', padding: '2px 10px', fontSize: 12 }}
-                                            >
-                                                Удалить
-                                            </button>
-                                        </div>
-                                    ))}
+                                                <b>{item.name}</b>
+                                                <span style={{ color: '#667085' }}>{info.text}</span>
+                                                {info.bad && (
+                                                    <span style={{ color: '#b54708', width: '100%' }}>{info.bad}</span>
+                                                )}
+                                                <button
+                                                    type='button'
+                                                    onClick={() => tcRunPreset(item)}
+                                                    title={info.bad || 'Запустить проверку с этими настройками'}
+                                                    style={{
+                                                        marginLeft: 'auto',
+                                                        background: 'none',
+                                                        border: '1px solid ' + (info.bad ? '#fecdca' : '#c7d7fe'),
+                                                        color: info.bad ? '#b54708' : '#1760e8',
+                                                        borderRadius: 6,
+                                                        cursor: 'pointer',
+                                                        padding: '2px 10px',
+                                                        fontSize: 12,
+                                                    }}
+                                                >
+                                                    Запустить
+                                                </button>
+                                                <button
+                                                    type='button'
+                                                    onClick={() => tcApplyPreset(item)}
+                                                    style={{ background: 'none', border: '1px solid #d0d7e2', color: '#344054', borderRadius: 6, cursor: 'pointer', padding: '2px 10px', fontSize: 12 }}
+                                                >
+                                                    Заполнить
+                                                </button>
+                                                <button
+                                                    type='button'
+                                                    onClick={() => tcDeletePreset(item.name)}
+                                                    style={{ background: 'none', border: '1px solid #fecdca', color: '#b42318', borderRadius: 6, cursor: 'pointer', padding: '2px 10px', fontSize: 12 }}
+                                                >
+                                                    Удалить
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
