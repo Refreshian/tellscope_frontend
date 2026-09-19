@@ -789,6 +789,8 @@ const DataSetPage = () => {
     const [tcDsErr, setTcDsErr] = useState('');
     // Настройки области проверки скрыты: блок должен занимать пару строк, а не пол-экрана.
     const [tcSettingsOpen, setTcSettingsOpen] = useState(false);
+    // Шаблоны тоже скрыты: они нужны реже, чем сам запуск.
+    const [tcPresetsOpen, setTcPresetsOpen] = useState(false);
     // Сама панель проверки тональности тоже скрыта: открывается оранжевой кнопкой справа.
     const [tcOpen, setTcOpen] = useState(false);
     // Переключатель «считать по обновлённой разметке»: состояние режима для выбранного набора.
@@ -1008,6 +1010,16 @@ const DataSetPage = () => {
         tcLoadOptions(tcIndex);
         tcLoadToneMode(tcIndex);
     }, [tcIndex]);
+
+    // Панель проверки — оверлей: закрывается по Escape, чтобы не мешала странице.
+    useEffect(() => {
+        if (!tcOpen) return undefined;
+        const onKey = e => {
+            if (e.key === 'Escape') setTcOpen(false);
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [tcOpen]);
 
     // Убираем опрос состояния переключателя при уходе со страницы.
     useEffect(() => () => {
@@ -1513,11 +1525,33 @@ const DataSetPage = () => {
                 )}
 
                 {(pathname === '/data-set' || isInsideFolder) && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0 2px', width: '100%' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, margin: '4px 0 2px', width: '100%' }}>
+                        {tcJob && tcJob.job_id && (
+                            <span style={{ color: '#667085', fontSize: 12 }}>
+                                {tcJob.status === 'running' || tcJob.status === 'queued'
+                                    ? 'проверка идёт: ' + (tcJob.stage_percent != null ? tcJob.stage_percent : tcJob.percent || 0) + '%'
+                                    : tcJob.status === 'done'
+                                      ? 'последняя проверка: готово' +
+                                            (tcJob.summary && tcJob.summary.agreement != null
+                                                ? ' · согласие ' + Math.round(tcJob.summary.agreement * 1000) / 10 + '%'
+                                                : '')
+                                      : 'последняя проверка: ' + (tcJob.stage_label || tcJob.status)}
+                            </span>
+                        )}
+                        {tcJob && tcJob.job_id && (tcJob.status === 'running' || tcJob.status === 'queued') && (
+                            <button
+                                type='button'
+                                onClick={tcCancel}
+                                disabled={tcCancelling}
+                                style={{ background: 'none', border: '1px solid #fecdca', color: tcCancelling ? '#b54708' : '#b42318', borderRadius: 6, cursor: tcCancelling ? 'default' : 'pointer', padding: '3px 10px', fontSize: 12 }}
+                            >
+                                {tcCancelling ? 'Останавливаю…' : 'Отменить'}
+                            </button>
+                        )}
                         <button
                             type='button'
                             onClick={() => setTcOpen(v => !v)}
-                            title={tcOpen ? 'Свернуть панель проверки тональности' : 'Открыть проверку тональности'}
+                            title={tcOpen ? 'Закрыть панель проверки тональности' : 'Открыть проверку тональности'}
                             style={{
                                 background: '#F79009',
                                 border: '1px solid #F79009',
@@ -1529,21 +1563,32 @@ const DataSetPage = () => {
                                 fontWeight: 600,
                             }}
                         >
-                            {tcOpen ? 'Свернуть панель' : 'Проверка тональности'}
+                            {tcOpen ? 'Закрыть панель' : 'Проверка тональности'}
                         </button>
                     </div>
                 )}
 
-                {(pathname === '/data-set' || isInsideFolder) && (tcOpen || (tcJob && tcJob.job_id)) && (
+                {(pathname === '/data-set' || isInsideFolder) && tcOpen && (
+                    <>
+                    <div
+                        onClick={() => setTcOpen(false)}
+                        style={{ position: 'fixed', inset: 0, background: 'rgba(16,24,40,.3)', zIndex: 35 }}
+                    />
                     <div
                         style={{
-                            width: '100%',
-                            maxWidth: 820,
-                            margin: '0 auto 8px',
-                            padding: '8px 12px',
+                            position: 'fixed',
+                            top: 72,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            width: 'min(900px, 94vw)',
+                            maxHeight: '82vh',
+                            overflowY: 'auto',
+                            zIndex: 36,
+                            padding: '10px 14px',
                             border: '1px solid rgba(23,96,232,.25)',
-                            borderRadius: 10,
+                            borderRadius: 12,
                             background: '#f6f9ff',
+                            boxShadow: '0 18px 48px rgba(16,24,40,.25)',
                             fontSize: 12,
                         }}
                     >
@@ -1555,9 +1600,24 @@ const DataSetPage = () => {
                             </span>
                             <button
                                 type='button'
-                                onClick={() => setTcSettingsOpen(v => !v)}
+                                onClick={() => setTcPresetsOpen(v => !v)}
                                 style={{
                                     marginLeft: 'auto',
+                                    background: 'none',
+                                    border: '1px solid #d0d7e2',
+                                    color: '#344054',
+                                    borderRadius: 6,
+                                    cursor: 'pointer',
+                                    padding: '3px 10px',
+                                    fontSize: 12,
+                                }}
+                            >
+                                {tcPresetsOpen ? 'Скрыть шаблоны' : 'Шаблоны'}
+                            </button>
+                            <button
+                                type='button'
+                                onClick={() => setTcSettingsOpen(v => !v)}
+                                style={{
                                     background: 'none',
                                     border: '1px solid #c7d7fe',
                                     color: '#1760e8',
@@ -1789,7 +1849,11 @@ const DataSetPage = () => {
                                         .join(' · ')}
                                 </div>
                             )}
+                            </>
+                            )}
 
+                            {tcPresetsOpen && (
+                            <>
                             <div style={{ color: '#98a2b3', marginTop: 8 }}>
                                 Шаблон хранит настройки проверки — набор данных, объекты, период, площадку и
                                 режим. В списке «Набор данных» шаблоны не появляются: там сами сообщения.
@@ -2172,6 +2236,7 @@ const DataSetPage = () => {
                             </div>
                         )}
                     </div>
+                    </>
                 )}
 
                 {pathname === '/data-set' ? <DataSet /> : <DataInFolder />}
