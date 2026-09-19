@@ -813,6 +813,7 @@ const DataSetPage = () => {
         if (tcLoadedRef.current || !data_getUserId) return;
         tcLoadedRef.current = true;
         tcLoadDatasets();
+        tcLoadPresets();
         fetch('/api/tone-check/jobs', { headers: authHeaders() })
             .then(r => r.json())
             .then(d => {
@@ -830,9 +831,179 @@ const DataSetPage = () => {
         return () => tcStopPoll();
     }, [data_getUserId]);
 
-    const tcStart = async () => {
+    // --- Область проверки: объект, инфоповод, период, площадка, автор ---
+    const [tcLabelMode, setTcLabelMode] = useState('message');
+    const [tcObjectInput, setTcObjectInput] = useState('');
+    const [tcObjects, setTcObjects] = useState([]);
+    const [tcTheme, setTcTheme] = useState('');
+    const [tcHub, setTcHub] = useState('');
+    const [tcAuthor, setTcAuthor] = useState('');
+    const [tcFrom, setTcFrom] = useState('');
+    const [tcTo, setTcTo] = useState('');
+    const [tcOptions, setTcOptions] = useState({ themes: [], objects: [], hubs: [], authors: [] });
+    const [tcOptionsLoading, setTcOptionsLoading] = useState(false);
+    const [tcScope, setTcScope] = useState(null);
+    const [tcScopeLoading, setTcScopeLoading] = useState(false);
+    const [tcPresets, setTcPresets] = useState([]);
+    const [tcPresetName, setTcPresetName] = useState('');
+    const [tcPresetMsg, setTcPresetMsg] = useState('');
+    const tcScopeTimer = useRef(null);
+
+    const tcDayStart = value => (value ? Math.floor(new Date(value + 'T00:00:00').getTime() / 1000) : null);
+    const tcDayEnd = value => (value ? Math.floor(new Date(value + 'T23:59:59').getTime() / 1000) : null);
+
+    // Область проверки в виде параметров запроса: используется и для объёма, и для запуска.
+    const tcQuery = () => {
+        const params = new URLSearchParams();
+        if (tcIndex) params.set('index', tcIndex);
+        if (tcObjects.length) params.set('objects', tcObjects.join(', '));
+        if (tcTheme) params.set('theme', tcTheme);
+        if (tcHub) params.set('hub', tcHub);
+        if (tcAuthor.trim()) params.set('author', tcAuthor.trim());
+        if (tcFrom) params.set('min_date', String(tcDayStart(tcFrom)));
+        if (tcTo) params.set('max_date', String(tcDayEnd(tcTo)));
+        params.set('label_mode', tcLabelMode);
+        return params;
+    };
+
+    const tcPresetFields = () => ({
+        index: tcIndex,
+        label_mode: tcLabelMode,
+        mode: tcMode,
+        sample_size: tcMode === 'full' ? 1000 : Number(tcSize) || 1000,
+        min_date: tcDayStart(tcFrom),
+        max_date: tcDayEnd(tcTo),
+        objects: tcObjects,
+        theme: tcTheme,
+        hub: tcHub,
+        author: tcAuthor.trim(),
+    });
+
+    const tcLoadOptions = idx => {
+        if (!idx) return;
+        setTcOptionsLoading(true);
+        fetch('/api/tone-check/scope-options?index=' + encodeURIComponent(idx), { headers: authHeaders() })
+            .then(r => r.json())
+            .then(d =>
+                setTcOptions({
+                    themes: (d && d.themes) || [],
+                    objects: (d && d.objects) || [],
+                    hubs: (d && d.hubs) || [],
+                    authors: (d && d.authors) || [],
+                }),
+            )
+            .catch(() => {})
+            .finally(() => setTcOptionsLoading(false));
+    };
+
+    const tcLoadPresets = () => {
+        fetch('/api/tone-check/presets', { headers: authHeaders() })
+            .then(r => r.json())
+            .then(d => setTcPresets((d && d.presets) || []))
+            .catch(() => {});
+    };
+
+    // Подсказки (темы датасета, частые термины, площадки, авторы) — по выбранному датасету.
+    useEffect(() => {
+        tcLoadOptions(tcIndex);
+    }, [tcIndex]);
+
+    // Объём под областью: пересчитывается по мере правки фильтров, ДО запуска.
+    useEffect(() => {
         if (!tcIndex) {
+            setTcScope(null);
+            return undefined;
+        }
+        if (tcScopeTimer.current) clearTimeout(tcScopeTimer.current);
+        tcScopeTimer.current = setTimeout(() => {
+            setTcScopeLoading(true);
+            fetch('/api/tone-check/scope?' + tcQuery().toString(), { headers: authHeaders() })
+                .then(r => r.json())
+                .then(d => {
+                    if (d && d.count !== undefined) setTcScope(d);
+                })
+                .catch(() => {})
+                .finally(() => setTcScopeLoading(false));
+        }, 450);
+        return () => {
+            if (tcScopeTimer.current) clearTimeout(tcScopeTimer.current);
+        };
+    }, [tcIndex, tcObjects.join('|'), tcTheme, tcHub, tcAuthor, tcFrom, tcTo, tcLabelMode]);
+
+    const tcAddObject = name => {
+        const text = String(name || '').trim();
+        if (!text) return;
+        setTcObjects(prev =>
+            prev.some(x => x.toLowerCase() === text.toLowerCase()) || prev.length >= 6 ? prev : [...prev, text],
+        );
+        setTcObjectInput('');
+    };
+    const tcRemoveObject = name => setTcObjects(prev => prev.filter(x => x !== name));
+
+    const tcApplyPreset = item => {
+        if (!item) return;
+        setTcIndex(item.index != null ? String(item.index) : '');
+        setTcLabelMode(item.label_mode || 'message');
+        setTcMode(item.mode || 'sample');
+        setTcSize(Number(item.sample_size) || 1000);
+        setTcObjects(Array.isArray(item.objects) ? item.objects : []);
+        setTcTheme(item.theme || '');
+        setTcHub(item.hub || '');
+        setTcAuthor(item.author || '');
+        setTcFrom(item.min_date ? new Date(item.min_date * 1000).toISOString().slice(0, 10) : '');
+        setTcTo(item.max_date ? new Date(item.max_date * 1000).toISOString().slice(0, 10) : '');
+        setTcPresetName(item.name || '');
+        if (item.index != null) tcLoadOptions(String(item.index));
+    };
+
+    const tcSavePreset = async () => {
+        const name = tcPresetName.trim();
+        if (!name) {
+            setTcPresetMsg('Введите имя набора');
+            return;
+        }
+        if (!tcIndex) {
+            setTcPresetMsg('Выберите датасет');
+            return;
+        }
+        setTcPresetMsg('');
+        try {
+            const r = await fetch('/api/tone-check/presets', {
+                method: 'POST',
+                headers: authHeaders(true),
+                body: JSON.stringify({ name, ...tcPresetFields() }),
+            });
+            const d = await r.json();
+            if (!r.ok) {
+                setTcPresetMsg(d.detail || 'Не удалось сохранить набор');
+                return;
+            }
+            setTcPresets((d && d.presets) || []);
+            setTcPresetMsg('Набор сохранён');
+        } catch (e) {
+            setTcPresetMsg(String((e && e.message) || e));
+        }
+    };
+
+    const tcDeletePreset = async name => {
+        try {
+            const r = await fetch('/api/tone-check/presets/' + encodeURIComponent(name), {
+                method: 'DELETE',
+                headers: authHeaders(),
+            });
+            const d = await r.json();
+            if (r.ok) setTcPresets((d && d.presets) || []);
+        } catch (e) {}
+    };
+
+    const tcStart = async override => {
+        const payload = override || { ...tcPresetFields(), preset: tcPresetName.trim() };
+        if (!payload.index) {
             setTcErr('Выберите датасет');
+            return;
+        }
+        if (payload.label_mode === 'aspect' && !(payload.objects || []).length) {
+            setTcErr('Для аспектной разметки добавьте хотя бы один объект');
             return;
         }
         setTcErr('');
@@ -841,11 +1012,7 @@ const DataSetPage = () => {
             const r = await fetch('/api/tone-check', {
                 method: 'POST',
                 headers: authHeaders(true),
-                body: JSON.stringify({
-                    index: tcIndex,
-                    mode: tcMode,
-                    sample_size: tcMode === 'full' ? 1000 : Number(tcSize) || 1000,
-                }),
+                body: JSON.stringify(payload),
             });
             const d = await r.json();
             if (!r.ok) {
@@ -869,6 +1036,23 @@ const DataSetPage = () => {
         } finally {
             setTcStarting(false);
         }
+    };
+
+    const tcRunPreset = async item => {
+        tcApplyPreset(item);
+        await tcStart({
+            index: item.index != null ? String(item.index) : '',
+            mode: item.mode || 'sample',
+            sample_size: Number(item.sample_size) || 1000,
+            min_date: item.min_date || null,
+            max_date: item.max_date || null,
+            label_mode: item.label_mode || 'message',
+            objects: Array.isArray(item.objects) ? item.objects : [],
+            theme: item.theme || '',
+            hub: item.hub || '',
+            author: item.author || '',
+            preset: item.name || '',
+        });
     };
 
     const tcCancel = async () => {
@@ -1121,10 +1305,225 @@ const DataSetPage = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                             <b style={{ fontSize: 14 }}>Проверка тональности</b>
                             <span style={{ color: '#667085' }}>
-                                Локальные модели vLLM: быстрая 4B размечает выборку, спорные случаи
-                                перепроверяет 32B. Разметка источника не меняется — результат в полях
-                                tone_llm, tone_llm_conf, tone_llm_by.
+                                Локальные модели vLLM. Проверять можно весь датасет или только нужную область —
+                                объект, инфоповод, период, площадку, автора. Режимы: тон сообщения целиком (сверка
+                                с разметкой источника) и аспектная разметка — отношение к конкретному объекту.
+                                Разметка источника не меняется: результаты в полях tone_llm* и tone_aspect*.
                             </span>
+                        </div>
+
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', marginTop: 8 }}>
+                            <label style={{ fontSize: 12, color: '#344054' }}>
+                                Режим разметки
+                                <select
+                                    style={{ display: 'block', marginTop: 4, minWidth: 250, padding: '7px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }}
+                                    value={tcLabelMode}
+                                    onChange={e => setTcLabelMode(e.target.value)}
+                                >
+                                    <option value='message'>тональность сообщения целиком</option>
+                                    <option value='aspect'>тональность по объекту (аспектная)</option>
+                                </select>
+                            </label>
+
+                            <label style={{ fontSize: 12, color: '#344054' }}>
+                                {tcLabelMode === 'aspect' ? 'Объекты: бренд, продукт, конкурент' : 'Объект: сузить выборку'}
+                                <span style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                                    <input
+                                        list='tcObjectHints'
+                                        placeholder="например Rostic's, KFC, крылышки"
+                                        value={tcObjectInput}
+                                        onChange={e => setTcObjectInput(e.target.value)}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                tcAddObject(tcObjectInput);
+                                            }
+                                        }}
+                                        style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid #d0d7e2', minWidth: 240 }}
+                                    />
+                                    <button
+                                        type='button'
+                                        onClick={() => tcAddObject(tcObjectInput)}
+                                        style={{ background: 'none', border: '1px solid #c7d7fe', color: '#1760e8', borderRadius: 8, cursor: 'pointer', padding: '6px 10px' }}
+                                    >
+                                        Добавить
+                                    </button>
+                                    <datalist id='tcObjectHints'>
+                                        {(tcOptions.objects || []).slice(0, 40).map(o => (
+                                            <option key={o.term} value={o.term} />
+                                        ))}
+                                    </datalist>
+                                </span>
+                            </label>
+
+                            <label style={{ fontSize: 12, color: '#344054' }}>
+                                Инфоповод / тема
+                                <select
+                                    style={{ display: 'block', marginTop: 4, minWidth: 220, maxWidth: 320, padding: '7px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }}
+                                    value={tcTheme}
+                                    onChange={e => setTcTheme(e.target.value)}
+                                >
+                                    <option value=''>{tcOptionsLoading ? '— загружаю темы —' : '— без темы —'}</option>
+                                    {(tcOptions.themes || []).map(t => (
+                                        <option key={(t.name || '') + '|' + (t.period || '')} value={t.name}>
+                                            {t.name}
+                                            {t.period ? ' · ' + t.period : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label style={{ fontSize: 12, color: '#344054' }}>
+                                С даты
+                                <input
+                                    type='date'
+                                    style={{ display: 'block', marginTop: 4, padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }}
+                                    value={tcFrom}
+                                    onChange={e => setTcFrom(e.target.value)}
+                                />
+                            </label>
+                            <label style={{ fontSize: 12, color: '#344054' }}>
+                                По дату
+                                <input
+                                    type='date'
+                                    style={{ display: 'block', marginTop: 4, padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }}
+                                    value={tcTo}
+                                    onChange={e => setTcTo(e.target.value)}
+                                />
+                            </label>
+
+                            <label style={{ fontSize: 12, color: '#344054' }}>
+                                Площадка
+                                <select
+                                    style={{ display: 'block', marginTop: 4, minWidth: 160, padding: '7px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }}
+                                    value={tcHub}
+                                    onChange={e => setTcHub(e.target.value)}
+                                >
+                                    <option value=''>— все площадки —</option>
+                                    {(tcOptions.hubs || []).map(h => (
+                                        <option key={h.key} value={h.key}>
+                                            {h.key} ({h.count})
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label style={{ fontSize: 12, color: '#344054' }}>
+                                Автор
+                                <span style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                                    <input
+                                        list='tcAuthorHints'
+                                        placeholder='имя автора'
+                                        value={tcAuthor}
+                                        onChange={e => setTcAuthor(e.target.value)}
+                                        style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid #d0d7e2', minWidth: 180 }}
+                                    />
+                                    <datalist id='tcAuthorHints'>
+                                        {(tcOptions.authors || []).map(a => (
+                                            <option key={a.name} value={a.name} />
+                                        ))}
+                                    </datalist>
+                                </span>
+                            </label>
+                        </div>
+
+                        <div style={{ marginTop: 8, padding: '8px 10px', border: '1px solid rgba(16,24,40,.08)', borderRadius: 8, background: '#fff' }}>
+                            {tcObjects.length > 0 && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+                                    <span style={{ color: '#667085' }}>
+                                        {tcLabelMode === 'aspect' ? 'Оцениваю отношение к:' : 'Выборка содержит:'}
+                                    </span>
+                                    {tcObjects.map(name => (
+                                        <span
+                                            key={name}
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #c7d7fe', background: '#eef2ff', color: '#1760e8', borderRadius: 999, padding: '2px 10px' }}
+                                        >
+                                            {name}
+                                            <button
+                                                type='button'
+                                                onClick={() => tcRemoveObject(name)}
+                                                style={{ background: 'none', border: 'none', color: '#1760e8', cursor: 'pointer', padding: 0 }}
+                                            >
+                                                ×
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div style={{ color: '#101828' }}>
+                                <b>Проверяю:</b>{' '}
+                                {tcScope ? tcScope.scope_text : tcIndex ? 'считаю объём…' : 'выберите датасет'}
+                                {tcScope && (
+                                    <span style={{ color: '#1760e8' }}>
+                                        {' — '}попадёт <b>{tcScope.count}</b> сообщ.
+                                        {tcScope.labeled ? ', уже размечено ' + tcScope.labeled : ''}
+                                        {tcScopeLoading ? ' (обновляю…)' : ''}
+                                    </span>
+                                )}
+                            </div>
+                            {tcScope && Array.isArray(tcScope.by_hub) && tcScope.by_hub.length > 0 && (
+                                <div style={{ color: '#98a2b3', marginTop: 2 }}>
+                                    площадки в области:{' '}
+                                    {tcScope.by_hub
+                                        .slice(0, 5)
+                                        .map(h => h.key + ' ' + h.count)
+                                        .join(' · ')}
+                                </div>
+                            )}
+
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 8 }}>
+                                <input
+                                    placeholder="имя набора, например «KFC → Rostic's, лето 2026»"
+                                    value={tcPresetName}
+                                    onChange={e => setTcPresetName(e.target.value)}
+                                    style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2', minWidth: 280 }}
+                                />
+                                <button
+                                    type='button'
+                                    onClick={tcSavePreset}
+                                    style={{ background: 'none', border: '1px solid #c7d7fe', color: '#1760e8', borderRadius: 8, cursor: 'pointer', padding: '6px 10px' }}
+                                >
+                                    Сохранить набор
+                                </button>
+                                {tcPresetMsg && <span style={{ color: '#667085' }}>{tcPresetMsg}</span>}
+                            </div>
+
+                            {tcPresets.length > 0 && (
+                                <div style={{ marginTop: 6 }}>
+                                    <div style={{ color: '#667085' }}>Сохранённые наборы:</div>
+                                    {tcPresets.map(item => (
+                                        <div
+                                            key={item.name}
+                                            style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', padding: '3px 0', borderBottom: '1px dashed #e4e7ec' }}
+                                        >
+                                            <b>{item.name}</b>
+                                            <span style={{ color: '#667085' }}>{item.note || ''}</span>
+                                            <button
+                                                type='button'
+                                                onClick={() => tcRunPreset(item)}
+                                                style={{ marginLeft: 'auto', background: 'none', border: '1px solid #c7d7fe', color: '#1760e8', borderRadius: 6, cursor: 'pointer', padding: '2px 10px', fontSize: 12 }}
+                                            >
+                                                Запустить
+                                            </button>
+                                            <button
+                                                type='button'
+                                                onClick={() => tcApplyPreset(item)}
+                                                style={{ background: 'none', border: '1px solid #d0d7e2', color: '#344054', borderRadius: 6, cursor: 'pointer', padding: '2px 10px', fontSize: 12 }}
+                                            >
+                                                Заполнить
+                                            </button>
+                                            <button
+                                                type='button'
+                                                onClick={() => tcDeletePreset(item.name)}
+                                                style={{ background: 'none', border: '1px solid #fecdca', color: '#b42318', borderRadius: 6, cursor: 'pointer', padding: '2px 10px', fontSize: 12 }}
+                                            >
+                                                Удалить
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', marginTop: 8 }}>
@@ -1199,7 +1598,7 @@ const DataSetPage = () => {
                             <div>
                                 <ToneProgressCard job={tcJob} onCancel={tcCancel} />
 
-                                {tcJob.status === 'done' && tcJob.summary && (
+                                {tcJob.status === 'done' && tcJob.summary && tcJob.summary.agreement != null && (
                                     <div style={{ marginTop: 8, color: '#101828' }}>
                                         <div>
                                             Согласие с источником: <b>{Math.round((tcJob.summary.agreement || 0) * 1000) / 10}%</b>
@@ -1242,6 +1641,52 @@ const DataSetPage = () => {
                                         )}
                                         {tcJob.recommendation && (
                                             <div style={{ marginTop: 6, fontWeight: 600 }}>{tcJob.recommendation}</div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {tcJob.status === 'done' && Array.isArray(tcJob.aspect_objects) && tcJob.aspect_objects.length > 0 && (
+                                    <div style={{ marginTop: 8 }}>
+                                        <div style={{ fontWeight: 600 }}>
+                                            Отношение к объектам
+                                            {Array.isArray(tcJob.objects) && tcJob.objects.length ? ' («' + tcJob.objects.join('», «') + '»)' : ''}:
+                                        </div>
+                                        <table style={{ borderCollapse: 'collapse', marginTop: 4, fontSize: 12 }}>
+                                            <thead>
+                                                <tr>
+                                                    {['Объект', 'Упоминаний', 'Позитив', 'Нейтрал', 'Негатив', 'Индекс тона'].map(h => (
+                                                        <th
+                                                            key={h}
+                                                            style={{ border: '1px solid #e4e7ec', padding: '3px 8px', textAlign: 'left', color: '#667085', fontWeight: 600 }}
+                                                        >
+                                                            {h}
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {tcJob.aspect_objects.map(row => (
+                                                    <tr key={row.object}>
+                                                        <td style={{ border: '1px solid #e4e7ec', padding: '3px 8px' }}>{row.object}</td>
+                                                        <td style={{ border: '1px solid #e4e7ec', padding: '3px 8px' }}>{row.mentions}</td>
+                                                        <td style={{ border: '1px solid #e4e7ec', padding: '3px 8px', color: '#067647' }}>
+                                                            {Math.round((row.positive_share || 0) * 1000) / 10}%
+                                                        </td>
+                                                        <td style={{ border: '1px solid #e4e7ec', padding: '3px 8px', color: '#667085' }}>
+                                                            {Math.round((row.neutral_share || 0) * 1000) / 10}%
+                                                        </td>
+                                                        <td style={{ border: '1px solid #e4e7ec', padding: '3px 8px', color: '#b42318' }}>
+                                                            {Math.round((row.negative_share || 0) * 1000) / 10}%
+                                                        </td>
+                                                        <td style={{ border: '1px solid #e4e7ec', padding: '3px 8px' }}>
+                                                            {Math.round((row.tone_index || 0) * 100) / 100}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                        {tcJob.source_note && (
+                                            <div style={{ color: '#98a2b3', marginTop: 4 }}>{tcJob.source_note}</div>
                                         )}
                                     </div>
                                 )}
