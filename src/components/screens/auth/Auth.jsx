@@ -78,7 +78,7 @@ const Auth = () => {
 					/>
 					<div className={styles.brand}>
 						<span className={styles.brandTop}>Аналитика</span>
-						<span className={styles.brandMain}>Соцмедиа &amp; СМИ</span>
+						<span className={styles.brandMain}>СМИ и Соцмедиа</span>
 						<span className={styles.brandNote}>с применением ИИ</span>
 					</div>
 				</div>
