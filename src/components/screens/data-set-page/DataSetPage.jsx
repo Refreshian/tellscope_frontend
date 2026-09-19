@@ -75,6 +75,135 @@ const FileProgressBar = ({ progress, status, filename, details }) => {
     );
 };
 
+// Прогресс проверки тональности.
+// Полоса — по ТЕКУЩЕМУ этапу, поэтому подпись «N / M сообщений» и процент всегда совпадают.
+// Общий процент идёт отдельной строкой как взвешенная сумма двух проходов. «Обновлено N с
+// назад» тикает локально каждую секунду (свой таймер, без перерисовки всей страницы), а
+// оценка остатка считается по средней скорости — вместе это отличает «идёт медленно» от «висит».
+const ToneProgressCard = ({ job, onCancel }) => {
+    const [, setTick] = useState(0);
+    const seenRef = useRef(0);
+    const updatedRef = useRef(null);
+    const updated = job ? job.updated : null;
+
+    useEffect(() => {
+        if (updated && updatedRef.current !== updated) {
+            updatedRef.current = updated;
+            seenRef.current = Date.now();
+        }
+    }, [updated]);
+
+    useEffect(() => {
+        const id = setInterval(() => setTick(t => t + 1), 1000);
+        return () => clearInterval(id);
+    }, []);
+
+    if (!job || !job.job_id) return null;
+
+    const status = job.status || '';
+    const running = status === 'running' || status === 'queued';
+    const stageDone = job.stage_done != null ? job.stage_done : job.processed || 0;
+    const stageTotal = job.stage_total || job.total || 0;
+    const stagePercent = job.stage_percent != null ? job.stage_percent : job.percent || 0;
+    const pass1Done = job.pass1_done != null ? job.pass1_done : job.processed || 0;
+    const pass1Total = job.pass1_total || job.total || 0;
+    const pass1Percent = job.pass1_percent != null ? job.pass1_percent : 0;
+    const pass2Done = job.pass2_done || 0;
+    const pass2Total = job.pass2_total || 0;
+    const pass2Percent = job.pass2_percent || 0;
+
+    // Прошедшее время считаем от ответа сервера, а не от разбора его ISO-строки: так подпись
+    // не зависит от часового пояса браузера.
+    const agoSec =
+        job.updated_ago_sec != null && seenRef.current
+            ? Math.max(0, Math.round(job.updated_ago_sec + (Date.now() - seenRef.current) / 1000))
+            : null;
+    const agoText =
+        agoSec == null
+            ? ''
+            : agoSec < 5
+              ? 'только что'
+              : agoSec < 60
+                ? agoSec + ' с назад'
+                : Math.floor(agoSec / 60) + ' мин назад';
+
+    const stale = Boolean(job.stalled) || (running && agoSec != null && agoSec > 120);
+    const color =
+        status === 'error'
+            ? '#D92D20'
+            : status === 'cancelled' || stale
+              ? '#F79009'
+              : status === 'done'
+                ? '#12B76A'
+                : '#1760e8';
+    const rate = Number(job.rate_per_min || 0);
+
+    return (
+        <div className={styles.progressContainer} style={{ margin: '10px 0 0' }}>
+            <div
+                className={styles.progressLabel}
+                style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}
+            >
+                <b>{job.dataset_label || job.index_name || ''}</b>
+                <span style={{ color: status === 'error' ? '#c53030' : '#1760e8' }}>
+                    {job.stage_label || status}
+                </span>
+                <span style={{ color: '#667085' }}>
+                    {stageDone}
+                    {stageTotal ? ' / ' + stageTotal + ' сообщений' : ''}
+                </span>
+                <span style={{ marginLeft: 'auto', fontWeight: 600, color }}>{stagePercent}%</span>
+                {running && onCancel && (
+                    <button
+                        type='button'
+                        onClick={onCancel}
+                        style={{
+                            background: 'none',
+                            border: '1px solid #fecdca',
+                            color: '#b42318',
+                            borderRadius: 6,
+                            cursor: 'pointer',
+                            padding: '3px 10px',
+                            fontSize: 12,
+                        }}
+                    >
+                        Отменить
+                    </button>
+                )}
+            </div>
+            <div className={styles.progressBar}>
+                <div
+                    className={styles.progressFill}
+                    style={{
+                        width: Math.max(1, Math.min(100, stagePercent)) + '%',
+                        background: color,
+                        transition: 'width 0.4s ease',
+                    }}
+                />
+            </div>
+            <div style={{ marginTop: 6, color: '#344054', fontSize: 13, lineHeight: 1.5 }}>
+                <div>
+                    <b>этап 1</b> (разметка): {pass1Done} из {pass1Total} — {pass1Percent}%
+                    {pass2Total > 0 && (
+                        <>
+                            {' · '}
+                            <b>этап 2</b> (перепроверка спорных): {pass2Done} из {pass2Total} —{' '}
+                            {pass2Percent}%
+                        </>
+                    )}
+                </div>
+                <div style={{ color: '#667085' }}>
+                    всего {job.percent || 0}%
+                    {agoText ? ' · обновлено ' + agoText : ''}
+                    {job.eta_text ? ' · осталось ≈ ' + job.eta_text : ''}
+                    {rate > 0 ? ' · ' + Math.round(rate) + ' сообщ/мин' : ''}
+                </div>
+                {job.note && <div style={{ color: stale ? '#B54708' : '#667085' }}>{job.note}</div>}
+            </div>
+        </div>
+    );
+};
+
 function extractFilenameFromContentDisposition(header) {
     if (!header) return null;
     // filename= or filename*=; с кавычками или без
@@ -1065,37 +1194,8 @@ const DataSetPage = () => {
                         {tcErr && <div style={{ color: '#c53030', marginTop: 8 }}>{tcErr}</div>}
 
                         {tcJob && tcJob.job_id && (
-                            <div className={styles.progressContainer} style={{ margin: '10px 0 0' }}>
-                                <div className={styles.progressLabel} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                                    <b>{tcJob.dataset_label || tcJob.index_name || ''}</b>
-                                    <span style={{ color: tcJob.status === 'error' ? '#c53030' : '#1760e8' }}>
-                                        {tcJob.stage_label || tcJob.status}
-                                    </span>
-                                    <span style={{ color: '#667085' }}>
-                                        {tcJob.processed}
-                                        {tcJob.total ? ' / ' + tcJob.total + ' сообщений' : ''}
-                                        {tcJob.pass2_total ? ' · спорных на 32B: ' + tcJob.pass2_done + '/' + tcJob.pass2_total : ''}
-                                    </span>
-                                    <span style={{ marginLeft: 'auto' }}>{tcJob.percent}%</span>
-                                    {(tcJob.status === 'running' || tcJob.status === 'queued') && (
-                                        <button
-                                            type='button'
-                                            onClick={tcCancel}
-                                            style={{ background: 'none', border: '1px solid #fecdca', color: '#b42318', borderRadius: 6, cursor: 'pointer', padding: '3px 10px', fontSize: 12 }}
-                                        >
-                                            Отменить
-                                        </button>
-                                    )}
-                                </div>
-                                <div className={styles.progressBar}>
-                                    <div
-                                        className={styles.progressFill}
-                                        style={{
-                                            width: Math.max(1, Math.min(100, tcJob.percent || 0)) + '%',
-                                            background: tcJob.status === 'error' ? '#D92D20' : tcJob.status === 'cancelled' ? '#F79009' : '#1760e8',
-                                        }}
-                                    />
-                                </div>
+                            <div>
+                                <ToneProgressCard job={tcJob} onCancel={tcCancel} />
 
                                 {tcJob.status === 'done' && tcJob.summary && (
                                     <div style={{ marginTop: 8, color: '#101828' }}>
