@@ -26,6 +26,53 @@ const DataForSearch = ({
   const [checkedState, setCheckedState] = useState({});
   const wrapperRef = useClickOutside(() => setViewOptions(false));
   const [selectedOption, setSelectedOption] = useState(null); // Новое состояние для хранения выбранной темы
+  // Удаление темы прямо из списка: удалённые прячем сразу, ошибки показываем в самом списке.
+  const [removed, setRemoved] = useState([]);
+  const [deleteErr, setDeleteErr] = useState('');
+  const [deleting, setDeleting] = useState(null);
+
+  const themeName = option => (showHtmlFiles ? option['html-file'] : option.file);
+  const isDatasetOption = option => !option['html-file'] && option.index_number != null;
+
+  const deleteTheme = async (option, folderPath) => {
+    const name = themeName(option);
+    const label = String(name || '').replace(/\.json$/i, '');
+    if (!isDatasetOption(option) && onDeleteFile) {
+      onDeleteFile(name, folderPath);
+      return;
+    }
+    if (!isDatasetOption(option)) {
+      setDeleteErr('Такую тему удаляют из папки в разделе «Наборы данных».');
+      return;
+    }
+    const ok = window.confirm(
+      'Удалить тему «' + label + '»?\n\n' +
+        'Сообщения этой темы и результаты разметки удаляются безвозвратно. ' +
+        'Отчёты, уже сохранённые в папке «Отчёты», останутся.',
+    );
+    if (!ok) return;
+    setDeleting(option.index_number);
+    setDeleteErr('');
+    try {
+      const match = document.cookie.split('; ').find(x => x.startsWith('token='));
+      const token = match ? decodeURIComponent(match.slice('token='.length)) : '';
+      const r = await fetch('/api/tone-check/datasets/' + encodeURIComponent(option.index_number), {
+        method: 'DELETE',
+        headers: token ? { Authorization: 'Bearer ' + token } : {},
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setDeleteErr(d.detail || 'Не удалось удалить тему (код ' + r.status + ')');
+        return;
+      }
+      setRemoved(prev => [...prev, option.index_number]);
+      if (selectedOption === name) setSelectedOption(null);
+    } catch (e) {
+      setDeleteErr('Не удалось удалить тему: нет связи с сервером');
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const buildFolderStructure = (data) => {
     const structure = {};
@@ -51,8 +98,11 @@ const DataForSearch = ({
         const filteredFiles = showHtmlFiles 
           ? content.filter(option => option['html-file'])
           : content.filter(option => !option['html-file']);
+        const visibleFiles = filteredFiles.filter(
+          option => !removed.includes(option.index_number),
+        );
         
-        return filteredFiles.map(option => (
+        return visibleFiles.map(option => (
           <div
             key={option.file}
             className={styles.option}
@@ -78,17 +128,20 @@ const DataForSearch = ({
               ) : null}
 
             </div>
-            {directory === 'bertopic' && (
-              <button
-                className={styles.deleteButton}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteFile(showHtmlFiles ? option['html-file'] : option.file, folderPath);
-                }}
-              >
-                <img src="/images/icons/setting/delete_active.svg" alt="Удалить" />
-              </button>
-            )}
+            <button
+              type='button'
+              className={styles.deleteButton}
+              title='Удалить тему'
+              disabled={deleting === option.index_number}
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteTheme(option, folderPath);
+              }}
+            >
+              {deleting === option.index_number
+                ? '…'
+                : <img src="/images/icons/setting/delete_active.svg" alt="Удалить тему" />}
+            </button>
           </div>
         ));
       }
@@ -205,6 +258,14 @@ const DataForSearch = ({
           `}
         >
           {renderFolderStructure(arrayData)}
+          {deleteErr && (
+            <div style={{ color: '#b42318', padding: '6px 10px', fontSize: 12 }}>{deleteErr}</div>
+          )}
+          {!deleteErr && (
+            <div style={{ color: '#98a2b3', padding: '6px 10px 2px', fontSize: 11 }}>
+              Значок корзины справа удаляет тему вместе с сообщениями и разметкой
+            </div>
+          )}
         </div>
       )}
     </div>
