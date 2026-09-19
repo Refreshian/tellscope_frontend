@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -96,6 +96,31 @@ const DataInFolder = () => {
   // filterText и currentPage приходят из useDataInFolder: там же их меняют обработчики
   // поиска и пагинации (раньше это состояние было локальным и обработчики падали).
   const [sortMode, setSortMode] = useFileSort();
+
+  // Пометка о переразметке: сколько сообщений набора наши модели уже проверили.
+  // Берём тот же список наборов, что и блок «Проверка тональности», и сопоставляем по имени.
+  const [relabel, setRelabel] = useState({});
+  useEffect(() => {
+    let alive = true;
+    const match = document.cookie.split('; ').find(x => x.startsWith('token='));
+    const token = match ? decodeURIComponent(match.slice('token='.length)) : '';
+    if (!token) return undefined;
+    fetch('/api/tone-check/datasets', { headers: { Authorization: 'Bearer ' + token } })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (!alive || !d || !Array.isArray(d.datasets)) return;
+        const map = {};
+        d.datasets.forEach(ds => {
+          if (!ds || !ds.name) return;
+          map[String(ds.name).toLowerCase()] = { docs: ds.docs || 0, labeled: ds.labeled || 0 };
+        });
+        setRelabel(map);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Получаем имя папки из URL
   const pathSegments = location.pathname.split('/');
@@ -440,7 +465,32 @@ const DataInFolder = () => {
                       className={styles.file}
                       style={viewStyle(file)}
                     >
-                      <p className={styles.name}>{file.file}</p>
+                      <p className={styles.name}>
+                        {file.file}
+                        {(() => {
+                          const stem = String(file.file || '').replace(/\.json$/i, '').toLowerCase();
+                          const info = relabel[stem];
+                          if (!info || !info.labeled) return null;
+                          return (
+                            <span
+                              title='Тональность этих сообщений уже проверили наши модели — результат хранится в самих сообщениях набора, разметка источника не изменена'
+                              style={{
+                                marginLeft: 8,
+                                color: '#1760e8',
+                                background: '#eef2ff',
+                                border: '1px solid #c7d7fe',
+                                borderRadius: 999,
+                                padding: '1px 8px',
+                                fontSize: 11,
+                                fontWeight: 400,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              переразмечено {info.labeled} из {info.docs}
+                            </span>
+                          );
+                        })()}
+                      </p>
                       <div
                         style={{
                           display: 'flex',
