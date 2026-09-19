@@ -789,6 +789,8 @@ const DataSetPage = () => {
     const [tcDsErr, setTcDsErr] = useState('');
     // Настройки области проверки скрыты: блок должен занимать пару строк, а не пол-экрана.
     const [tcSettingsOpen, setTcSettingsOpen] = useState(false);
+    // Сама панель проверки тональности тоже скрыта: открывается оранжевой кнопкой справа.
+    const [tcOpen, setTcOpen] = useState(false);
     const tcDsBoxRef = useRef(null);
     const [tcJob, setTcJob] = useState(null);
     const [tcErr, setTcErr] = useState('');
@@ -1386,7 +1388,7 @@ const DataSetPage = () => {
 
 
                 {isInsideFolder && (
-                    <div style={{ border: '1px solid rgba(16,24,40,.12)', borderRadius: 10, padding: '12px 14px', margin: '8px 0 4px', background: '#fff', fontSize: 13 }}>
+                    <div style={{ border: '1px solid rgba(16,24,40,.12)', borderRadius: 10, padding: '10px 14px', margin: '8px 0 4px auto', background: '#fff', fontSize: 13, width: '100%', maxWidth: 560 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                             <b style={{ fontSize: 14 }}>Загрузка данных в папку «{folderSeg}»</b>
                             <button
@@ -1442,11 +1444,33 @@ const DataSetPage = () => {
                 )}
 
                 {(pathname === '/data-set' || isInsideFolder) && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0 2px', width: '100%' }}>
+                        <button
+                            type='button'
+                            onClick={() => setTcOpen(v => !v)}
+                            title={tcOpen ? 'Свернуть панель проверки тональности' : 'Открыть проверку тональности'}
+                            style={{
+                                background: '#F79009',
+                                border: '1px solid #F79009',
+                                color: '#fff',
+                                borderRadius: 8,
+                                cursor: 'pointer',
+                                padding: '7px 14px',
+                                fontSize: 13,
+                                fontWeight: 600,
+                            }}
+                        >
+                            {tcOpen ? 'Свернуть панель' : 'Проверка тональности'}
+                        </button>
+                    </div>
+                )}
+
+                {(pathname === '/data-set' || isInsideFolder) && (tcOpen || (tcJob && tcJob.job_id)) && (
                     <div
                         style={{
                             width: '100%',
                             maxWidth: 820,
-                            margin: '4px 0 6px auto',
+                            margin: '0 auto 8px',
                             padding: '8px 12px',
                             border: '1px solid rgba(23,96,232,.25)',
                             borderRadius: 10,
@@ -1727,6 +1751,8 @@ const DataSetPage = () => {
                             )}
                         </div>
 
+                        {tcOpen && (
+                        <>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', marginTop: 8 }}>
                             <div style={{ fontSize: 12, color: '#344054', position: 'relative' }} ref={tcDsBoxRef}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1912,6 +1938,8 @@ const DataSetPage = () => {
                                 {tcStarting ? 'Запускаю…' : 'Проверить тональность'}
                             </button>
                         </div>
+                        </>
+                        )}
 
                         {tcErr && <div style={{ color: '#c53030', marginTop: 8 }}>{tcErr}</div>}
 
