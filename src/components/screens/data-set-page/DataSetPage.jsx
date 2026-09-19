@@ -200,6 +200,18 @@ const ToneProgressCard = ({ job, onCancel, cancelling }) => {
                 />
             </div>
             <div style={{ marginTop: 6, color: '#344054', fontSize: 13, lineHeight: 1.5 }}>
+                {/* У завершённой проверки подробные этапы не нужны: одна понятная строка вместо
+                    трёх, чтобы результат не разрастался. */}
+                {(status === 'done' || status === 'cancelled') ? (
+                    <div>
+                        {status === 'done' ? 'Проверено ' : 'Остановлено: размечено '}
+                        <b>{job.processed != null ? job.processed : pass1Done}</b>
+                        {job.total ? ' из ' + job.total : ''} сообщений
+                        {pass2Total > 0 ? ', спорных уточнено ' + pass2Done : ''}
+                        {rate > 0 ? ' · ' + Math.round(rate) + ' сообщений в минуту' : ''}
+                    </div>
+                ) : (
+                <>
                 <div>
                     <b>определяю тональность</b>: {pass1Done} из {pass1Total} — {pass1Percent}%
                     {pass2Total > 0 && (
@@ -217,6 +229,8 @@ const ToneProgressCard = ({ job, onCancel, cancelling }) => {
                     {running && job.eta_text ? ' · осталось ≈ ' + job.eta_text : ''}
                     {rate > 0 ? ' · ' + Math.round(rate) + ' сообщений в минуту' : ''}
                 </div>
+                </>
+                )}
                 {job.note && <div style={{ color: stale || stopping ? '#B54708' : '#667085' }}>{job.note}</div>}
             </div>
         </div>
@@ -1122,7 +1136,11 @@ const DataSetPage = () => {
     };
 
     const tcStart = async override => {
-        const payload = override || { ...tcPresetFields(), preset: tcPresetName.trim() };
+        // Кнопка раньше передавала сюда объект события клика: он «истинный», поэтому настройки
+        // не собирались и запуск отвечал «Выберите набор данных», хотя набор выбран. Теперь
+        // событие распознаётся и игнорируется.
+        const looksLikeSettings = override && typeof override === 'object' && !override.nativeEvent && override.index !== undefined;
+        const payload = looksLikeSettings ? override : { ...tcPresetFields(), preset: tcPresetName.trim() };
         if (!payload.index) {
             setTcErr('Выберите набор данных');
             return;
@@ -2110,7 +2128,7 @@ const DataSetPage = () => {
                             <button
                                 type='button'
                                 className={styles.button__title}
-                                onClick={tcStart}
+                                onClick={() => tcStart()}
                                 disabled={tcStarting || (tcJob && (tcJob.status === 'running' || tcJob.status === 'queued'))}
                                 style={tcStarting ? { opacity: 0.6, cursor: 'wait' } : undefined}
                             >
@@ -2163,24 +2181,29 @@ const DataSetPage = () => {
                                             </a>
                                         </div>
                                         {Array.isArray(tcJob.conclusions) && tcJob.conclusions.length > 0 && (
-                                            <ul style={{ margin: '6px 0 0 18px', color: '#344054' }}>
-                                                {tcJob.conclusions.slice(0, 4).map((line, i) => (
-                                                    <li key={i}>{line}</li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                        {tcJob.recommendation && (
-                                            <div style={{ marginTop: 6, fontWeight: 600 }}>{tcJob.recommendation}</div>
+                                            <details style={{ marginTop: 6 }}>
+                                                <summary style={{ cursor: 'pointer', color: '#1760e8' }}>
+                                                    Показать выводы и разбор ({tcJob.conclusions.length})
+                                                </summary>
+                                                <ul style={{ margin: '6px 0 0 18px', color: '#344054' }}>
+                                                    {tcJob.conclusions.slice(0, 4).map((line, i) => (
+                                                        <li key={i}>{line}</li>
+                                                    ))}
+                                                </ul>
+                                                {tcJob.recommendation && (
+                                                    <div style={{ marginTop: 6, fontWeight: 600 }}>{tcJob.recommendation}</div>
+                                                )}
+                                            </details>
                                         )}
                                     </div>
                                 )}
 
                                 {tcJob.status === 'done' && Array.isArray(tcJob.aspect_objects) && tcJob.aspect_objects.length > 0 && (
-                                    <div style={{ marginTop: 8 }}>
-                                        <div style={{ fontWeight: 600 }}>
+                                    <details style={{ marginTop: 8 }} open>
+                                        <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
                                             Отношение к объектам
-                                            {Array.isArray(tcJob.objects) && tcJob.objects.length ? ' («' + tcJob.objects.join('», «') + '»)' : ''}:
-                                        </div>
+                                            {Array.isArray(tcJob.objects) && tcJob.objects.length ? ' («' + tcJob.objects.join('», «') + '»)' : ''}
+                                        </summary>
                                         <table style={{ borderCollapse: 'collapse', marginTop: 4, fontSize: 12 }}>
                                             <thead>
                                                 <tr>
@@ -2218,7 +2241,7 @@ const DataSetPage = () => {
                                         {tcJob.source_note && (
                                             <div style={{ color: '#98a2b3', marginTop: 4 }}>{tcJob.source_note}</div>
                                         )}
-                                    </div>
+                                    </details>
                                 )}
 
                                 {tcJob.status === 'cancelled' && (
