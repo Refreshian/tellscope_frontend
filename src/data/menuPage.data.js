@@ -110,7 +110,7 @@ export const menuPageData = [
 		id: 6,
 		title: 'Наборы данных',
 		text: 'Наборы данных',
-		desc: 'Датасеты соцмедиа и СМИ: объёмы, периоды, состав площадок и загрузка новых данных',
+		desc: 'Датасеты СМИ и соцмедиа: объёмы, периоды, состав площадок и загрузка новых данных',
 		src: '/images/icons/menu/show_data.svg',
 		src_active: '/images/icons/menu/show_data_active.svg',
 		badge: 'ДАН',

@@ -28,7 +28,7 @@ const SectionSelection = () => {
 			{
 				id: 'tools',
 				title: 'Аналитика и данные',
-				hint: 'срезы и отчёты по соцмедиа и СМИ',
+				hint: 'срезы и отчёты по СМИ и соцмедиа',
 				items: tools,
 			},
 		].filter(group => group.items.length > 0);
@@ -40,7 +40,7 @@ const SectionSelection = () => {
 				<img className={styles.logo__image} src='/images/logo.svg' alt='logo' />
 				<div className={styles.brand}>
 					<span className={styles.brandTop}>Аналитика</span>
-					<span className={styles.brandMain}>Соцмедиа &amp; СМИ</span>
+					<span className={styles.brandMain}>СМИ и Соцмедиа</span>
 					<span className={styles.brandNote}>с применением ИИ</span>
 				</div>
 			</div>
