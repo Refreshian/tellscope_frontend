@@ -149,8 +149,7 @@ const ToneProgressCard = ({ job, onCancel }) => {
                     {job.stage_label || status}
                 </span>
                 <span style={{ color: '#667085' }}>
-                    {stageDone}
-                    {stageTotal ? ' / ' + stageTotal + ' сообщений' : ''}
+                    {stageTotal ? 'обработано ' + stageDone + ' из ' + stageTotal : 'обработано ' + stageDone}
                 </span>
                 <span style={{ marginLeft: 'auto', fontWeight: 600, color }}>{stagePercent}%</span>
                 {running && onCancel && (
@@ -183,22 +182,21 @@ const ToneProgressCard = ({ job, onCancel }) => {
             </div>
             <div style={{ marginTop: 6, color: '#344054', fontSize: 13, lineHeight: 1.5 }}>
                 <div>
-                    <b>этап 1</b> (разметка): {pass1Done} из {pass1Total} — {pass1Percent}%
+                    <b>определяю тональность</b>: {pass1Done} из {pass1Total} — {pass1Percent}%
                     {pass2Total > 0 && (
                         <>
                             {' · '}
-                            <b>этап 2</b> (перепроверка спорных): {pass2Done} из {pass2Total} —{' '}
-                            {pass2Percent}%
+                            <b>перепроверяю спорные случаи</b>: {pass2Done} из {pass2Total} — {pass2Percent}%
                         </>
                     )}
                 </div>
                 <div style={{ color: '#667085' }}>
                     {/* Общий процент заведомо меньше процента первого этапа: он взвешен с учётом
                         перепроверки спорных, поэтому подписан явно, а не просто «всего». */}
-                    всего по задаче {job.percent || 0}%
+                    выполнено {job.percent || 0}%
                     {agoText ? ' · обновлено ' + agoText : ''}
                     {job.eta_text ? ' · осталось ≈ ' + job.eta_text : ''}
-                    {rate > 0 ? ' · ' + Math.round(rate) + ' сообщ/мин' : ''}
+                    {rate > 0 ? ' · ' + Math.round(rate) + ' сообщений в минуту' : ''}
                 </div>
                 {job.note && <div style={{ color: stale ? '#B54708' : '#667085' }}>{job.note}</div>}
             </div>
@@ -963,7 +961,7 @@ const DataSetPage = () => {
             return;
         }
         if (!tcIndex) {
-            setTcPresetMsg('Выберите датасет');
+            setTcPresetMsg('Выберите набор данных');
             return;
         }
         setTcPresetMsg('');
@@ -999,11 +997,11 @@ const DataSetPage = () => {
     const tcStart = async override => {
         const payload = override || { ...tcPresetFields(), preset: tcPresetName.trim() };
         if (!payload.index) {
-            setTcErr('Выберите датасет');
+            setTcErr('Выберите набор данных');
             return;
         }
         if (payload.label_mode === 'aspect' && !(payload.objects || []).length) {
-            setTcErr('Для аспектной разметки добавьте хотя бы один объект');
+            setTcErr('Для проверки по объектам добавьте хотя бы один объект');
             return;
         }
         setTcErr('');
@@ -1305,28 +1303,29 @@ const DataSetPage = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                             <b style={{ fontSize: 14 }}>Проверка тональности</b>
                             <span style={{ color: '#667085' }}>
-                                Локальные модели vLLM. Проверять можно весь датасет или только нужную область —
-                                объект, инфоповод, период, площадку, автора. Режимы: тон сообщения целиком (сверка
-                                с разметкой источника) и аспектная разметка — отношение к конкретному объекту.
-                                Разметка источника не меняется: результаты в полях tone_llm* и tone_aspect*.
+                                Наши модели перечитают сообщения и определят тональность сами, а спорные случаи
+                                разберёт более сильная модель. Разметку источника мы не меняем: вы увидите,
+                                насколько ей можно доверять, и получите собственную оценку тональности по каждому
+                                сообщению. Проверять можно весь набор или только нужную область — объект,
+                                инфоповод, период, площадку, автора.
                             </span>
                         </div>
 
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', marginTop: 8 }}>
                             <label style={{ fontSize: 12, color: '#344054' }}>
-                                Режим разметки
+                                Что определяем
                                 <select
                                     style={{ display: 'block', marginTop: 4, minWidth: 250, padding: '7px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }}
                                     value={tcLabelMode}
                                     onChange={e => setTcLabelMode(e.target.value)}
                                 >
                                     <option value='message'>тональность сообщения целиком</option>
-                                    <option value='aspect'>тональность по объекту (аспектная)</option>
+                                    <option value='aspect'>отношение к объекту</option>
                                 </select>
                             </label>
 
                             <label style={{ fontSize: 12, color: '#344054' }}>
-                                {tcLabelMode === 'aspect' ? 'Объекты: бренд, продукт, конкурент' : 'Объект: сузить выборку'}
+                                {tcLabelMode === 'aspect' ? 'Объекты: бренд, продукт, конкурент' : 'Объект: отобрать сообщения про него'}
                                 <span style={{ display: 'flex', gap: 6, marginTop: 4 }}>
                                     <input
                                         list='tcObjectHints'
@@ -1431,7 +1430,7 @@ const DataSetPage = () => {
                             {tcObjects.length > 0 && (
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 6 }}>
                                     <span style={{ color: '#667085' }}>
-                                        {tcLabelMode === 'aspect' ? 'Оцениваю отношение к:' : 'Выборка содержит:'}
+                                        {tcLabelMode === 'aspect' ? 'Оцениваю отношение к:' : 'В выборке есть упоминания:'}
                                     </span>
                                     {tcObjects.map(name => (
                                         <span
@@ -1453,7 +1452,7 @@ const DataSetPage = () => {
 
                             <div style={{ color: '#101828' }}>
                                 <b>Проверяю:</b>{' '}
-                                {tcScope ? tcScope.scope_text : tcIndex ? 'считаю объём…' : 'выберите датасет'}
+                                {tcScope ? tcScope.scope_text : tcIndex ? 'считаю объём…' : 'выберите набор данных'}
                                 {tcScope && (
                                     <span style={{ color: '#1760e8' }}>
                                         {' — '}попадёт <b>{tcScope.count}</b> сообщ.
@@ -1474,7 +1473,7 @@ const DataSetPage = () => {
 
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 8 }}>
                                 <input
-                                    placeholder="имя набора, например «KFC → Rostic's, лето 2026»"
+                                    placeholder="имя набора, например «Rostic's, качество еды, лето 2026»"
                                     value={tcPresetName}
                                     onChange={e => setTcPresetName(e.target.value)}
                                     style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #d0d7e2', minWidth: 280 }}
@@ -1528,14 +1527,14 @@ const DataSetPage = () => {
 
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', marginTop: 8 }}>
                             <label style={{ fontSize: 12, color: '#344054' }}>
-                                Датасет
+                                Набор данных
                                 <select
                                     style={{ display: 'block', marginTop: 4, minWidth: 280, maxWidth: 420, padding: '7px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }}
                                     value={tcIndex}
                                     onChange={e => setTcIndex(e.target.value)}
                                     disabled={tcLoadingDs}
                                 >
-                                    <option value=''>{tcLoadingDs ? '— загружаю список —' : '— выберите датасет —'}</option>
+                                    <option value=''>{tcLoadingDs ? '— загружаю список —' : '— выберите набор данных —'}</option>
                                     {tcDatasets.map(ds => (
                                         <option
                                             key={String(ds.index != null ? ds.index : ds.name)}
@@ -1587,9 +1586,6 @@ const DataSetPage = () => {
                             >
                                 {tcStarting ? 'Запускаю…' : 'Проверить тональность'}
                             </button>
-                            {tcJob && tcJob.job_id && (
-                                <span style={{ color: '#98a2b3', paddingBottom: 8 }}>задача {tcJob.job_id}</span>
-                            )}
                         </div>
 
                         {tcErr && <div style={{ color: '#c53030', marginTop: 8 }}>{tcErr}</div>}
@@ -1602,10 +1598,10 @@ const DataSetPage = () => {
                                     <div style={{ marginTop: 8, color: '#101828' }}>
                                         {tcJob.summary.agreement != null && (
                                         <div>
-                                            Согласие с источником: <b>{Math.round((tcJob.summary.agreement || 0) * 1000) / 10}%</b>
+                                            Наша оценка совпала с источником: <b>{Math.round((tcJob.summary.agreement || 0) * 1000) / 10}%</b>
                                             {' · '}каппа Коэна: <b>{Math.round((tcJob.summary.kappa || 0) * 100) / 100}</b>
                                             {' · '}расхождений: <b>{tcJob.summary.mismatches}</b>
-                                            {tcJob.summary.pass2_share != null ? ' · решала 32B: ' + Math.round((tcJob.summary.pass2_share || 0) * 100) + '%' : ''}
+                                            {tcJob.summary.pass2_share != null ? ' · спорных разобрала сильная модель: ' + Math.round((tcJob.summary.pass2_share || 0) * 100) + '%' : ''}
                                         </div>
                                         )}
                                         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6 }}>
@@ -1631,7 +1627,7 @@ const DataSetPage = () => {
                                                 rel='noreferrer'
                                                 style={{ color: '#667085' }}
                                             >
-                                                Отчёт в JSON
+                                                Данные отчёта
                                             </a>
                                         </div>
                                         {Array.isArray(tcJob.conclusions) && tcJob.conclusions.length > 0 && (
@@ -1656,7 +1652,7 @@ const DataSetPage = () => {
                                         <table style={{ borderCollapse: 'collapse', marginTop: 4, fontSize: 12 }}>
                                             <thead>
                                                 <tr>
-                                                    {['Объект', 'Упоминаний', 'Позитив', 'Нейтрал', 'Негатив', 'Индекс тона'].map(h => (
+                                                    {['Объект', 'Упоминаний', 'Позитив', 'Нейтрал', 'Негатив', 'Перевес позитива'].map(h => (
                                                         <th
                                                             key={h}
                                                             style={{ border: '1px solid #e4e7ec', padding: '3px 8px', textAlign: 'left', color: '#667085', fontWeight: 600 }}
@@ -1695,11 +1691,11 @@ const DataSetPage = () => {
 
                                 {tcJob.status === 'cancelled' && (
                                     <div style={{ marginTop: 8, color: '#b54708' }}>
-                                        Проверка остановлена. По уже размеченным сообщениям отчёт собран.
+                                        Проверка остановлена. Отчёт собран по уже проверенным сообщениям.
                                     </div>
                                 )}
                                 {tcJob.status === 'error' && (
-                                    <div style={{ marginTop: 8, color: '#c53030' }}>Ошибка: {tcJob.error || 'неизвестная'}</div>
+                                    <div style={{ marginTop: 8, color: '#c53030' }}>Не получилось: {tcJob.error || 'попробуйте ещё раз'}</div>
                                 )}
                             </div>
                         )}
