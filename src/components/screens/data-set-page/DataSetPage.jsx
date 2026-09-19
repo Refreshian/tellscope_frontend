@@ -1598,14 +1598,16 @@ const DataSetPage = () => {
                             <div>
                                 <ToneProgressCard job={tcJob} onCancel={tcCancel} />
 
-                                {tcJob.status === 'done' && tcJob.summary && tcJob.summary.agreement != null && (
+                                {tcJob.status === 'done' && tcJob.summary && (tcJob.summary.agreement != null || (Array.isArray(tcJob.aspect_objects) && tcJob.aspect_objects.length > 0)) && (
                                     <div style={{ marginTop: 8, color: '#101828' }}>
+                                        {tcJob.summary.agreement != null && (
                                         <div>
                                             Согласие с источником: <b>{Math.round((tcJob.summary.agreement || 0) * 1000) / 10}%</b>
                                             {' · '}каппа Коэна: <b>{Math.round((tcJob.summary.kappa || 0) * 100) / 100}</b>
                                             {' · '}расхождений: <b>{tcJob.summary.mismatches}</b>
                                             {tcJob.summary.pass2_share != null ? ' · решала 32B: ' + Math.round((tcJob.summary.pass2_share || 0) * 100) + '%' : ''}
                                         </div>
+                                        )}
                                         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6 }}>
                                             <a
                                                 href={'/api/tone-check/' + tcJob.job_id + '/report/file?fmt=docx'}
