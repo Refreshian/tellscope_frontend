@@ -184,15 +184,19 @@ const DataForSearch = ({
               ) : null}
 
             </div>
-            {toneMap[option.index_number] && Number(toneMap[option.index_number].labeled) > 0 && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto' }}>
-                {toneBusy === option.index_number ? (
-                  <span style={{ color: '#667085', fontSize: 11 }}>…</span>
-                ) : toneMap[option.index_number].tone_mode === 'relabeled' ? (
-                  <>
+            {toneMap[option.index_number] && Number(toneMap[option.index_number].labeled) > 0 && (() => {
+              const info = toneMap[option.index_number];
+              const applied = Number(info.tone_applied || 0);
+              const labeled = Number(info.labeled || 0);
+              const partial = info.tone_mode === 'relabeled' && applied < labeled;
+              if (toneBusy === option.index_number) {
+                return <span style={{ color: '#667085', fontSize: 11, flex: '0 0 auto' }}>…</span>;
+              }
+              if (info.tone_mode === 'relabeled' && !partial) {
+                return (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto' }}>
                     <span
-                      title={'Аналитика считает по нашей разметке: перенесено ' +
-                        (toneMap[option.index_number].tone_applied || 0) + ' сообщений'}
+                      title={'Аналитика считает по нашей разметке: перенесено ' + applied + ' сообщений'}
                       style={{ color: '#067647', background: '#ecfdf3', border: '1px solid #abefc6', borderRadius: 999, padding: '1px 8px', fontSize: 11, whiteSpace: 'nowrap' }}
                     >
                       тональность обновлена
@@ -205,28 +209,30 @@ const DataForSearch = ({
                     >
                       вернуть
                     </button>
-                  </>
-                ) : (
-                  <>
-                    <span
-                      title={'Наша разметка есть у ' + toneMap[option.index_number].labeled + ' из ' +
-                        toneMap[option.index_number].docs + ' сообщений, но разделы пока считают по источнику'}
-                      style={{ color: '#b54708', background: '#fffaeb', border: '1px solid #fedf89', borderRadius: 999, padding: '1px 8px', fontSize: 11, whiteSpace: 'nowrap' }}
-                    >
-                      размечено {toneMap[option.index_number].labeled}
-                    </span>
-                    <button
-                      type='button'
-                      title='Считать по нашей разметке во всех разделах'
-                      onClick={e => { e.stopPropagation(); toggleToneMode(option, true); }}
-                      style={{ background: 'none', border: '1px solid #F79009', color: '#b54708', borderRadius: 6, fontSize: 11, cursor: 'pointer', padding: '1px 6px' }}
-                    >
-                      применять
-                    </button>
-                  </>
-                )}
-              </span>
-            )}
+                  </span>
+                );
+              }
+              return (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto' }}>
+                  <span
+                    title={partial
+                      ? 'Перенос не закончен: перенесено ' + applied + ' из ' + labeled + ' сообщений с нашей разметкой'
+                      : 'Наша разметка есть у ' + labeled + ' из ' + Number(info.docs || 0) + ' сообщений, но разделы пока считают по источнику'}
+                    style={{ color: '#b54708', background: '#fffaeb', border: '1px solid #fedf89', borderRadius: 999, padding: '1px 8px', fontSize: 11, whiteSpace: 'nowrap' }}
+                  >
+                    {partial ? 'обновлено ' + applied + ' из ' + labeled : 'размечено ' + labeled}
+                  </span>
+                  <button
+                    type='button'
+                    title={partial ? 'Довести перенос до конца' : 'Считать по нашей разметке во всех разделах'}
+                    onClick={e => { e.stopPropagation(); toggleToneMode(option, true); }}
+                    style={{ background: 'none', border: '1px solid #F79009', color: '#b54708', borderRadius: 6, fontSize: 11, cursor: 'pointer', padding: '1px 6px' }}
+                  >
+                    {partial ? 'дополнить' : 'применять'}
+                  </button>
+                </span>
+              );
+            })()}
             <button
               type='button'
               className={styles.deleteButton}
