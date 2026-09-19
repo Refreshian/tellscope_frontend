@@ -34,6 +34,62 @@ const DataForSearch = ({
   const themeName = option => (showHtmlFiles ? option['html-file'] : option.file);
   const isDatasetOption = option => !option['html-file'] && option.index_number != null;
 
+  // Режим тональности по темам: видно, где тональность уже обновлена нашей разметкой,
+  // а где разметка есть, но аналитика пока считает по источнику. Тут же её можно применить.
+  const [toneMap, setToneMap] = useState({});
+  const [toneBusy, setToneBusy] = useState(null);
+
+  const readToken = () => {
+    const match = document.cookie.split('; ').find(x => x.startsWith('token='));
+    return match ? decodeURIComponent(match.slice('token='.length)) : '';
+  };
+
+  const loadToneModes = async () => {
+    try {
+      const token = readToken();
+      const r = await fetch('/api/tone-check/datasets', {
+        headers: token ? { Authorization: 'Bearer ' + token } : {},
+      });
+      if (!r.ok) return;
+      const d = await r.json();
+      const map = {};
+      (d.datasets || []).forEach(ds => {
+        if (ds && ds.index != null) map[ds.index] = ds;
+      });
+      setToneMap(map);
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    loadToneModes();
+  }, []);
+
+  const toggleToneMode = async (option, on) => {
+    setToneBusy(option.index_number);
+    setDeleteErr('');
+    try {
+      const token = readToken();
+      const r = await fetch('/api/tone-check/tone-mode', {
+        method: 'POST',
+        headers: Object.assign(
+          { 'Content-Type': 'application/json' },
+          token ? { Authorization: 'Bearer ' + token } : {},
+        ),
+        body: JSON.stringify({ index: String(option.index_number), mode: on ? 'relabeled' : 'source' }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setDeleteErr(d.detail || 'Не удалось переключить режим тональности');
+        return;
+      }
+      await loadToneModes();
+    } catch (e) {
+      setDeleteErr('Не удалось переключить режим тональности: нет связи с сервером');
+    } finally {
+      setToneBusy(null);
+    }
+  };
+
   const deleteTheme = async (option, folderPath) => {
     const name = themeName(option);
     const label = String(name || '').replace(/\.json$/i, '');
@@ -128,6 +184,49 @@ const DataForSearch = ({
               ) : null}
 
             </div>
+            {toneMap[option.index_number] && Number(toneMap[option.index_number].labeled) > 0 && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto' }}>
+                {toneBusy === option.index_number ? (
+                  <span style={{ color: '#667085', fontSize: 11 }}>…</span>
+                ) : toneMap[option.index_number].tone_mode === 'relabeled' ? (
+                  <>
+                    <span
+                      title={'Аналитика считает по нашей разметке: перенесено ' +
+                        (toneMap[option.index_number].tone_applied || 0) + ' сообщений'}
+                      style={{ color: '#067647', background: '#ecfdf3', border: '1px solid #abefc6', borderRadius: 999, padding: '1px 8px', fontSize: 11, whiteSpace: 'nowrap' }}
+                    >
+                      тональность обновлена
+                    </span>
+                    <button
+                      type='button'
+                      title='Вернуть разметку источника'
+                      onClick={e => { e.stopPropagation(); toggleToneMode(option, false); }}
+                      style={{ background: 'none', border: 'none', color: '#667085', fontSize: 11, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                    >
+                      вернуть
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span
+                      title={'Наша разметка есть у ' + toneMap[option.index_number].labeled + ' из ' +
+                        toneMap[option.index_number].docs + ' сообщений, но разделы пока считают по источнику'}
+                      style={{ color: '#b54708', background: '#fffaeb', border: '1px solid #fedf89', borderRadius: 999, padding: '1px 8px', fontSize: 11, whiteSpace: 'nowrap' }}
+                    >
+                      размечено {toneMap[option.index_number].labeled}
+                    </span>
+                    <button
+                      type='button'
+                      title='Считать по нашей разметке во всех разделах'
+                      onClick={e => { e.stopPropagation(); toggleToneMode(option, true); }}
+                      style={{ background: 'none', border: '1px solid #F79009', color: '#b54708', borderRadius: 6, fontSize: 11, cursor: 'pointer', padding: '1px 6px' }}
+                    >
+                      применять
+                    </button>
+                  </>
+                )}
+              </span>
+            )}
             <button
               type='button'
               className={styles.deleteButton}
