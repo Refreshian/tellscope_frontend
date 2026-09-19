@@ -791,6 +791,10 @@ const DataSetPage = () => {
     const [tcSettingsOpen, setTcSettingsOpen] = useState(false);
     // Сама панель проверки тональности тоже скрыта: открывается оранжевой кнопкой справа.
     const [tcOpen, setTcOpen] = useState(false);
+    // Переключатель «считать по обновлённой разметке»: состояние режима для выбранного набора.
+    const [tcToneMode, setTcToneMode] = useState(null);
+    const [tcToneModeBusy, setTcToneModeBusy] = useState(false);
+    const tcToneModeTimer = useRef(null);
     const tcDsBoxRef = useRef(null);
     const [tcJob, setTcJob] = useState(null);
     const [tcErr, setTcErr] = useState('');
@@ -829,6 +833,65 @@ const DataSetPage = () => {
                 tcStopPoll();
             }
         } catch (e) {}
+    };
+
+    const tcLoadToneMode = async indexKey => {
+        if (!indexKey) {
+            setTcToneMode(null);
+            return;
+        }
+        try {
+            const r = await fetch('/api/tone-check/tone-mode?index=' + encodeURIComponent(indexKey), { headers: authHeaders() });
+            const d = await r.json();
+            if (!r.ok) {
+                setTcToneMode(null);
+                return;
+            }
+            setTcToneMode(d);
+            if (d.status === 'running') tcWatchToneMode(indexKey);
+        } catch (e) {
+            setTcToneMode(null);
+        }
+    };
+
+    // Пока Elasticsearch переносит разметку, показываем прогресс: работа идёт на сервере.
+    const tcWatchToneMode = indexKey => {
+        if (tcToneModeTimer.current) clearInterval(tcToneModeTimer.current);
+        tcToneModeTimer.current = setInterval(async () => {
+            try {
+                const r = await fetch('/api/tone-check/tone-mode?index=' + encodeURIComponent(indexKey), { headers: authHeaders() });
+                const d = await r.json();
+                if (!r.ok) return;
+                setTcToneMode(d);
+                if (d.status !== 'running' && tcToneModeTimer.current) {
+                    clearInterval(tcToneModeTimer.current);
+                    tcToneModeTimer.current = null;
+                }
+            } catch (e) {}
+        }, 3000);
+    };
+
+    const tcSetToneMode = async on => {
+        if (!tcIndex) return;
+        setTcToneModeBusy(true);
+        setTcErr('');
+        try {
+            const r = await fetch('/api/tone-check/tone-mode', {
+                method: 'POST',
+                headers: authHeaders(true),
+                body: JSON.stringify({ index: tcIndex, mode: on ? 'relabeled' : 'source' }),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) {
+                setTcErr(d.detail || 'Не удалось переключить режим тональности');
+                return;
+            }
+            await tcLoadToneMode(tcIndex);
+        } catch (e) {
+            setTcErr('Не удалось переключить режим тональности: нет связи с сервером');
+        } finally {
+            setTcToneModeBusy(false);
+        }
     };
 
     const tcLoadDatasets = () => {
@@ -943,7 +1006,13 @@ const DataSetPage = () => {
     // Подсказки (темы датасета, частые термины, площадки, авторы) — по выбранному датасету.
     useEffect(() => {
         tcLoadOptions(tcIndex);
+        tcLoadToneMode(tcIndex);
     }, [tcIndex]);
+
+    // Убираем опрос состояния переключателя при уходе со страницы.
+    useEffect(() => () => {
+        if (tcToneModeTimer.current) clearInterval(tcToneModeTimer.current);
+    }, []);
 
     // Объём под областью: пересчитывается по мере правки фильтров, ДО запуска.
     useEffect(() => {
@@ -1481,8 +1550,8 @@ const DataSetPage = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                             <b style={{ fontSize: 13 }}>Проверка тональности</b>
                             <span style={{ color: '#667085' }}>
-                                Модели сами определят тональность и отношение к объекту, разметку источника
-                                мы не меняем — вы получите собственную оценку по каждому сообщению.
+                                Модели сами определят тональность и отношение к объекту. Разметку источника
+                                сохраняем отдельно — её всегда видно в отчёте и можно вернуть переключателем.
                             </span>
                             <button
                                 type='button'
@@ -1663,6 +1732,52 @@ const DataSetPage = () => {
                                     </span>
                                 )}
                             </div>
+
+                            {tcIndex && tcToneMode && (
+                                <div style={{ marginTop: 6 }}>
+                                    <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', color: '#344054' }}>
+                                        <input
+                                            type='checkbox'
+                                            checked={tcToneMode.mode === 'relabeled'}
+                                            disabled={tcToneModeBusy || !Number(tcToneMode.stats && tcToneMode.stats.labeled)}
+                                            onChange={e => tcSetToneMode(e.target.checked)}
+                                            style={{ marginTop: 2 }}
+                                        />
+                                        <span>
+                                            <b>Считать по обновлённой разметке</b>
+                                            {Number(tcToneMode.stats && tcToneMode.stats.labeled) > 0 ? (
+                                                <>
+                                                    {' — наша разметка есть у '}
+                                                    <b>{tcToneMode.stats.labeled}</b>
+                                                    {' из '}
+                                                    {tcToneMode.stats.docs}
+                                                    {' сообщений ('}
+                                                    {Math.round((tcToneMode.coverage || 0) * 100)}
+                                                    {'%). У этих сообщений она станет тональностью во всех разделах: '}
+                                                    таблицы, графики, аналитика, конструктор отчётов. У остальных останется
+                                                    разметка источника.
+                                                </>
+                                            ) : (
+                                                ' — пока нечего переносить: сначала выполните проверку тональности по этому набору.'
+                                            )}
+                                            {tcToneMode.mode === 'relabeled' && (
+                                                <span style={{ color: '#067647' }}>
+                                                    {' '}Включено: разделы считают по нашей разметке. Разметка источника
+                                                    сохранена — при выключении всё вернётся.
+                                                </span>
+                                            )}
+                                        </span>
+                                    </label>
+                                    {tcToneModeBusy && <div style={{ color: '#1760e8', marginTop: 2 }}>Переключаю…</div>}
+                                    {!tcToneModeBusy && tcToneMode.status === 'running' && tcToneMode.progress && tcToneMode.progress.total > 0 && (
+                                        <div style={{ color: '#1760e8', marginTop: 2 }}>
+                                            {tcToneMode.mode === 'relabeled' ? 'Переношу разметку: ' : 'Возвращаю разметку источника: '}
+                                            {tcToneMode.progress.done} из {tcToneMode.progress.total}
+                                            {' '}({Math.round((tcToneMode.progress.done / Math.max(1, tcToneMode.progress.total)) * 100)}%)
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             {tcSettingsOpen && (
                             <>
                             {tcScope && Array.isArray(tcScope.by_hub) && tcScope.by_hub.length > 0 && (
