@@ -368,7 +368,7 @@ const DataForSearch = ({
           )}
           {!deleteErr && (
             <div style={{ color: '#98a2b3', padding: '6px 10px 2px', fontSize: 11 }}>
-              Значок корзины справа удаляет тему вместе с сообщениями и разметкой
+              Корзина удаляет данные и фильтры по ним
             </div>
           )}
         </div>
