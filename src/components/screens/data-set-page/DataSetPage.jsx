@@ -782,7 +782,11 @@ const DataSetPage = () => {
     const [tcLoadingDs, setTcLoadingDs] = useState(false);
     const [tcIndex, setTcIndex] = useState('');
     const [tcMode, setTcMode] = useState('sample');
-    const [tcSize, setTcSize] = useState(1000);
+    // Размер выборки: 500 или вся выборка целиком — промежуточный вариант убран.
+    const [tcSize, setTcSize] = useState(500);
+    const [tcDsOpen, setTcDsOpen] = useState(false);
+    const [tcDeleting, setTcDeleting] = useState('');
+    const tcDsBoxRef = useRef(null);
     const [tcJob, setTcJob] = useState(null);
     const [tcErr, setTcErr] = useState('');
     const [tcStarting, setTcStarting] = useState(false);
@@ -891,7 +895,7 @@ const DataSetPage = () => {
         index: tcIndex,
         label_mode: tcLabelMode,
         mode: tcMode,
-        sample_size: tcMode === 'full' ? 1000 : Number(tcSize) || 1000,
+        sample_size: tcMode === 'full' ? 500 : Number(tcSize) || 500,
         min_date: tcDayStart(tcFrom),
         max_date: tcDayEnd(tcTo),
         objects: tcObjects,
@@ -966,7 +970,8 @@ const DataSetPage = () => {
         setTcIndex(item.index != null ? String(item.index) : '');
         setTcLabelMode(item.label_mode || 'message');
         setTcMode(item.mode || 'sample');
-        setTcSize(Number(item.sample_size) || 1000);
+        // Размер выборки теперь только один — 500; старые пресеты с другим числом приводим к нему.
+        setTcSize(500);
         setTcObjects(Array.isArray(item.objects) ? item.objects : []);
         setTcTheme(item.theme || '');
         setTcHub(item.hub || '');
@@ -1065,7 +1070,7 @@ const DataSetPage = () => {
         await tcStart({
             index: item.index != null ? String(item.index) : '',
             mode: item.mode || 'sample',
-            sample_size: Number(item.sample_size) || 1000,
+            sample_size: 500,
             min_date: item.min_date || null,
             max_date: item.max_date || null,
             label_mode: item.label_mode || 'message',
@@ -1098,6 +1103,57 @@ const DataSetPage = () => {
         } catch (e) {
             setTcCancelling(false);
             setTcErr('Не удалось остановить проверку: нет связи с сервером');
+        }
+    };
+
+    // Закрываем выпадающий список наборов по клику вне его и по Escape.
+    useEffect(() => {
+        if (!tcDsOpen) return undefined;
+        const onDown = e => {
+            if (tcDsBoxRef.current && !tcDsBoxRef.current.contains(e.target)) setTcDsOpen(false);
+        };
+        const onKey = e => {
+            if (e.key === 'Escape') setTcDsOpen(false);
+        };
+        document.addEventListener('mousedown', onDown);
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('mousedown', onDown);
+            document.removeEventListener('keydown', onKey);
+        };
+    }, [tcDsOpen]);
+
+    const tcDatasetValue = ds => String(ds && ds.index != null ? ds.index : ds && ds.name);
+
+    const tcDeleteDataset = async ds => {
+        if (!ds) return;
+        const value = tcDatasetValue(ds);
+        const label = ds.label || ds.name;
+        const ok = window.confirm(
+            'Удалить набор данных «' + label + '» — ' + ds.docs + ' сообщ.' +
+                (ds.labeled ? ', из них размечено ' + ds.labeled : '') +
+                '?\n\nСообщения набора и результаты разметки удаляются безвозвратно. ' +
+                'Отчёты, уже сохранённые в папке «Отчёты», останутся.',
+        );
+        if (!ok) return;
+        setTcDeleting(value);
+        setTcErr('');
+        try {
+            const r = await fetch('/api/tone-check/datasets/' + encodeURIComponent(value), {
+                method: 'DELETE',
+                headers: authHeaders(),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) {
+                setTcErr(d.detail || 'Не удалось удалить набор данных');
+                return;
+            }
+            setTcDatasets(list => list.filter(item => tcDatasetValue(item) !== value));
+            if (tcIndex === value) setTcIndex('');
+        } catch (e) {
+            setTcErr('Не удалось удалить набор данных: нет связи с сервером');
+        } finally {
+            setTcDeleting('');
         }
     };
 
@@ -1563,25 +1619,148 @@ const DataSetPage = () => {
                         </div>
 
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', marginTop: 8 }}>
-                            <label style={{ fontSize: 12, color: '#344054' }}>
-                                Набор данных
-                                <select
-                                    style={{ display: 'block', marginTop: 4, minWidth: 280, maxWidth: 420, padding: '7px 10px', borderRadius: 8, border: '1px solid #d0d7e2' }}
-                                    value={tcIndex}
-                                    onChange={e => setTcIndex(e.target.value)}
-                                    disabled={tcLoadingDs}
+                            <div style={{ fontSize: 12, color: '#344054', position: 'relative' }} ref={tcDsBoxRef}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span>Набор данных</span>
+                                    {tcDatasets.length > 0 && (
+                                        <span style={{ color: '#98a2b3' }}>
+                                            · удалить можно крестиком в списке
+                                        </span>
+                                    )}
+                                </div>
+                                <div
+                                    role='button'
+                                    tabIndex={0}
+                                    onClick={() => !tcLoadingDs && setTcDsOpen(v => !v)}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            if (!tcLoadingDs) setTcDsOpen(v => !v);
+                                        }
+                                    }}
+                                    style={{
+                                        marginTop: 4,
+                                        minWidth: 280,
+                                        maxWidth: 460,
+                                        padding: '7px 10px',
+                                        borderRadius: 8,
+                                        border: '1px solid ' + (tcDsOpen ? '#1760e8' : '#d0d7e2'),
+                                        background: '#fff',
+                                        cursor: tcLoadingDs ? 'default' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                    }}
                                 >
-                                    <option value=''>{tcLoadingDs ? '— загружаю список —' : '— выберите набор данных —'}</option>
-                                    {tcDatasets.map(ds => (
-                                        <option
-                                            key={String(ds.index != null ? ds.index : ds.name)}
-                                            value={String(ds.index != null ? ds.index : ds.name)}
-                                        >
-                                            {ds.label || ds.name} · {ds.docs} сообщ.{ds.labeled ? ' · размечено ' + ds.labeled : ''}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
+                                    <span
+                                        style={{
+                                            flex: 1,
+                                            color: tcIndex ? '#101828' : '#98a2b3',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {tcLoadingDs
+                                            ? '— загружаю список —'
+                                            : (() => {
+                                                  const sel = tcDatasets.find(ds => tcDatasetValue(ds) === tcIndex);
+                                                  return sel
+                                                      ? (sel.label || sel.name) + ' · ' + sel.docs + ' сообщ.'
+                                                      : '— выберите набор данных —';
+                                              })()}
+                                    </span>
+                                    <span style={{ color: '#667085', fontSize: 10 }}>{tcDsOpen ? '▲' : '▼'}</span>
+                                </div>
+                                {tcDsOpen && (
+                                    <div
+                                        style={{
+                                            position: 'absolute',
+                                            zIndex: 30,
+                                            marginTop: 4,
+                                            minWidth: 340,
+                                            maxWidth: 520,
+                                            maxHeight: 300,
+                                            overflowY: 'auto',
+                                            background: '#fff',
+                                            border: '1px solid #d0d7e2',
+                                            borderRadius: 8,
+                                            boxShadow: '0 12px 28px rgba(16,24,40,.14)',
+                                        }}
+                                    >
+                                        {tcDatasets.length === 0 && (
+                                            <div style={{ padding: '8px 10px', color: '#667085' }}>
+                                                — наборов нет —
+                                            </div>
+                                        )}
+                                        {tcDatasets.map(ds => {
+                                            const value = tcDatasetValue(ds);
+                                            const active = value === tcIndex;
+                                            return (
+                                                <div
+                                                    key={value}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 8,
+                                                        padding: '7px 10px',
+                                                        borderTop: '1px solid #f2f4f7',
+                                                        background: active ? '#f6f9ff' : '#fff',
+                                                    }}
+                                                >
+                                                    <span
+                                                        role='button'
+                                                        tabIndex={0}
+                                                        title={ds.name}
+                                                        onClick={() => {
+                                                            setTcIndex(value);
+                                                            setTcDsOpen(false);
+                                                        }}
+                                                        onKeyDown={e => {
+                                                            if (e.key === 'Enter') {
+                                                                setTcIndex(value);
+                                                                setTcDsOpen(false);
+                                                            }
+                                                        }}
+                                                        style={{
+                                                            flex: 1,
+                                                            cursor: 'pointer',
+                                                            color: '#101828',
+                                                            fontSize: 13,
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap',
+                                                        }}
+                                                    >
+                                                        {ds.label || ds.name} · {ds.docs} сообщ.
+                                                        {ds.labeled ? ' · размечено ' + ds.labeled : ''}
+                                                    </span>
+                                                    <button
+                                                        type='button'
+                                                        title='Удалить набор данных'
+                                                        disabled={tcDeleting === value}
+                                                        onClick={e => {
+                                                            e.stopPropagation();
+                                                            tcDeleteDataset(ds);
+                                                        }}
+                                                        style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            color: tcDeleting === value ? '#98a2b3' : '#b42318',
+                                                            cursor: tcDeleting === value ? 'default' : 'pointer',
+                                                            fontSize: 16,
+                                                            lineHeight: 1,
+                                                            padding: '0 4px',
+                                                        }}
+                                                    >
+                                                        {tcDeleting === value ? '…' : '×'}
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
 
                             <label style={{ fontSize: 12, color: '#344054', display: 'flex', gap: 12, alignItems: 'center', paddingBottom: 8, flexWrap: 'wrap' }}>
                                 <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
@@ -1595,18 +1774,6 @@ const DataSetPage = () => {
                                         }}
                                     />
                                     выборка 500
-                                </span>
-                                <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
-                                    <input
-                                        type='radio'
-                                        name='tcMode'
-                                        checked={tcMode === 'sample' && Number(tcSize) === 1000}
-                                        onChange={() => {
-                                            setTcMode('sample');
-                                            setTcSize(1000);
-                                        }}
-                                    />
-                                    выборка 1000
                                 </span>
                                 <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
                                     <input type='radio' name='tcMode' checked={tcMode === 'full'} onChange={() => setTcMode('full')} />
