@@ -183,39 +183,40 @@ const DataInFolder = () => {
 
   // Эффект для проверки и обновления данных при изменении URL
   useEffect(() => {
-    // Если имя папки из URL не совпадает с текущим в состоянии,
-    // можно выполнить дополнительные действия
+    // Обновлять можно только запущенный запрос: пока id из /me не пришёл, запрос пропущен
+    // (skip), а вызов refetch() на незапущенном запросе роняет всё приложение — при Ctrl+R
+    // в папке получался белый экран.
+    if (!data_getUserId) return;
     if (urlFolderName && name_folder !== urlFolderName) {
-      // Например, запросить данные для новой папки
-      refetch();
+      try {
+        refetch();
+      } catch (e) {
+        // Обновление — не повод ломать страницу: данные подтянутся обычным запросом.
+      }
     }
-  }, [urlFolderName, name_folder, refetch]);
+  }, [urlFolderName, name_folder, data_getUserId, refetch]);
 
-  const renderFiles = (folderName, allData) => {
-    if (!folderName || typeof folderName === 'object' || !allData)
+  const renderFiles = (folderName, source) => {
+    const key = isDataSetPath ? 'projector_files_directory' : 'json_files_directory';
+    if (!folderName || typeof folderName === 'object' || !source) {
       return { json_files_directory: [] };
-    
-    if (isDataSetPath) {
-      if (folderName.trim() in allData.projector_files_directory) {
-        return {
-          json_files_directory: allData.projector_files_directory[folderName],
-        };
-      } else {
-        return { json_files_directory: [] };
-      }
-    } else {
-      if (folderName.trim() in allData.json_files_directory) {
-        return {
-          json_files_directory: allData.json_files_directory[folderName],
-        };
-      } else {
-        return { json_files_directory: [] };
-      }
     }
+    const map = source[key];
+    // Карты может не быть вовсе (например, пустое состояние redux) — тогда просто пустой список,
+    // а не падение «Cannot use 'in' operator ... in undefined».
+    if (!map || typeof map !== 'object') {
+      return { json_files_directory: [] };
+    }
+    const list = map[String(folderName).trim()];
+    return { json_files_directory: Array.isArray(list) ? list : [] };
   };
 
   // Используем имя папки из URL, если оно есть, иначе из состояния
   const activeFolderName = urlFolderName || name_folder;
+  // При прямой загрузке страницы (Ctrl+R) состояние redux пустое (или пустой объект), поэтому
+  // берём тот источник, где действительно есть список файлов: сначала redux, затем данные запроса.
+  const dirKey = isDataSetPath ? 'projector_files_directory' : 'json_files_directory';
+  const foldersData = allData && allData[dirKey] ? allData : data;
   const dynamicDirectoryFile = isDataSetPath
     ? ['tsv-file', 'txt-file']
     : ['file'];
@@ -223,7 +224,7 @@ const DataInFolder = () => {
   // Сортировка идёт после поиска и до пагинации: свежий файл попадает на первую строку
   // первой страницы. Дата — поле `created` (секунды Unix), которое отдаёт API папок.
   const files = sortByMode(
-    renderFiles(activeFolderName, data).json_files_directory.filter(file => {
+    renderFiles(activeFolderName, foldersData).json_files_directory.filter(file => {
       return dynamicDirectoryFile.some(
         key =>
           file[key] &&
@@ -235,7 +236,7 @@ const DataInFolder = () => {
     rowName,
   );
 
-  const allFiles = renderFiles(activeFolderName, data).json_files_directory;
+  const allFiles = renderFiles(activeFolderName, foldersData).json_files_directory;
 
   const totalPages = Math.ceil(files.length / filesPerPage);
 
@@ -261,7 +262,7 @@ const DataInFolder = () => {
     display: isPopupDelete && folderName === name ? 'none' : 'flex',
   });
 
-  if (!data || !allData || !processedData) {
+  if (!data || !foldersData) {
     return <p>Загрузка данных...</p>;
   }
 
@@ -272,7 +273,7 @@ const DataInFolder = () => {
         Назад
       </button>
       <div className={styles.block__title}>
-        <h3 className={styles.title}>{data.name}</h3>
+        <h3 className={styles.title}>{data.name || activeFolderName}</h3>
         {allFiles.length > 0 && (
           <FileSortSwitch
             value={sortMode}

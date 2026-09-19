@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 
 import AuthProvider from './providers/AuthProvider.jsx';
 import Router from './routes/Router.jsx';
+import ErrorBoundary from './components/ui/error-boundary/ErrorBoundary.jsx';
 import { store } from './store/store.js';
 import './styles/global.scss';
 
@@ -11,7 +12,9 @@ createRoot(document.getElementById('root')).render(
 	<StrictMode>
 		<AuthProvider>
 			<Provider store={store}>
-				<Router />
+				<ErrorBoundary>
+					<Router />
+				</ErrorBoundary>
 			</Provider>
 		</AuthProvider>
 	</StrictMode>,
