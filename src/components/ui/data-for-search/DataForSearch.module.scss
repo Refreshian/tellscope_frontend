@@ -352,21 +352,33 @@
    Раньше стили .deleteButton и .optionContent лежали внутри медиа-запроса max-width: 375px,
    поэтому на обычном экране корзина была без стилей, а длинное название темы выдавливало её
    за границу списка — корзину было не видно. Здесь те же правила на верхнем уровне. */
+/* Список тем шире, чем поле выбора: иначе название темы не помещается
+   и превращается в «petrov_platon_2...». */
+.block__options {
+	min-width: 760px;
+	width: auto;
+	max-width: 92vw;
+}
+
 .option {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 8px;
 	flex-wrap: nowrap;
-	overflow: hidden;
 
 	.optionContent {
 		display: flex;
 		align-items: center;
 		flex: 1 1 auto;
 		min-width: 0;
+		/* Период и дата получения уходят на вторую строку — название темы
+		   получает всю ширину и остаётся в одну строку. */
+		flex-wrap: wrap;
+		row-gap: 2px;
 
 		> p {
+			flex: 1 1 auto;
 			min-width: 0;
 			overflow: hidden;
 			text-overflow: ellipsis;
@@ -374,7 +386,7 @@
 		}
 
 		> div {
-			flex: 0 0 auto;
+			flex: 1 0 100%;
 		}
 	}
 
@@ -408,6 +420,14 @@
 			cursor: default;
 			opacity: 0.4;
 		}
+	}
+}
+
+/* На узких экранах список занимает всю ширину, и название обрезается многоточием. */
+@media (max-width: 900px) {
+	.block__options {
+		min-width: 0;
+		width: 100%;
 	}
 }
 

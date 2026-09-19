@@ -175,7 +175,7 @@ const DataForSearch = ({
               <p>
                 {directory === 'bertopic'
                   ? (showHtmlFiles ? option['html-file'] : option.file)
-                  : truncateMiddle(showHtmlFiles ? option['html-file'] : option.file, 30)}
+                  : (showHtmlFiles ? option['html-file'] : option.file)}
               </p>
               {hasFileMeta(option) ? (
                 <div style={{ color: '#98a2b3', fontSize: 11, marginTop: 2, maxWidth: '100%', overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.35 }}>
