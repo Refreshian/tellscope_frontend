@@ -347,3 +347,67 @@
 	flex: 0 0 18px;
 	transition: transform 0.15s ease;
 }
+
+/* ===== Tellscope: строка темы с удалением =====
+   Раньше стили .deleteButton и .optionContent лежали внутри медиа-запроса max-width: 375px,
+   поэтому на обычном экране корзина была без стилей, а длинное название темы выдавливало её
+   за границу списка — корзину было не видно. Здесь те же правила на верхнем уровне. */
+.option {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	flex-wrap: nowrap;
+	overflow: hidden;
+
+	.optionContent {
+		display: flex;
+		align-items: center;
+		flex: 1 1 auto;
+		min-width: 0;
+
+		> p {
+			min-width: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		> div {
+			flex: 0 0 auto;
+		}
+	}
+
+	.deleteButton {
+		flex: 0 0 auto;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 26px;
+		height: 26px;
+		margin-left: 8px;
+		padding: 0;
+		background: none;
+		border: none;
+		border-radius: 6px;
+		cursor: pointer;
+		opacity: 0.75;
+
+		> img {
+			display: block;
+			width: 16px;
+			height: 16px;
+		}
+
+		&:hover {
+			opacity: 1;
+			background: rgba(180, 35, 24, 0.08);
+		}
+
+		&:disabled {
+			cursor: default;
+			opacity: 0.4;
+		}
+	}
+}
+
