@@ -112,7 +112,16 @@ const DataInFolder = () => {
         const map = {};
         d.datasets.forEach(ds => {
           if (!ds || !ds.name) return;
-          map[String(ds.name).toLowerCase()] = { docs: ds.docs || 0, labeled: ds.labeled || 0 };
+          map[String(ds.name).toLowerCase()] = {
+            docs: ds.docs || 0,
+            labeled: ds.labeled || 0,
+            // Настройки самой проверки тональности — показываем их в подсказке метки.
+            objects: Array.isArray(ds.check_objects) ? ds.check_objects.filter(Boolean) : [],
+            labelMode: ds.check_label_mode || '',
+            checked: Number(ds.check_checked || 0),
+            at: ds.check_at || '',
+            mode: ds.tone_mode || 'source',
+          };
         });
         setRelabel(map);
       })
@@ -472,9 +481,20 @@ const DataInFolder = () => {
                           const stem = String(file.file || '').replace(/\.json$/i, '').toLowerCase();
                           const info = relabel[stem];
                           if (!info || !info.labeled) return null;
+                          const hint = [];
+                          if (info.objects.length) hint.push('объекты: «' + info.objects.join('», «') + '»');
+                          if (info.labelMode) {
+                            hint.push(info.labelMode === 'aspect' ? 'оценивали отношение к объектам' : 'тональность сообщения целиком');
+                          }
+                          if (info.checked) hint.push('проверено ' + info.checked + ' сообщ.');
+                          if (info.at) hint.push(String(info.at).slice(0, 16).replace('T', ' '));
+                          if (info.mode === 'relabeled') hint.push('разделы считают по нашей разметке');
                           return (
                             <span
-                              title='Тональность этих сообщений уже проверили наши модели — результат хранится в самих сообщениях набора, разметка источника не изменена'
+                              title={
+                                'Тональность этих сообщений уже проверили наши модели — результат хранится в самих сообщениях набора, разметка источника не изменена' +
+                                (hint.length ? '\n\nПроверка: ' + hint.join(' · ') : '')
+                              }
                               style={{
                                 marginLeft: 8,
                                 color: '#1760e8',

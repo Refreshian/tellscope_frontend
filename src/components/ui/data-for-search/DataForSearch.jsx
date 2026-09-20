@@ -198,15 +198,40 @@ const DataForSearch = ({
               ) : null}
 
             </div>
-            {toneMap[option.index_number] && Number(toneMap[option.index_number].labeled) > 0 && (() => {
+            {toneMap[option.index_number] && (() => {
               const info = toneMap[option.index_number];
               const applied = Number(info.tone_applied || 0);
               const labeled = Number(info.labeled || 0);
               const partial = info.tone_mode === 'relabeled' && applied < labeled;
               const details = toneDetails(info);
               const objects = Array.isArray(info.check_objects) ? info.check_objects.filter(Boolean) : [];
+              const checked = Number(info.check_checked || 0);
+              // Настройки проверки показываем и там, где метки про нашу тональность нет:
+              // пользователь должен видеть, что и по каким объектам он уже проверял.
+              if (labeled <= 0 && !objects.length && !checked) return null;
               if (toneBusy === option.index_number) {
                 return <span style={{ color: '#667085', fontSize: 11, flex: '0 0 auto' }}>…</span>;
+              }
+              if (labeled <= 0) {
+                return (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto' }}>
+                    <span
+                      title={'Тональность проверяли, но нашей разметки в данных нет' + (details ? '\n\nПроверка: ' + details : '')}
+                      style={{ color: '#475467', background: '#f2f4f7', border: '1px solid #e4e7ec', borderRadius: 999, padding: '1px 8px', fontSize: 11, whiteSpace: 'nowrap' }}
+                    >
+                      {checked ? 'проверено ' + checked : 'проверка была'}
+                    </span>
+                    {objects.slice(0, 3).map(o => (
+                      <span
+                        key={o}
+                        title={'Объект из проверки тональности: «' + o + '»'}
+                        style={{ color: '#1760e8', background: '#eef2ff', border: '1px solid #c7d7fe', borderRadius: 999, padding: '1px 8px', fontSize: 11, whiteSpace: 'nowrap' }}
+                      >
+                        {o}
+                      </span>
+                    ))}
+                  </span>
+                );
               }
               if (info.tone_mode === 'relabeled' && !partial) {
                 return (

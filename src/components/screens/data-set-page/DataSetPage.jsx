@@ -1282,6 +1282,23 @@ const DataSetPage = () => {
 
     const tcDatasetValue = ds => String(ds && ds.index != null ? ds.index : ds && ds.name);
 
+    // Краткая расшифровка настроек проверки тональности — в подсказке строки набора данных.
+    const tcCheckHint = ds => {
+        if (!ds) return '';
+        const objects = Array.isArray(ds.check_objects) ? ds.check_objects.filter(Boolean) : [];
+        const checked = Number(ds.check_checked || 0);
+        const parts = [];
+        if (ds.tone_mode === 'relabeled') parts.push('аналитика считает по нашей разметке');
+        if (ds.labeled) parts.push('наша разметка: ' + ds.labeled + ' из ' + ds.docs + ' сообщ.');
+        if (objects.length) parts.push('объекты: «' + objects.join('», «') + '»');
+        if (ds.check_label_mode) {
+            parts.push(ds.check_label_mode === 'aspect' ? 'оценивали отношение к объектам' : 'тональность сообщения целиком');
+        }
+        if (checked) parts.push('проверено ' + checked + ' сообщ.');
+        if (ds.check_at) parts.push(String(ds.check_at).slice(0, 16).replace('T', ' '));
+        return parts.join(' · ');
+    };
+
     const tcDeleteDataset = async ds => {
         if (!ds) return;
         const value = tcDatasetValue(ds);
@@ -2043,6 +2060,8 @@ const DataSetPage = () => {
                                         {tcDatasets.map(ds => {
                                             const value = tcDatasetValue(ds);
                                             const active = value === tcIndex;
+                                            const dsObjects = Array.isArray(ds.check_objects) ? ds.check_objects.filter(Boolean) : [];
+                                            const dsHint = tcCheckHint(ds);
                                             return (
                                                 <div
                                                     key={value}
@@ -2058,7 +2077,7 @@ const DataSetPage = () => {
                                                     <span
                                                         role='button'
                                                         tabIndex={0}
-                                                        title={ds.name}
+                                                        title={ds.name + (dsHint ? '\n\nПроверка тональности: ' + dsHint : '')}
                                                         onClick={() => {
                                                             setTcIndex(value);
                                                             setTcDsOpen(false);
@@ -2081,6 +2100,7 @@ const DataSetPage = () => {
                                                     >
                                                         {ds.label || ds.name} · {ds.docs} сообщ.
                                                         {ds.labeled ? ' · размечено ' + ds.labeled : ''}
+                                                        {dsObjects.length ? ' · объекты: ' + dsObjects.join(', ') : ''}
                                                         {ds.folder ? ' · папка «' + ds.folder + '»' : ''}
                                                     </span>
                                                     <button
