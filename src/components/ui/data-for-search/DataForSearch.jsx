@@ -34,6 +34,20 @@ const DataForSearch = ({
   const themeName = option => (showHtmlFiles ? option['html-file'] : option.file);
   const isDatasetOption = option => !option['html-file'] && option.index_number != null;
 
+  // Настройки последней проверки тональности — для подсказки у метки: по каким объектам,
+  // в каком режиме и когда проверяли.
+  const toneDetails = info => {
+    if (!info) return '';
+    const parts = [];
+    const objects = Array.isArray(info.check_objects) ? info.check_objects.filter(Boolean) : [];
+    if (objects.length) parts.push('объекты: ' + objects.map(o => '«' + o + '»').join(', '));
+    if (info.check_label_mode === 'aspect') parts.push('оценивали отношение к объектам');
+    else if (info.check_label_mode === 'message') parts.push('тональность сообщения целиком');
+    if (info.check_checked) parts.push('проверено ' + Number(info.check_checked).toLocaleString('ru-RU') + ' сообщ.');
+    if (info.check_at) parts.push(String(info.check_at).replace('T', ' ').slice(0, 16));
+    return parts.join(' · ');
+  };
+
   // Режим тональности по темам: видно, где тональность уже обновлена нашей разметкой,
   // а где разметка есть, но аналитика пока считает по источнику. Тут же её можно применить.
   const [toneMap, setToneMap] = useState({});
@@ -189,6 +203,8 @@ const DataForSearch = ({
               const applied = Number(info.tone_applied || 0);
               const labeled = Number(info.labeled || 0);
               const partial = info.tone_mode === 'relabeled' && applied < labeled;
+              const details = toneDetails(info);
+              const objects = Array.isArray(info.check_objects) ? info.check_objects.filter(Boolean) : [];
               if (toneBusy === option.index_number) {
                 return <span style={{ color: '#667085', fontSize: 11, flex: '0 0 auto' }}>…</span>;
               }
@@ -196,11 +212,23 @@ const DataForSearch = ({
                 return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto' }}>
                     <span
-                      title={'Аналитика считает по нашей разметке: перенесено ' + applied + ' сообщений'}
+                      title={
+                        'Аналитика считает по нашей разметке: перенесено ' + applied + ' сообщений' +
+                        (details ? '\n\nПроверка: ' + details : '')
+                      }
                       style={{ color: '#067647', background: '#ecfdf3', border: '1px solid #abefc6', borderRadius: 999, padding: '1px 8px', fontSize: 11, whiteSpace: 'nowrap' }}
                     >
                       тональность обновлена
                     </span>
+                    {objects.slice(0, 3).map(o => (
+                      <span
+                        key={o}
+                        title={'Объект из проверки тональности: «' + o + '»'}
+                        style={{ color: '#1760e8', background: '#eef2ff', border: '1px solid #c7d7fe', borderRadius: 999, padding: '1px 8px', fontSize: 11, whiteSpace: 'nowrap' }}
+                      >
+                        {o}
+                      </span>
+                    ))}
                     <button
                       type='button'
                       title='Вернуть разметку источника'
@@ -215,13 +243,23 @@ const DataForSearch = ({
               return (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto' }}>
                   <span
-                    title={partial
+                    title={(partial
                       ? 'Перенос не закончен: перенесено ' + applied + ' из ' + labeled + ' сообщений с нашей разметкой'
-                      : 'Наша разметка есть у ' + labeled + ' из ' + Number(info.docs || 0) + ' сообщений, но разделы пока считают по источнику'}
+                      : 'Наша разметка есть у ' + labeled + ' из ' + Number(info.docs || 0) + ' сообщений, но разделы пока считают по источнику') +
+                      (details ? '\n\nПроверка: ' + details : '')}
                     style={{ color: '#b54708', background: '#fffaeb', border: '1px solid #fedf89', borderRadius: 999, padding: '1px 8px', fontSize: 11, whiteSpace: 'nowrap' }}
                   >
                     {partial ? 'обновлено ' + applied + ' из ' + labeled : 'размечено ' + labeled}
                   </span>
+                  {objects.slice(0, 3).map(o => (
+                    <span
+                      key={o}
+                      title={'Объект из проверки тональности: «' + o + '»'}
+                      style={{ color: '#1760e8', background: '#eef2ff', border: '1px solid #c7d7fe', borderRadius: 999, padding: '1px 8px', fontSize: 11, whiteSpace: 'nowrap' }}
+                    >
+                      {o}
+                    </span>
+                  ))}
                   <button
                     type='button'
                     title={partial ? 'Довести перенос до конца' : 'Считать по нашей разметке во всех разделах'}

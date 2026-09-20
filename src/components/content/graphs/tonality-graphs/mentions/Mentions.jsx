@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 
-import { topNWithOther, TOP_PIE_SLICES } from '@/utils/chartPerf';
+import { topNWithOther } from '@/utils/chartPerf';
 
 import styles from './Mentions.module.scss';
 
@@ -60,7 +60,9 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 		};
 	}, []);
 
-	const chartData = useMemo(() => topNWithOther(visibleTop, TOP_PIE_SLICES), [visibleTop]);
+	// Пирог строится только по выбранным источникам: раньше хвост мелочи сваливался в «Прочее»,
+	// из-за чего в блоке «Негативные/позитивные упоминания» появлялась лишняя категория.
+	const chartData = useMemo(() => visibleTop || [], [visibleTop]);
 
 	useEffect(() => {
 		if (!svgRef.current || !dimensions.width || !dimensions.height || !chartData.length)
@@ -258,16 +260,16 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 						<span className={styles.cell}>Всего</span>
 						<span className={styles.cell}>Позитив</span>
 						<span className={styles.cell}>Негатив</span>
-						<span className={styles.cell}>Нейтрал</span>
 						<span className={styles.cell}>Аудитория</span>
 					</div>
 					{deletedData.map((entry, index) => {
 						const s = hubStats?.[entry.name];
 						const neg = s?.neg || 0;
 						const pos = s?.pos || 0;
-						const neu = s?.neu || 0;
 						const aud = s?.aud ?? (Number(entry.audience_sum) || 0);
-						const total = neg + pos + neu;
+						// «Всего» считается только по позитиву и негативу: нейтральные сообщения
+						// в этом блоке не показываем.
+						const total = neg + pos;
 						return (
 							<button
 								type='button'
@@ -286,7 +288,6 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 								<span className={styles.cell}>{formatCount(total)}</span>
 								<span className={`${styles.cell} ${styles.vPos}`}>{formatCount(pos)}</span>
 								<span className={`${styles.cell} ${styles.vNeg}`}>{formatCount(neg)}</span>
-								<span className={`${styles.cell} ${styles.vNeu}`}>{formatCount(neu)}</span>
 								<span className={`${styles.cell} ${styles.vAud}`}>{formatCount(aud)}</span>
 							</button>
 						);
