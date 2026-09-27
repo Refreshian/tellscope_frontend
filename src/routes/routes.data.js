@@ -19,6 +19,7 @@ import MetaphorExamples from '../components/screens/metaphor-examples/MetaphorEx
 import Configs from '@/components/screens/configs/Configs';
 import MosinformRating from '@/components/screens/mosinform-rating/MosinformRating';
 import AdminPage from '@/components/screens/admin/AdminPage';
+import PrCampaign from '@/components/screens/pr-campaign/PrCampaign';
 import DifyConstructor from '@/components/screens/dify-constructor/DifyConstructor';
 import Harness from '@/components/screens/harness/Harness';
 
@@ -154,6 +155,11 @@ export const routes = [
 	{
 		path: '/harness',
 		component: Harness,
+		isAuth: true,
+	},
+	{
+		path: '/pr-campaigns',
+		component: PrCampaign,
 		isAuth: true,
 	}
 ];

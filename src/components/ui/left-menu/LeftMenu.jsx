@@ -103,7 +103,7 @@ const LeftMenu = () => {
 											className={styles.menu__item}
 											onClick={() => {
 												closeMobile();
-												if (itemMenu.title === 'FAQ') {
+												if (/^https?:\/\//i.test(itemMenu.path)) {
 													window.open(
 														itemMenu.path,
 														'_blank',
@@ -156,6 +156,10 @@ const LeftMenu = () => {
 										className={`${styles.menu__item} ${styles.menu__item_agent} ${isActive ? styles.menu__item_agentActive : ''}`}
 										onClick={() => {
 											closeMobile();
+											if (/^https?:\/\//i.test(itemMenu.path)) {
+												window.open(itemMenu.path, '_blank', 'noopener');
+											return;
+											}
 											navigate(itemMenu.path);
 										}}
 									>
@@ -182,6 +186,10 @@ const LeftMenu = () => {
 											onClick={() => {
 												if (isDisabled || !itemMenu.path) return;
 												closeMobile();
+												if (/^https?:\/\//i.test(itemMenu.path)) {
+													window.open(itemMenu.path, '_blank', 'noopener');
+												return;
+												}
 												navigate(itemMenu.path);
 											}}
 											onMouseEnter={() => handleMouseEnter(itemMenu.id)}
@@ -282,6 +290,10 @@ const LeftMenu = () => {
 													itemMenu.id !== 1
 												) {
 													closeMobile();
+													if (/^https?:\/\//i.test(itemMenu.path)) {
+														window.open(itemMenu.path, '_blank', 'noopener');
+													return;
+													}
 													navigate(itemMenu.path);
 												}
 											}}

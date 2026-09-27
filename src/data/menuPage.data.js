@@ -127,6 +127,17 @@ export const menuPageData = [
 		path: '/mosinform-rating',
 		sidebarOnly: true,
 	},
+	{
+		id: 12,
+		text: 'PR-кампании',
+		title: 'PR-кампании',
+		desc: 'Эффективность PR-кампаний: медийный и социальный срез раздельно, доля голоса, тональность',
+		src: '/images/icons/menu/table.svg',
+		src_active: '/images/icons/menu/table_active.svg',
+		badge: 'PR',
+		path: '/pr-campaigns',
+		sidebarOnly: true,
+	},
 	// {
 	// 	id: 4,
 	// 	title: 'Конкуренты',
@@ -159,10 +170,10 @@ export const agentMenuData = menuPageData.filter(item => item.accent);
 export const menuSettings = [
 	{ 
 		id: 0,
-		title: 'FAQ',
+		title: 'Документация',
 		src: '/images/icons/menu/FAQ.svg',
 		src_active: '/images/icons/menu/faq.svg',
-		path: 'http://194.146.113.124:8080',
+		path: 'https://tellscope40.headsmade.com:8445',
 	},
 	{
 		id: 1,
