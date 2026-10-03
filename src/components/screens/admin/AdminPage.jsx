@@ -120,6 +120,53 @@ const AdminPage = () => {
 	const [appliedFrom, setAppliedFrom] = useState('');
 	const [appliedTo, setAppliedTo] = useState('');
 
+	// Доступ к разделам интерфейса: выбираем пользователя, показываем выданные вкладки.
+	const [secUserId, setSecUserId] = useState('');
+	const [secCatalog, setSecCatalog] = useState([]);
+	const [secAllowed, setSecAllowed] = useState([]);
+	const [secAll, setSecAll] = useState(true);
+	const [secBusy, setSecBusy] = useState(false);
+	const [secMsg, setSecMsg] = useState('');
+
+	const loadSections = async userId => {
+		setSecUserId(userId || '');
+		setSecMsg('');
+		if (!userId) {
+			setSecCatalog([]);
+			setSecAllowed([]);
+			setSecAll(true);
+			return;
+		}
+		try {
+			const data = await api('/admin/users/' + userId + '/sections');
+			setSecCatalog(data.catalog || []);
+			setSecAllowed(data.sections || []);
+			setSecAll(!!data.all);
+		} catch (e) {
+			setSecMsg('Не удалось получить доступы: ' + e.message);
+		}
+	};
+
+	const saveSections = async () => {
+		if (!secUserId) return;
+		setSecBusy(true);
+		setSecMsg('');
+		try {
+			const data = await api('/admin/users/' + secUserId + '/sections', {
+				method: 'PUT',
+				body: JSON.stringify({ sections: secAll ? ['*'] : secAllowed }),
+			});
+			setSecCatalog(data.catalog || secCatalog);
+			setSecAllowed(data.sections || []);
+			setSecAll(!!data.all);
+			setSecMsg(data.all ? 'Сохранено: доступны все разделы' : 'Сохранено: разделов ' + (data.sections || []).length);
+		} catch (e) {
+			setSecMsg('Ошибка: ' + e.message);
+		} finally {
+			setSecBusy(false);
+		}
+	};
+
 	const loadLlm = async (from, to) => {
 		const f = from !== undefined && from !== null ? from : appliedFrom;
 		const t = to !== undefined && to !== null ? to : appliedTo;
@@ -461,6 +508,49 @@ const AdminPage = () => {
 					</select>
 					<button style={btn} onClick={grant}>Выдать</button>
 				</div>
+			</div>
+
+			<div style={card}>
+				<b>Выдать доступ к разделам интерфейса</b>
+				<div style={{ color: '#667085', fontSize: 12, marginTop: 4 }}>
+					Доступы к темам выдаются выше, по папкам. Здесь — вкладки системы: «все разделы» или
+					только конкретные. Без доступа вкладка не видна в меню, а сервер отвечает отказом.
+				</div>
+				<div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+					<select style={input} value={secUserId} onChange={e => loadSections(e.target.value)}>
+						<option value=''>Пользователь…</option>
+						{users.map(u => <option key={u.id} value={u.id}>{u.email}{u.is_superuser ? ' (админ)' : ''}</option>)}
+					</select>
+					<label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+						<input type='checkbox' checked={secAll} disabled={!secUserId}
+							onChange={e => { setSecAll(e.target.checked); setSecMsg(''); }} /> все разделы
+					</label>
+					<button style={btn} disabled={!secUserId || secBusy} onClick={saveSections}>
+						{secBusy ? 'Сохраняю…' : 'Сохранить'}
+					</button>
+					{secMsg && <span style={{ fontSize: 12, color: '#475467' }}>{secMsg}</span>}
+				</div>
+				{secUserId && !secAll && (
+					<div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: '6px 18px' }}>
+						{secCatalog.map(section => (
+							<label key={section.slug} style={{ fontSize: 13, minWidth: 210, display: 'flex', alignItems: 'center', gap: 6 }}>
+								<input type='checkbox' checked={secAllowed.includes(section.slug)}
+									onChange={e => {
+										setSecMsg('');
+										setSecAllowed(prev => e.target.checked
+											? [...prev, section.slug]
+											: prev.filter(item => item !== section.slug));
+									}} />
+								{section.title}
+							</label>
+						))}
+					</div>
+				)}
+				{secUserId && secAll && (
+					<div style={{ marginTop: 10, fontSize: 12, color: '#667085' }}>
+						Пользователю доступны все разделы системы.
+					</div>
+				)}
 			</div>
 
 			<div style={card}>

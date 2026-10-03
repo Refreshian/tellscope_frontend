@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { useActions } from '@/hooks/useActions';
 import { useLogout } from '@/hooks/useLogout';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { canOpenPath } from '@/utils/sections';
 
 import styles from './LeftMenu.module.scss';
 import { menuPageData, menuSettings, agentMenuData } from '@/data/menuPage.data';
@@ -45,6 +46,21 @@ const LeftMenu = () => {
 
 	const labelOf = item => item.title || item.text || '';
 
+	// В меню попадают только выданные разделы. Проверка дублирует серверную: он закрывает
+	// чужие разделы ответом 403, здесь же важно не показывать их вовсе.
+	const visibleMenuPageData = useMemo(
+		() => menuPageData.filter(item => canOpenPath(me, item.path)),
+		[me],
+	);
+	const visibleAgentMenuData = useMemo(
+		() => agentMenuData.filter(item => canOpenPath(me, item.path)),
+		[me],
+	);
+	const visibleMenuSettings = useMemo(
+		() => menuSettings.filter(item => canOpenPath(me, item.path)),
+		[me],
+	);
+
 	const closeMobile = () => setMobileOpen(false);
 
 	return (
@@ -79,7 +95,7 @@ const LeftMenu = () => {
 				{pathname === '/home' ? (
 					<nav className={styles.menu}>
 						<ul className={styles.menu__list}>
-							{menuSettings.map(itemMenu => {
+							{visibleMenuSettings.map(itemMenu => {
 								if (itemMenu.id === 1) {
 									return (
 										<li
@@ -144,10 +160,10 @@ const LeftMenu = () => {
 						<>
 							<nav className={styles.menu}>
 								<ul className={styles.menu__list}>
-								{agentMenuData.length > 0 && (
+								{visibleAgentMenuData.length > 0 && (
 								<li className={styles.menu__groupTitle}>ИИ-автоматизация</li>
 							)}
-							{agentMenuData.map(itemMenu => {
+							{visibleAgentMenuData.map(itemMenu => {
 								const isActive = pathname === itemMenu.path;
 								return (
 									<li
@@ -171,7 +187,7 @@ const LeftMenu = () => {
 									</li>
 								);
 							})}
-							{menuPageData.filter(item => !item.accent).map(itemMenu => {
+							{visibleMenuPageData.filter(item => !item.accent).map(itemMenu => {
 									const isDisabled = itemMenu.path === '/none';
 									const isActive = pathname === itemMenu.path;
 									return (
@@ -261,7 +277,7 @@ const LeftMenu = () => {
 						</nav>
 						<nav className={styles.menu}>
 							<ul className={styles.menu__list}>
-								{menuSettings.map(itemMenu => {
+								{visibleMenuSettings.map(itemMenu => {
 									return (
 										<li
 											key={itemMenu.id}

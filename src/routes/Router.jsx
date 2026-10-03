@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
 import Auth from '../components/screens/auth/Auth';
 import NotFound from '../components/screens/not-found/NotFound';
+import SectionGuard from '../components/access/SectionGuard';
 import HelpProvider from '../components/ui/help/HelpProvider';
 import { useAuth } from '../hooks/useAuth';
 
@@ -22,7 +23,13 @@ const Router = () => {
 						return (
 							<Route
 								key={route.path}
-								element={<route.component />}
+								element={
+									// Разделы, которые не выданы пользователю, открывать нельзя:
+									// сервер отвечает 403, а здесь показываем объяснение.
+									<SectionGuard path={route.path}>
+										<route.component />
+									</SectionGuard>
+								}
 								path={route.path}
 							/>
 						);

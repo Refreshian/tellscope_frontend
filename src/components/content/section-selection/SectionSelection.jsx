@@ -5,6 +5,7 @@ import styles from './SectionSelection.module.scss';
 import SectionInfo from './section-info/SectionInfo';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { menuPageData } from '@/data/menuPage.data';
+import { canOpenPath } from '@/utils/sections';
 
 const SectionSelection = () => {
 	// Учётная запись берётся из общего кэша /api/me
@@ -13,9 +14,12 @@ const SectionSelection = () => {
 
 	const isAdmin = me && me.is_superuser;
 
-	// ИИ-разделы (Центр задач, агенты, конструктор) идут первыми, дальше — аналитика и данные
+	// ИИ-разделы (Центр задач, агенты, конструктор) идут первыми, дальше — аналитика и данные.
+	// Показываем только то, что выдано учётной записи: остальное сервер всё равно закроет.
 	const groups = useMemo(() => {
-		const visible = menuPageData.filter(item => !item.sidebarOnly);
+		const visible = menuPageData
+			.filter(item => !item.sidebarOnly)
+			.filter(item => canOpenPath(me, item.path));
 		const ai = visible.filter(item => item.accent);
 		const tools = visible.filter(item => !item.accent);
 		return [
@@ -32,7 +36,7 @@ const SectionSelection = () => {
 				items: tools,
 			},
 		].filter(group => group.items.length > 0);
-	}, []);
+	}, [me]);
 
 	return (
 		<div className={styles.page}>
