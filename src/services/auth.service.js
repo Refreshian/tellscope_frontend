@@ -2,6 +2,7 @@ import axios from 'axios';
 import { API_URL, TOKEN, REFRESH_TOKEN } from '../app.constants';
 import Cookies from 'js-cookie';
 import { clearUserSession } from '../utils/userSession';
+import { resetUserScopedState } from '../utils/resetUserState';
 import { invalidateCurrentUser } from '../hooks/useCurrentUser';
 
 export const authService = {
@@ -24,7 +25,9 @@ export const authService = {
       if (data.refresh_token) {
         Cookies.set(REFRESH_TOKEN, data.refresh_token);
       }
-      // Кэш /me сбрасываем вместе с cookie: каркас сразу подтянет нового пользователя
+      // Кэш /me и кэш запросов сбрасываем вместе с cookie: иначе страница покажет данные
+      // предыдущего пользователя (его id в кэше /me и его папки в кэше /user-folders).
+      resetUserScopedState();
       invalidateCurrentUser();
       setIsAuth(true);
     } catch (error) {
@@ -53,8 +56,10 @@ export const authService = {
 
   logout: () => {
     // Полная очистка, а не только токен: `user_id` и refresh-токен переживали выход,
-    // и следующий пользователь входил в браузер с чужими cookie.
+    // и следующий пользователь входил в браузер с чужими cookie. Кэш запросов чистим там же:
+    // иначе следующий вошедший увидит папки и отчёты предыдущего.
     clearUserSession();
+    resetUserScopedState();
     invalidateCurrentUser();
     window.location.href = "/";
   }

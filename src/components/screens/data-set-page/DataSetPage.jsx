@@ -272,7 +272,7 @@ const DataSetPage = () => {
         isError: isError_getUserId,
         error: error_getUserId,
         isLoading: isLoading_getUserId,
-    } = useGetUserIdQuery();
+    } = useGetUserIdQuery(undefined, { refetchOnMountOrArgChange: true });
 
     const { 
         refetch, 
@@ -281,7 +281,10 @@ const DataSetPage = () => {
         isLoading, 
         isSuccess 
     } = useGetUserFoldersQuery(data_getUserId, {
-        skip: !data_getUserId  // Добавьте эту опцию
+        skip: !data_getUserId,  // Добавьте эту опцию
+        // Список папок всегда спрашиваем у сервера при открытии страницы: из кэша можно
+        // получить папки предыдущего пользователя, если в браузере меняли учётную запись.
+        refetchOnMountOrArgChange: true,
     });
 
     const [fileName, setFileName] = useState('');
