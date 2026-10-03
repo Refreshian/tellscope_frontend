@@ -382,43 +382,75 @@ const AdminPage = () => {
 
 			<div style={card}>
 				<b>Пользователи</b>
-				<table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 6, fontSize: 13 }}>
-					<thead><tr><th style={th}>ID</th><th style={th}>Email</th><th style={th}>Имя</th><th style={th}>Админ</th><th style={th}>Активен</th><th style={th}>Активность</th><th style={th}>Действия</th><th style={th}>Дата выдачи</th></tr></thead>
+				{/* Таблица должна влезать в ширину экрана: кнопки действий компактные и переносятся
+				    по строкам, длинные email и активность тоже переносятся, а не растягивают таблицу. */}
+				<table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 6, fontSize: 12, tableLayout: 'fixed' }}>
+					<colgroup>
+						<col style={{ width: 34 }} />
+						<col style={{ width: '18%' }} />
+						<col style={{ width: '10%' }} />
+						<col style={{ width: 52 }} />
+						<col style={{ width: 58 }} />
+						<col style={{ width: '16%' }} />
+						<col />
+						<col style={{ width: 74 }} />
+					</colgroup>
+					<thead>
+						<tr>
+							<th style={th}>ID</th>
+							<th style={th}>Email</th>
+							<th style={th}>Имя</th>
+							<th style={th}>Админ</th>
+							<th style={th}>Активен</th>
+							<th style={th}>Активность</th>
+							<th style={th}>Действия</th>
+							<th style={th}>Выдан</th>
+						</tr>
+					</thead>
 					<tbody>
 						{users.map(u => (
 							<tr key={u.id}>
-								<td style={td}>{u.id}</td>
-								<td style={td}>{u.email}</td>
-								<td style={td}>{u.username}</td>
-								<td style={td}>{u.is_superuser ? 'да' : ''}</td>
-								<td style={td}>{u.is_active ? 'да' : 'нет'}</td>
-								<td style={td}><div style={{ fontSize: 11, color: '#667085', lineHeight: 1.5, whiteSpace: 'nowrap' }}><button type='button' onClick={() => openActivity(u)} title='Показать время в системе по дням' style={{ border: 0, background: 'none', padding: 0, color: '#1760e8', cursor: 'pointer', fontSize: 11, textDecoration: 'underline', fontFamily: 'inherit' }}>заходов: {u.login_count || 0}</button><br />последний вход: {fmtDate(u.last_login)}<br />в системе: {fmtDur(u.total_seconds)}</div></td>
-							<td style={td}>
-							<div style={{ display: 'flex', flexWrap: 'nowrap', gap: 6, alignItems: 'flex-start' }}>
-							{u.id !== meId && (u.is_superuser ? (
-								<button style={miniBtn} onClick={() => patchUser(u.id, { is_superuser: false })}>снять админа</button>
-							) : (
-								<button style={miniBtn} onClick={() => patchUser(u.id, { is_superuser: true })}>сделать админом</button>
-							))}
-							{u.id !== meId && (u.is_active ? (
-								<button style={miniBtn} onClick={() => patchUser(u.id, { is_active: false })}>деактивировать</button>
-							) : (
-								<button style={miniBtn} onClick={() => patchUser(u.id, { is_active: true })}>активировать</button>
-							))}
-							<button style={miniBtn} onClick={async () => {
-								const p = window.prompt('Новый пароль для ' + u.email + ' (мин. 6 символов)');
-								if (!p) return;
-								await patchUser(u.id, { password: p });
-							}}>сбросить пароль</button>
-							<button style={miniBtn} onClick={() => openTabs(u)} title='Какие вкладки системы видит этот аккаунт'>вкладки</button>
-							<button style={miniBtn} onClick={() => openEdit(u)} title='Имя, почта, пароль'>изменить</button>
-						
-						{u.id !== meId && (
-							<button style={redBtn} onClick={() => delUser(u)}>удалить аккаунт</button>
-						)}
-						</div></td>
-						<td style={td}><div style={{ whiteSpace: 'nowrap' }}>{fmtDate(u.registered_at)}</div></td>
-					</tr>
+								<td style={tdTop}>{u.id}</td>
+								<td style={{ ...tdTop, wordBreak: 'break-all' }}>{u.email}</td>
+								<td style={{ ...tdTop, wordBreak: 'break-word' }}>{u.username}</td>
+								<td style={tdTop}>{u.is_superuser ? 'да' : '—'}</td>
+								<td style={tdTop}>{u.is_active ? 'да' : 'нет'}</td>
+								<td style={tdTop}>
+									<div style={{ fontSize: 11, color: '#667085', lineHeight: 1.35 }}>
+										<button type='button' onClick={() => openActivity(u)} title='Показать время в системе по дням'
+											style={{ border: 0, background: 'none', padding: 0, color: '#1760e8', cursor: 'pointer', fontSize: 11, textDecoration: 'underline', fontFamily: 'inherit' }}>
+											заходов: {u.login_count || 0}
+										</button>
+										<div>последний: {fmtDate(u.last_login)}</div>
+										<div>в системе: {fmtDur(u.total_seconds)}</div>
+									</div>
+								</td>
+								<td style={tdTop}>
+									<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+										{u.id !== meId && (u.is_superuser ? (
+											<button style={cellBtn} title='Снять права администратора' onClick={() => patchUser(u.id, { is_superuser: false })}>снять админа</button>
+										) : (
+											<button style={cellBtn} title='Выдать права администратора' onClick={() => patchUser(u.id, { is_superuser: true })}>сделать админом</button>
+										))}
+										{u.id !== meId && (u.is_active ? (
+											<button style={cellBtn} title='Запретить вход' onClick={() => patchUser(u.id, { is_active: false })}>деактивировать</button>
+										) : (
+											<button style={cellBtn} title='Разрешить вход' onClick={() => patchUser(u.id, { is_active: true })}>активировать</button>
+										))}
+										<button style={cellBtn} title='Задать новый пароль' onClick={async () => {
+											const p = window.prompt('Новый пароль для ' + u.email + ' (мин. 6 символов)');
+											if (!p) return;
+											await patchUser(u.id, { password: p });
+										}}>пароль</button>
+										<button style={cellBtn} title='Какие вкладки системы видит этот аккаунт' onClick={() => openTabs(u)}>вкладки</button>
+										<button style={cellBtn} title='Имя, почта, пароль' onClick={() => openEdit(u)}>изменить</button>
+										{u.id !== meId && (
+											<button style={cellBtnRed} title='Удалить аккаунт вместе с его данными' onClick={() => delUser(u)}>удалить</button>
+										)}
+									</div>
+								</td>
+								<td style={tdTop}>{fmtDate(u.registered_at)}</td>
+							</tr>
 						))}
 					</tbody>
 				</table>
@@ -763,5 +795,21 @@ const llmDaySums = rows => {
 
 const th = { textAlign: 'left', borderBottom: '1px solid #e6eaf0', padding: 6 };
 const td = { padding: 6, borderBottom: '1px solid #f0f2f5' };
+const tdTop = { ...td, verticalAlign: 'top' };
+// Кнопки в строке таблицы: узкие, переносятся по строкам — иначе колонка «Действия»
+// растягивала таблицу и она уезжала за правый край экрана.
+const cellBtn = {
+	padding: '3px 7px',
+	borderRadius: 6,
+	border: '1px solid #d0d7e2',
+	background: '#fff',
+	color: '#344054',
+	cursor: 'pointer',
+	fontSize: 11,
+	lineHeight: 1.25,
+	fontFamily: 'inherit',
+	whiteSpace: 'nowrap',
+};
+const cellBtnRed = { ...cellBtn, borderColor: '#f2c6c6', color: '#c53030' };
 
 export default AdminPage;
