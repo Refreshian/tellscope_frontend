@@ -120,50 +120,81 @@ const AdminPage = () => {
 	const [appliedFrom, setAppliedFrom] = useState('');
 	const [appliedTo, setAppliedTo] = useState('');
 
-	// Доступ к разделам интерфейса: выбираем пользователя, показываем выданные вкладки.
-	const [secUserId, setSecUserId] = useState('');
-	const [secCatalog, setSecCatalog] = useState([]);
-	const [secAllowed, setSecAllowed] = useState([]);
-	const [secAll, setSecAll] = useState(true);
-	const [secBusy, setSecBusy] = useState(false);
-	const [secMsg, setSecMsg] = useState('');
 
-	const loadSections = async userId => {
-		setSecUserId(userId || '');
-		setSecMsg('');
-		if (!userId) {
-			setSecCatalog([]);
-			setSecAllowed([]);
-			setSecAll(true);
-			return;
-		}
+
+
+	// Вкладки интерфейса для конкретного пользователя: открываются кнопкой в строке.
+	const [tabsUser, setTabsUser] = useState(null);
+	const [tabsCatalog, setTabsCatalog] = useState([]);
+	const [tabsAllowed, setTabsAllowed] = useState([]);
+	const [tabsAll, setTabsAll] = useState(true);
+	const [tabsBusy, setTabsBusy] = useState(false);
+	const [tabsMsg, setTabsMsg] = useState('');
+	const openTabs = async u => {
+		setTabsUser(u);
+		setTabsMsg('');
 		try {
-			const data = await api('/admin/users/' + userId + '/sections');
-			setSecCatalog(data.catalog || []);
-			setSecAllowed(data.sections || []);
-			setSecAll(!!data.all);
+			const data = await api('/admin/users/' + u.id + '/sections');
+			setTabsCatalog(data.catalog || []);
+			setTabsAllowed(data.sections || []);
+			setTabsAll(!!data.all);
 		} catch (e) {
-			setSecMsg('Не удалось получить доступы: ' + e.message);
+			setTabsMsg('Не удалось получить вкладки: ' + ((e && e.message) || e));
 		}
 	};
-
-	const saveSections = async () => {
-		if (!secUserId) return;
-		setSecBusy(true);
-		setSecMsg('');
+	const saveTabs = async () => {
+		if (!tabsUser) return;
+		setTabsBusy(true);
+		setTabsMsg('');
 		try {
-			const data = await api('/admin/users/' + secUserId + '/sections', {
+			const data = await api('/admin/users/' + tabsUser.id + '/sections', {
 				method: 'PUT',
-				body: JSON.stringify({ sections: secAll ? ['*'] : secAllowed }),
+				body: JSON.stringify({ sections: tabsAll ? ['*'] : tabsAllowed }),
 			});
-			setSecCatalog(data.catalog || secCatalog);
-			setSecAllowed(data.sections || []);
-			setSecAll(!!data.all);
-			setSecMsg(data.all ? 'Сохранено: доступны все разделы' : 'Сохранено: разделов ' + (data.sections || []).length);
+			setTabsCatalog(data.catalog || tabsCatalog);
+			setTabsAllowed(data.sections || []);
+			setTabsAll(!!data.all);
+			setTabsMsg(data.all ? 'Сохранено: доступны все вкладки' : 'Сохранено: вкладок ' + (data.sections || []).length);
 		} catch (e) {
-			setSecMsg('Ошибка: ' + e.message);
+			setTabsMsg('Ошибка: ' + ((e && e.message) || e));
 		} finally {
-			setSecBusy(false);
+			setTabsBusy(false);
+		}
+	};
+	// Правка самой учётной записи: имя, почта, пароль.
+	const [editUser, setEditUser] = useState(null);
+	const [editName, setEditName] = useState('');
+	const [editEmail, setEditEmail] = useState('');
+	const [editPass, setEditPass] = useState('');
+	const [editBusy, setEditBusy] = useState(false);
+	const [editMsg, setEditMsg] = useState('');
+	const openEdit = u => {
+		setEditUser(u);
+		setEditName(u.username || '');
+		setEditEmail(u.email || '');
+		setEditPass('');
+		setEditMsg('');
+	};
+	const saveEdit = async () => {
+		if (!editUser) return;
+		const payload = {};
+		if (editName !== (editUser.username || '')) payload.username = editName;
+		if (editEmail !== (editUser.email || '')) payload.email = editEmail;
+		if (editPass) payload.password = editPass;
+		if (Object.keys(payload).length === 0) {
+			setEditMsg('Ничего не изменено');
+			return;
+		}
+		setEditBusy(true);
+		setEditMsg('');
+		try {
+			await api('/admin/users/' + editUser.id, { method: 'PATCH', body: JSON.stringify(payload) });
+			await reload();
+			setEditUser(null);
+		} catch (e) {
+			setEditMsg('Ошибка: ' + ((e && e.message) || e));
+		} finally {
+			setEditBusy(false);
 		}
 	};
 
@@ -368,6 +399,8 @@ const AdminPage = () => {
 								if (!p) return;
 								await patchUser(u.id, { password: p });
 							}}>сбросить пароль</button>
+							<button style={miniBtn} onClick={() => openTabs(u)} title='Какие вкладки системы видит этот аккаунт'>вкладки</button>
+							<button style={miniBtn} onClick={() => openEdit(u)} title='Имя, почта, пароль'>изменить</button>
 						
 						{u.id !== meId && (
 							<button style={redBtn} onClick={() => delUser(u)}>удалить аккаунт</button>
@@ -510,48 +543,6 @@ const AdminPage = () => {
 				</div>
 			</div>
 
-			<div style={card}>
-				<b>Выдать доступ к разделам интерфейса</b>
-				<div style={{ color: '#667085', fontSize: 12, marginTop: 4 }}>
-					Доступы к темам выдаются выше, по папкам. Здесь — вкладки системы: «все разделы» или
-					только конкретные. Без доступа вкладка не видна в меню, а сервер отвечает отказом.
-				</div>
-				<div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-					<select style={input} value={secUserId} onChange={e => loadSections(e.target.value)}>
-						<option value=''>Пользователь…</option>
-						{users.map(u => <option key={u.id} value={u.id}>{u.email}{u.is_superuser ? ' (админ)' : ''}</option>)}
-					</select>
-					<label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-						<input type='checkbox' checked={secAll} disabled={!secUserId}
-							onChange={e => { setSecAll(e.target.checked); setSecMsg(''); }} /> все разделы
-					</label>
-					<button style={btn} disabled={!secUserId || secBusy} onClick={saveSections}>
-						{secBusy ? 'Сохраняю…' : 'Сохранить'}
-					</button>
-					{secMsg && <span style={{ fontSize: 12, color: '#475467' }}>{secMsg}</span>}
-				</div>
-				{secUserId && !secAll && (
-					<div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: '6px 18px' }}>
-						{secCatalog.map(section => (
-							<label key={section.slug} style={{ fontSize: 13, minWidth: 210, display: 'flex', alignItems: 'center', gap: 6 }}>
-								<input type='checkbox' checked={secAllowed.includes(section.slug)}
-									onChange={e => {
-										setSecMsg('');
-										setSecAllowed(prev => e.target.checked
-											? [...prev, section.slug]
-											: prev.filter(item => item !== section.slug));
-									}} />
-								{section.title}
-							</label>
-						))}
-					</div>
-				)}
-				{secUserId && secAll && (
-					<div style={{ marginTop: 10, fontSize: 12, color: '#667085' }}>
-						Пользователю доступны все разделы системы.
-					</div>
-				)}
-			</div>
 
 			<div style={card}>
 				<b>Выданные доступы</b>
@@ -569,6 +560,71 @@ const AdminPage = () => {
 
 		</div>
 
+			{tabsUser && (
+				<div style={{ position: 'fixed', inset: 0, background: 'rgba(16,24,40,.45)', zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }} onClick={() => setTabsUser(null)}>
+					<div style={{ background: '#fff', borderRadius: 12, padding: '18px 22px', width: 'min(94vw, 720px)', maxHeight: '85vh', overflow: 'auto', boxShadow: '0 12px 32px rgba(16,24,40,.28)' }} onClick={e => e.stopPropagation()}>
+						<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+							<b style={{ fontSize: 15, wordBreak: 'break-all' }}>Вкладки системы: {tabsUser.email}</b>
+							<button type='button' onClick={() => setTabsUser(null)} style={{ border: 0, background: 'none', fontSize: 20, lineHeight: 1, cursor: 'pointer', color: '#667085' }}>×</button>
+						</div>
+						<div style={{ color: '#667085', fontSize: 12, margin: '4px 0 10px' }}>
+							Отметьте, что видит этот аккаунт. Снятая вкладка исчезает из меню и не открывается по прямой ссылке.
+						</div>
+						<label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 10 }}>
+							<input type='checkbox' checked={tabsAll} onChange={e => { setTabsMsg(''); setTabsAll(e.target.checked); }} />
+							доступны все вкладки
+						</label>
+						{!tabsAll && (
+							<div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 18px' }}>
+								{tabsCatalog.map(section => (
+									<label key={section.slug} style={{ fontSize: 13, minWidth: 220, display: 'flex', alignItems: 'center', gap: 6 }}>
+										<input type='checkbox' checked={tabsAllowed.includes(section.slug)}
+											onChange={e => {
+												setTabsMsg('');
+												setTabsAllowed(prev => e.target.checked
+													? [...prev, section.slug]
+													: prev.filter(item => item !== section.slug));
+											}} />
+										{section.title}
+									</label>
+								))}
+							</div>
+						)}
+						<div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
+							<button style={btn} disabled={tabsBusy} onClick={saveTabs}>{tabsBusy ? 'Сохраняю…' : 'Сохранить'}</button>
+							{tabsMsg && <span style={{ fontSize: 12, color: '#475467' }}>{tabsMsg}</span>}
+						</div>
+					</div>
+				</div>
+			)}
+			{editUser && (
+				<div style={{ position: 'fixed', inset: 0, background: 'rgba(16,24,40,.45)', zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }} onClick={() => setEditUser(null)}>
+					<div style={{ background: '#fff', borderRadius: 12, padding: '18px 22px', width: 'min(94vw, 520px)', boxShadow: '0 12px 32px rgba(16,24,40,.28)' }} onClick={e => e.stopPropagation()}>
+						<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+							<b style={{ fontSize: 15 }}>Учётная запись #{editUser.id}</b>
+							<button type='button' onClick={() => setEditUser(null)} style={{ border: 0, background: 'none', fontSize: 20, lineHeight: 1, cursor: 'pointer', color: '#667085' }}>×</button>
+						</div>
+						<div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+							<label style={{ fontSize: 12, color: '#344054' }}>
+								Имя
+								<input value={editName} onChange={e => setEditName(e.target.value)} style={{ ...input, display: 'block', width: '100%', marginTop: 4 }} />
+							</label>
+							<label style={{ fontSize: 12, color: '#344054' }}>
+								Email (он же логин)
+								<input value={editEmail} onChange={e => setEditEmail(e.target.value)} style={{ ...input, display: 'block', width: '100%', marginTop: 4 }} />
+							</label>
+							<label style={{ fontSize: 12, color: '#344054' }}>
+								Новый пароль (оставьте пустым, чтобы не менять)
+								<input type='password' value={editPass} onChange={e => setEditPass(e.target.value)} style={{ ...input, display: 'block', width: '100%', marginTop: 4 }} />
+							</label>
+						</div>
+						<div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
+							<button style={btn} disabled={editBusy} onClick={saveEdit}>{editBusy ? 'Сохраняю…' : 'Сохранить'}</button>
+							{editMsg && <span style={{ fontSize: 12, color: '#c53030' }}>{editMsg}</span>}
+						</div>
+					</div>
+				</div>
+			)}
 			{actUser && (
 				<div style={{ position: 'fixed', inset: 0, background: 'rgba(16,24,40,.45)', zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }} onClick={closeActivity}>
 					<div style={{ background: '#fff', borderRadius: 12, padding: '18px 22px', width: 'min(94vw, 780px)', maxHeight: '85vh', overflow: 'auto', boxShadow: '0 12px 32px rgba(16,24,40,.28)' }} onClick={e => e.stopPropagation()}>
