@@ -98,12 +98,7 @@ const Docs = () => {
 			<Content alignStart>
 				<div className={styles.page}>
 					<div className={styles.head}>
-						<div>
-							<h2 className={styles.title}>Документация</h2>
-							<span className={styles.hint}>
-								страницы разделов, выданных вашему аккаунту
-							</span>
-						</div>
+						<h2 className={styles.title}>Документация</h2>
 						{me && me.is_superuser && (
 							<a
 								className={styles.wikiLink}
