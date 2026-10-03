@@ -108,8 +108,7 @@ const Folder = ({ folder, processedFolder, buttonTarget, shared }) => {
 								color: '#067647',
 							}}
 						>
-							доступ от #{shared.owner_user_id} ·
-							{shared.access === 'read' ? ' только чтение' : ' чтение и запись'}
+							доступ от #{shared.owner_user_id}
 						</span>
 					)}
 				</h3>
