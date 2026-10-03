@@ -149,7 +149,12 @@ const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice, rootL
               lineHeight: 1.2,
             }}
           >
-            <span style={{ fontWeight: 600 }}>ТОП источников</span>
+            <span
+              style={{ fontWeight: 600 }}
+              title='Источники сортируются по числу сообщений: ползунок оставляет N самых обсуждаемых'
+            >
+              ТОП источников
+            </span>
             <input
               type='range'
               min={1}
@@ -157,11 +162,13 @@ const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice, rootL
               value={topCount > 0 ? Math.min(topCount, topMax) : topMax}
               onChange={event => setTopCount(Number(event.target.value))}
               style={{ width: 104, height: 14 }}
-              title='Сколько источников с наибольшим числом упоминаний показывать: остальные скрываются вместе со своими авторами — на всех графиках страницы, включая «Тональность авторов»'
+              title='Показывать N самых обсуждаемых источников (по числу сообщений). Остальные скрываются вместе со своими авторами — и в остальных графиках страницы, включая «Тональность авторов»'
             />
             <span style={{ fontVariantNumeric: 'tabular-nums' }}>
               {topCount > 0 ? Math.min(topCount, topMax) : topMax} из {topMax}
             </span>
+            {/* Смысл ползунка виден сразу: он отбирает источники по числу сообщений. */}
+            <span style={{ color: '#98a2b3', whiteSpace: 'nowrap' }}>по числу сообщений</span>
             {topCount > 0 && (
               <button
                 type='button'
@@ -176,7 +183,7 @@ const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice, rootL
               </button>
             )}
             <span
-              title='Остальные источники скрываются вместе с их авторами. Фильтр действует на всех вкладках — в том числе в «Тональности авторов»'
+              title='Ползунок отбирает источники по числу сообщений: остальные скрываются вместе с их авторами. Фильтр действует на всех вкладках — в том числе в «Тональности авторов»'
               style={{ cursor: 'help', color: '#98a2b3' }}
             >
               ⓘ
