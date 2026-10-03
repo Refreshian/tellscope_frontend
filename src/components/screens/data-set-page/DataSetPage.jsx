@@ -1494,7 +1494,7 @@ const DataSetPage = () => {
  
                 {pathname === '/data-set' && myShared.length > 0 && (
                     <div style={{ width: '100%', margin: '6px 0', padding: '10px 14px', border: '1px solid rgba(3,152,85,.3)', borderRadius: 10, background: '#f2fbf6', fontSize: 13 }}>
-                        <div style={{ fontWeight: 600, marginBottom: 4 }}>Доступные мне (по решению администратора)</div>
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>Доступные мне</div>
                         {myShared.map((s, i) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '4px 0', borderBottom: '1px dashed #cdeedc' }}>
                                 <span>владелец #{s.owner_user_id} · папка «{s.folder}»</span>
