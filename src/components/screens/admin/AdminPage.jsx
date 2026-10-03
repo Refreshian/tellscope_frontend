@@ -695,8 +695,8 @@ const AdminPage = () => {
 										</label>
 									))}
 								</div>
-								{dangerNote(grantTabsCatalog, grantTabsAllowed)}
 							)}
+								{dangerNote(grantTabsCatalog, grantTabsAllowed)}
 							<div style={{ fontSize: 12, color: '#667085', marginTop: 6 }}>
 								Снятые вкладки не показываются на главной и в левом меню, а по прямой ссылке
 								открывается «Раздел не выдан».
@@ -757,8 +757,8 @@ const AdminPage = () => {
 									</label>
 								))}
 							</div>
-							{dangerNote(tabsCatalog, tabsAllowed)}
 						)}
+							{dangerNote(tabsCatalog, tabsAllowed)}
 						<div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
 							<button style={btn} disabled={tabsBusy} onClick={saveTabs}>{tabsBusy ? 'Сохраняю…' : 'Сохранить'}</button>
 							{tabsMsg && <span style={{ fontSize: 12, color: '#475467' }}>{tabsMsg}</span>}
