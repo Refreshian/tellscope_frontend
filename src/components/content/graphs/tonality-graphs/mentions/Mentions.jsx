@@ -10,33 +10,17 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 	const containerRef = useRef(null);
 	const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 	const [deletedData, setDeletedData] = useState([]);
-	const [topCount, setTopCount] = useState(0);
 
-	// ТОП-N первых источников (0 = показать все). Хвосты отсекаются для наглядности.
-	const visibleTop = useMemo(() => {
-		const maxN = (data || []).length;
-		if (!maxN || !topCount || topCount >= maxN) return data || [];
-		const sorted = [...data].sort(
-			(a, b) => Number(b.value || 0) - Number(a.value || 0),
-		);
-		return sorted.slice(0, topCount);
-	}, [data, topCount]);
+	// Отбор «ТОП источников» живёт в панели графиков (TonalityGraphs): там он считается по
+	// полному списку источников и действует на всех вкладках, включая «Тональность авторов».
+	const visibleTop = useMemo(() => data || [], [data]);
 
 	const formatCount = value => Number(value || 0).toLocaleString('ru-RU');
 
 
 	useEffect(() => {
 		setDeletedData([]);
-		setTopCount(0);
 	}, [activeButton]);
-
-	useEffect(() => {
-		onVisibleChange?.({
-			type: 'mentions',
-			side: activeButton,
-			hubNames: (visibleTop || []).map(item => item.name).filter(Boolean),
-		});
-	}, [data, activeButton, onVisibleChange]);
 
 	useEffect(() => {
 		if (!containerRef.current) return;
@@ -216,27 +200,6 @@ const Mentions = ({ data, setData, activeButton, onVisibleChange, hubStats }) =>
 		<div className={styles.mentionsWrap}>
 			<div ref={containerRef} className={styles.mentionsContainer}>
 				<svg ref={svgRef}></svg>
-			</div>
-			<div className={styles.topFilter}>
-				<span className={styles.topFilterLabel}>ТОП</span>
-				<input
-					type='range'
-					className={styles.topFilterRange}
-					min={1}
-					max={Math.max((data || []).length, 1)}
-					value={
-						topCount > 0
-							? Math.min(topCount, (data || []).length || 1)
-							: Math.max((data || []).length, 1)
-					}
-					onChange={event => setTopCount(Number(event.target.value))}
-					title='Сколько первых (ТОП) источников показать на графике'
-				/>
-				<span className={styles.topFilterValue}>
-					{topCount > 0
-						? Math.min(topCount, (data || []).length || 1)
-						: Math.max((data || []).length, 1)}
-				</span>
 			</div>
 			{deletedData.length > 0 && (
 				<div

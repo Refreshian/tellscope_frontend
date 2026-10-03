@@ -26,6 +26,46 @@ const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice, rootL
   const [activeButton, setActiveButton] = useState('Негативные упоминания');
   const [isViewAuthors, setIsViewAuthors] = useState(false);
   const [data, setData] = useState([]);
+  // Сколько источников показывать: 0 — все. Считается по полному списку источников, потому
+  // что раньше отбор шёл по уже отфильтрованным данным: после применения фильтра список
+  // сужался до выбранных источников, и ползунок нельзя было вернуть обратно.
+  const [topCount, setTopCount] = useState(0);
+  const activeSide = activeButton === 'Позитивные упоминания' ? 'positive' : 'negative';
+
+  useEffect(() => {
+    setTopCount(0);
+  }, [activeButton]);
+
+  const allSources = useMemo(() => {
+    const hvs = tonalityData?.tonality_hubs_values || {};
+    const list = isViewAuthors
+      ? [...(hvs.negative_hubs || []), ...(hvs.positive_hubs || [])]
+      : (activeSide === 'positive' ? hvs.positive_hubs : hvs.negative_hubs) || [];
+    const seen = new Set();
+    return (list || [])
+      .filter(item => item && item.name && !seen.has(item.name) && seen.add(item.name))
+      .sort((a, b) => Number(b.values || 0) - Number(a.values || 0));
+  }, [tonalityData, activeSide, isViewAuthors]);
+
+  const topMax = allSources.length;
+  // Отобранные источники: из полного списка берём первые N, а из них — те, что не удалены
+  // вручную на графике упоминаний.
+  const visibleSources = useMemo(() => {
+    const limit = topCount > 0 ? allSources.slice(0, topCount).map(item => item.name) : null;
+    const allowed = limit ? new Set(limit) : null;
+    return (data || []).filter(item => !allowed || allowed.has(item.name));
+  }, [data, allSources, topCount]);
+
+  const visibleHubNames = useMemo(
+    () => (topCount > 0 ? allSources.slice(0, topCount) : allSources).map(item => item.name),
+    [allSources, topCount],
+  );
+
+  // Срез отдаём в страницу: он действует на все графики, включая «Тональность авторов».
+  useEffect(() => {
+    if (!onVisibleSlice || visibleHubNames.length === 0) return;
+    onVisibleSlice({ type: 'mentions', side: activeButton, hubNames: visibleHubNames });
+  }, [visibleHubNames, activeButton, onVisibleSlice]);
 
   const handleClick = useCallback(button => {
     setActiveButton(button);
@@ -99,6 +139,44 @@ const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice, rootL
           activeButton={activeButton}
           dataCounters={dataCounters}
         />
+        {topMax > 0 && (
+          <div
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+              margin: '6px 0 0', fontSize: 12, color: '#475467',
+            }}
+          >
+            <span style={{ fontWeight: 600 }}>ТОП источников</span>
+            <input
+              type='range'
+              min={1}
+              max={Math.max(topMax, 1)}
+              value={topCount > 0 ? Math.min(topCount, topMax) : topMax}
+              onChange={event => setTopCount(Number(event.target.value))}
+              style={{ width: 190 }}
+              title='Сколько источников с наибольшим числом упоминаний показывать. Остальные скрываются вместе со своими авторами на всех графиках страницы'
+            />
+            <span>
+              {topCount > 0 ? Math.min(topCount, topMax) : topMax} из {topMax}
+            </span>
+            {topCount > 0 && (
+              <button
+                type='button'
+                onClick={() => setTopCount(0)}
+                style={{
+                  border: '1px solid #d0d7e2', background: '#fff', color: '#344054',
+                  borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer',
+                }}
+              >
+                показать все
+              </button>
+            )}
+            <span style={{ color: '#98a2b3' }}>
+              сколько источников показывать: остальные скрываются вместе с их авторами
+              (в том числе в «Тональности авторов»)
+            </span>
+          </div>
+        )}
       </div>
       <div className={styles.container__graph}>
         {isViewAuthors ? (
@@ -112,11 +190,10 @@ const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice, rootL
         ) : (
           <Suspense fallback={<Loader />}>
             <Mentions
-              data={data}
+              data={visibleSources}
               setData={setData}
               activeButton={activeButton}
               hubStats={hubStats}
-              onVisibleChange={onVisibleSlice}
             />
           </Suspense>
         )}
