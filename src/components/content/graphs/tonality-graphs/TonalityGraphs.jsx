@@ -140,10 +140,13 @@ const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice, rootL
           dataCounters={dataCounters}
         />
         {topMax > 0 && (
+          // Компактно и в одну строку, справа от вкладок: пояснение живёт в подсказке, чтобы
+          // не отъедать место у графиков слева.
           <div
             style={{
-              display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-              margin: '6px 0 0', fontSize: 12, color: '#475467',
+              display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+              marginLeft: 'auto', paddingLeft: 8, fontSize: 11, color: '#667085',
+              lineHeight: 1.2,
             }}
           >
             <span style={{ fontWeight: 600 }}>ТОП источников</span>
@@ -153,27 +156,30 @@ const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice, rootL
               max={Math.max(topMax, 1)}
               value={topCount > 0 ? Math.min(topCount, topMax) : topMax}
               onChange={event => setTopCount(Number(event.target.value))}
-              style={{ width: 190 }}
-              title='Сколько источников с наибольшим числом упоминаний показывать. Остальные скрываются вместе со своими авторами на всех графиках страницы'
+              style={{ width: 104, height: 14 }}
+              title='Сколько источников с наибольшим числом упоминаний показывать: остальные скрываются вместе со своими авторами — на всех графиках страницы, включая «Тональность авторов»'
             />
-            <span>
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>
               {topCount > 0 ? Math.min(topCount, topMax) : topMax} из {topMax}
             </span>
             {topCount > 0 && (
               <button
                 type='button'
                 onClick={() => setTopCount(0)}
+                title='Показать все источники'
                 style={{
                   border: '1px solid #d0d7e2', background: '#fff', color: '#344054',
-                  borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer',
+                  borderRadius: 6, padding: '1px 6px', fontSize: 11, cursor: 'pointer',
                 }}
               >
-                показать все
+                все
               </button>
             )}
-            <span style={{ color: '#98a2b3' }}>
-              сколько источников показывать: остальные скрываются вместе с их авторами
-              (в том числе в «Тональности авторов»)
+            <span
+              title='Остальные источники скрываются вместе с их авторами. Фильтр действует на всех вкладках — в том числе в «Тональности авторов»'
+              style={{ cursor: 'help', color: '#98a2b3' }}
+            >
+              ⓘ
             </span>
           </div>
         )}
