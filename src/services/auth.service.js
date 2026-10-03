@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_URL, TOKEN, REFRESH_TOKEN } from '../app.constants';
+import { API_URL, TOKEN, REFRESH_TOKEN, COOKIE_OPTIONS } from '../app.constants';
 import Cookies from 'js-cookie';
 import { clearUserSession } from '../utils/userSession';
 import { resetUserScopedState } from '../utils/resetUserState';
@@ -21,9 +21,9 @@ export const authService = {
       // не должны дожить до новой сессии. Раньше `user_id` оставался от прошлого входа, и
       // отчёты/папки запрашивались по чужому id — сервер отвечал 403 «Нет доступа».
       clearUserSession();
-      Cookies.set(TOKEN, data.access_token);
+      Cookies.set(TOKEN, data.access_token, COOKIE_OPTIONS);
       if (data.refresh_token) {
-        Cookies.set(REFRESH_TOKEN, data.refresh_token);
+        Cookies.set(REFRESH_TOKEN, data.refresh_token, COOKIE_OPTIONS);
       }
       // Кэш /me и кэш запросов сбрасываем вместе с cookie: иначе страница покажет данные
       // предыдущего пользователя (его id в кэше /me и его папки в кэше /user-folders).

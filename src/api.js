@@ -1,7 +1,7 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-import { API_URL, TOKEN, REFRESH_TOKEN } from './app.constants';
+import { API_URL, TOKEN, REFRESH_TOKEN, COOKIE_OPTIONS } from './app.constants';
 import { clearUserSession } from './utils/userSession';
 
 export const $axios = axios.create({
@@ -100,9 +100,9 @@ $axios.interceptors.response.use(
       try {
         const { data } = await axios.post(`${API_URL}/auth/refresh`, { refresh_token: refreshToken });
 
-        Cookies.set(TOKEN, data.access_token);
+        Cookies.set(TOKEN, data.access_token, COOKIE_OPTIONS);
         if (data.refresh_token) {
-          Cookies.set(REFRESH_TOKEN, data.refresh_token);
+          Cookies.set(REFRESH_TOKEN, data.refresh_token, COOKIE_OPTIONS);
         }
         $axios.defaults.headers.common['Authorization'] = 'Bearer ' + data.access_token;
         originalRequest.headers['Authorization'] = 'Bearer ' + data.access_token;

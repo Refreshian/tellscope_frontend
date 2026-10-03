@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import Cookies from 'js-cookie';
 
-import { API_URL, TOKEN } from '../app.constants';
+import { API_URL, TOKEN, COOKIE_OPTIONS } from '../app.constants';
 import { actions } from '../store/data-users/dataUsers.slice';
 
 const baseQuery = fetchBaseQuery({
@@ -21,7 +21,8 @@ export const dataUsersService = createApi({
 		const result = await baseQuery(args, api, extraOptions);
 		// Если получили 401, удаляем токен или выполняем другую логику
 		if (result.error && result.error.status === 401) {
-			Cookies.remove(TOKEN);
+			Cookies.remove(TOKEN, COOKIE_OPTIONS);
+			Cookies.remove(TOKEN); // старая cookie без домена
 			// Здесь можно выполнить перенаправление или дополнительную обработку
 		}
 		return result;

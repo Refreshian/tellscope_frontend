@@ -1,7 +1,7 @@
 // utils/userSession.js
 import Cookies from 'js-cookie';
 
-import { REFRESH_TOKEN, TOKEN, USER_ID } from '../app.constants';
+import { REFRESH_TOKEN, TOKEN, USER_ID, COOKIE_OPTIONS } from '../app.constants';
 
 /**
  * Данные, привязанные к конкретной учётной записи и переживающие выход из системы.
@@ -34,7 +34,10 @@ export const clearUserScopedStorage = () => {
  */
 export const clearUserSession = () => {
 	USER_SCOPED_COOKIES.forEach(name => {
-		if (name) Cookies.remove(name);
+		if (name) {
+			Cookies.remove(name, COOKIE_OPTIONS);
+			Cookies.remove(name); // старая cookie без домена
+		}
 	});
 	clearUserScopedStorage();
 };

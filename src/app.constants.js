@@ -24,3 +24,13 @@ export const colors = {
 	blue_bubble: '#2E90FA',
 	purple_bubble: '#7A5AF8',
 };
+
+// Cookie сессии делаем общей для поддоменов: вики живёт на wiki.<домен> и ограничивается
+// по правам на входе, а для этого должна видеть сессию Tellscope.
+export const COOKIE_DOMAIN = (() => {
+	if (typeof window === 'undefined') return '';
+	const host = window.location.hostname;
+	return host.endsWith('tellscope40.headsmade.com') ? '.tellscope40.headsmade.com' : '';
+})();
+
+export const COOKIE_OPTIONS = COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {};
