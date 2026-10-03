@@ -876,7 +876,9 @@ const UserTonality = () => {
                         {/* Граф */}
                         <Suspense fallback={<Loader />}>
                             <TonalityGraphs
-                                data={filteredData}
+                                {/* Срез от фильтра источников обязан доходить
+                                    до графиков: раньше сюда шли нефильтрованные данные. */}
+                                data={analysisData}
                                 onTabChange={handleTabChange}
                                 onVisibleSlice={handleGraphSlice}
                                 rootLabel={themeRootLabel}

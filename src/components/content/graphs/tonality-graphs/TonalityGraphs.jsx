@@ -64,8 +64,14 @@ const TonalityGraphs = ({ data: filteredData, onTabChange, onVisibleSlice, rootL
   // Срез отдаём в страницу: он действует на все графики, включая «Тональность авторов».
   useEffect(() => {
     if (!onVisibleSlice || visibleHubNames.length === 0) return;
-    onVisibleSlice({ type: 'mentions', side: activeButton, hubNames: visibleHubNames });
-  }, [visibleHubNames, activeButton, onVisibleSlice]);
+    onVisibleSlice({
+      type: 'mentions',
+      // На вкладке «Тональность авторов» источники не делятся на полюса: фильтруем оба,
+      // иначе от ползунка менялась только негативная половина графика.
+      side: isViewAuthors ? 'both' : activeButton,
+      hubNames: visibleHubNames,
+    });
+  }, [visibleHubNames, activeButton, isViewAuthors, onVisibleSlice]);
 
   const handleClick = useCallback(button => {
     setActiveButton(button);

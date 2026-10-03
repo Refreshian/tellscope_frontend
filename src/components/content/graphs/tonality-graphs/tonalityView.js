@@ -154,9 +154,13 @@ export const applyGraphSlice = (data, slice) => {
 	if (slice.type === 'mentions') {
 		const allow = new Set(slice.hubNames || []);
 		const filterHubs = hubs => hubs.filter(hub => allow.has(hub.name));
-		if (String(slice.side || '').startsWith('Позитив')) {
+		// side === 'both' — вкладка «Тональность авторов»: там источники не делятся на полюса,
+		// поэтому фильтруем и позитив, и негатив, иначе график почти не менялся.
+		const byPositive = String(slice.side || '').startsWith('Позитив');
+		if (slice.side === 'both' || byPositive) {
 			next.tonality_hubs_values.positive_hubs = filterHubs(next.tonality_hubs_values.positive_hubs);
-		} else {
+		}
+		if (slice.side === 'both' || !byPositive) {
 			next.tonality_hubs_values.negative_hubs = filterHubs(next.tonality_hubs_values.negative_hubs);
 		}
 		const keepHubs = new Set([
@@ -165,9 +169,10 @@ export const applyGraphSlice = (data, slice) => {
 		]);
 		const onHub = author =>
 			(author.texts || []).some(text => keepHubs.has(text.hub)) || keepHubs.has(author.fullname);
-		if (String(slice.side || '').startsWith('Позитив')) {
+		if (slice.side === 'both' || byPositive) {
 			next.positive_authors_values = filterAuthors(next.positive_authors_values, onHub);
-		} else {
+		}
+		if (slice.side === 'both' || !byPositive) {
 			next.negative_authors_values = filterAuthors(next.negative_authors_values, onHub);
 		}
 		next.tonality_values.positive_count = hubTotal(next.tonality_hubs_values.positive_hubs);
