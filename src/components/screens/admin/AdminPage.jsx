@@ -146,7 +146,9 @@ const AdminPage = () => {
 		try {
 			const data = await api('/admin/users/' + u.id + '/sections');
 			setTabsCatalog(data.catalog || []);
-			setTabsAllowed(data.sections || []);
+			// «*» означает «все разделы» и в списке галочек ему места нет: иначе после снятия
+			// галочки «доступны все» в наборе оставался «*», и сохранение выдавало всё заново.
+			setTabsAllowed((data.sections || []).filter(item => item !== '*'));
 			setTabsAll(!!data.all);
 		} catch (e) {
 			setTabsMsg('Не удалось получить вкладки: ' + ((e && e.message) || e));
@@ -154,17 +156,22 @@ const AdminPage = () => {
 	};
 	const saveTabs = async () => {
 		if (!tabsUser) return;
+		const picked = (tabsAllowed || []).filter(item => item !== '*');
+		if (!tabsAll && picked.length === 0) {
+			setTabsMsg('Не отмечено ни одной вкладки. Пустой набор сервер понимает как «все разделы» — отметьте вкладки или включите «доступны все».');
+			return;
+		}
 		setTabsBusy(true);
 		setTabsMsg('');
 		try {
 			const data = await api('/admin/users/' + tabsUser.id + '/sections', {
 				method: 'PUT',
-				body: JSON.stringify({ sections: tabsAll ? ['*'] : tabsAllowed }),
+				body: JSON.stringify({ sections: tabsAll ? ['*'] : picked }),
 			});
 			setTabsCatalog(data.catalog || tabsCatalog);
-			setTabsAllowed(data.sections || []);
+			setTabsAllowed((data.sections || []).filter(item => item !== '*'));
 			setTabsAll(!!data.all);
-			setTabsMsg(data.all ? 'Сохранено: доступны все вкладки' : 'Сохранено: вкладок ' + (data.sections || []).length);
+			setTabsMsg(data.all ? 'Сохранено: доступны все вкладки' : 'Сохранено: вкладок ' + picked.length);
 		} catch (e) {
 			setTabsMsg('Ошибка: ' + ((e && e.message) || e));
 		} finally {
@@ -182,7 +189,8 @@ const AdminPage = () => {
 		try {
 			const data = await api('/admin/users/' + userId + '/sections');
 			setGrantTabsCatalog(data.catalog || []);
-			setGrantTabsAllowed(data.sections || []);
+			// См. комментарий в openTabs: «*» в списке галочек приводит к выдаче всех разделов.
+			setGrantTabsAllowed((data.sections || []).filter(item => item !== '*'));
 			setGrantTabsAll(!!data.all);
 		} catch (e) {
 			setGrantTabsMsg('Не удалось получить вкладки: ' + ((e && e.message) || e));
@@ -357,14 +365,24 @@ const AdminPage = () => {
 			// Вкладки сохраняем тем же действием: администратор выдаёт доступ к данным и к
 			// разделам одним нажатием, а не ищет второе место в интерфейсе.
 			if (grantTabsOn && targetId) {
-				const data = await api('/admin/users/' + targetId + '/sections', {
-					method: 'PUT',
-					body: JSON.stringify({ sections: grantTabsAll ? ['*'] : grantTabsAllowed }),
-				});
-				setGrantTabsCatalog(data.catalog || grantTabsCatalog);
-				setGrantTabsAllowed(data.sections || []);
-				setGrantTabsAll(!!data.all);
-				setGrantTabsMsg(data.all ? 'Вкладки: доступны все' : 'Вкладки: выдано ' + (data.sections || []).length);
+				const picked = (grantTabsAllowed || []).filter(item => item !== '*');
+				if (!grantTabsAll && picked.length === 0) {
+					setGrantTabsMsg('Вкладки не изменены: не отмечено ни одной, а пустой набор сервер понимает как «все разделы».');
+				} else {
+					const data = await api('/admin/users/' + targetId + '/sections', {
+						method: 'PUT',
+						body: JSON.stringify({ sections: grantTabsAll ? ['*'] : picked }),
+					});
+					setGrantTabsCatalog(data.catalog || grantTabsCatalog);
+					setGrantTabsAllowed((data.sections || []).filter(item => item !== '*'));
+					setGrantTabsAll(!!data.all);
+					const titles = (grantTabsCatalog || [])
+						.filter(section => picked.includes(section.slug))
+						.map(section => section.title);
+					setGrantTabsMsg(data.all
+						? 'Вкладки: доступны все'
+						: 'Вкладки: выдано ' + picked.length + (titles.length ? ' — ' + titles.join(', ') : ''));
+				}
 			}
 			await reload();
 		} catch (e) { setErr(String((e && e.message) || e)); }
