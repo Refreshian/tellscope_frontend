@@ -226,6 +226,13 @@ const DataInFolder = () => {
   // берём тот источник, где действительно есть список файлов: сначала redux, затем данные запроса.
   const dirKey = isDataSetPath ? 'projector_files_directory' : 'json_files_directory';
   const foldersData = allData && allData[dirKey] ? allData : data;
+  // Папка может быть выдана администратором: тогда владелец данных — другой аккаунт,
+  // и вести себя с ней как со своей (в том числе грузить в неё файлы) нельзя.
+  const sharedFolderInfo =
+    (foldersData &&
+      foldersData.shared_folders &&
+      foldersData.shared_folders[String(activeFolderName).trim()]) ||
+    null;
   const dynamicDirectoryFile = isDataSetPath
     ? ['tsv-file', 'txt-file']
     : ['file'];
@@ -304,6 +311,25 @@ const DataInFolder = () => {
           />
         </div>
       </div>
+      {sharedFolderInfo && (
+        <div
+          style={{
+            width: '100%',
+            margin: '4px 0 8px',
+            padding: '9px 13px',
+            border: '1px solid rgba(3,152,85,.3)',
+            borderRadius: 10,
+            background: '#f2fbf6',
+            fontSize: 13,
+            color: '#067647',
+          }}
+        >
+          Папка выдана администратором: владелец #{sharedFolderInfo.owner_user_id},{' '}
+          {sharedFolderInfo.access === 'read' ? 'только чтение' : 'чтение и запись'}. Данные
+          можно смотреть и брать в анализ; загрузка файлов из этого аккаунта в неё не
+          поддерживается.
+        </div>
+      )}
       <div className={styles.block__files} style={style.block__files}>
         {uploads.length > 0 && (
           <>
@@ -428,7 +454,7 @@ const DataInFolder = () => {
                           />
                         </button>
                         <FileOrigin
-                          userId={data_getUserId}
+                          userId={file.owner_user_id || data_getUserId}
                           folder={activeFolderName}
                           file={file['tsv-file']}
                         />
@@ -462,7 +488,7 @@ const DataInFolder = () => {
                           />
                         </button>
                         <FileOrigin
-                          userId={data_getUserId}
+                          userId={file.owner_user_id || data_getUserId}
                           folder={activeFolderName}
                           file={file['txt-file']}
                         />
@@ -557,7 +583,7 @@ const DataInFolder = () => {
                           />
                         </button>
                         <FileOrigin
-                          userId={data_getUserId}
+                          userId={file.owner_user_id || data_getUserId}
                           folder={activeFolderName}
                           file={file.file}
                         />
@@ -572,7 +598,7 @@ const DataInFolder = () => {
               onPageChange={handlePageChange}
             />
           </>
-        ) : (
+        ) : sharedFolderInfo ? null : (
           <div className={styles.block__add}>
             <h3 className={styles.title__add}>Здесь пока ничего нет</h3>
             <div

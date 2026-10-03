@@ -9,7 +9,7 @@ import { downloadJSON } from '@/utils/downloadData';
 import styles from './Folder.module.scss';
 import { useLazyFileLoadQuery } from '@/services/dataSet.service';
 
-const Folder = ({ folder, processedFolder, buttonTarget }) => {
+const Folder = ({ folder, processedFolder, buttonTarget, shared }) => {
 	const { data: targetData } = useSelector(state => state.folderTarget);
 	const navigate = useNavigate();
 	const [isViewButtons, setIsViewButtons] = useState(false);
@@ -96,7 +96,23 @@ const Folder = ({ folder, processedFolder, buttonTarget }) => {
 				onClick={handleClick}
 			/>
 			<div className={styles.data}>
-				<h3 className={styles.title}>{folder}</h3>
+				<h3 className={styles.title}>
+					{folder}
+					{shared && (
+						<span
+							style={{
+								display: 'block',
+								marginTop: 3,
+								fontSize: 11,
+								fontWeight: 500,
+								color: '#067647',
+							}}
+						>
+							доступ от #{shared.owner_user_id} ·
+							{shared.access === 'read' ? ' только чтение' : ' чтение и запись'}
+						</span>
+					)}
+				</h3>
 				{/* {processedFolder ? (
 					<button
 						className={`${styles.button__delete} ${
@@ -114,7 +130,16 @@ const Folder = ({ folder, processedFolder, buttonTarget }) => {
 						/>
 					</button>
 				) : ( */}
-				<button className={styles.button__delete} onClick={onClick}>
+				<button
+					className={styles.button__delete}
+					onClick={shared ? undefined : onClick}
+					style={shared ? { display: 'none' } : undefined}
+					title={
+						shared
+							? `Папка выдана администратором: владелец #${shared.owner_user_id}`
+							: undefined
+					}
+				>
 					<img
 						className={styles.delete}
 						src='/images/icons/setting/delete.svg'

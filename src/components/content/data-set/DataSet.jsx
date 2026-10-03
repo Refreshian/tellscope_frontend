@@ -113,6 +113,11 @@ const DataSet = () => {
 
 	const queryData = data && typeof data === 'object' ? data : {};
 	const dataUser = queryData.json_files_directory || {};
+	// Папки, выданные администратором: помечаем их в дереве, чтобы не путать со своими.
+	const sharedFolders =
+		queryData.shared_folders && typeof queryData.shared_folders === 'object'
+			? queryData.shared_folders
+			: {};
 	const dataUser_Projector = queryData.projector_files_directory || {};
 	const dataUser_bertopic = queryData.bertopic_files_directory || {};
 
@@ -162,6 +167,7 @@ const DataSet = () => {
 								key={Math.random() + Math.random()}
 								folder={folder}
 								processedFolder={false}
+								shared={sharedFolders[folder] || null}
 								buttonTarget={activeButton}
 							/>
 						))
