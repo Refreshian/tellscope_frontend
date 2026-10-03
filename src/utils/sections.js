@@ -16,8 +16,11 @@ const catalogOf = me => (me && Array.isArray(me.sections_catalog) ? me.sections_
 /** Все пути, которые являются разделами: каталог сервера плюс само меню. */
 const sectionPaths = me => {
 	const paths = catalogOf(me).map(section => section.path);
+	// Берём все пункты меню, включая те, что живут только в боковом списке (ОИВ рейтинг,
+	// PR-кампании): иначе такой путь не считался разделом, и по прямой ссылке он открывался
+	// даже без выдачи.
 	menuPageData.forEach(item => {
-		if (item.path && !item.sidebarOnly) paths.push(item.path);
+		if (item.path) paths.push(item.path);
 	});
 	return paths.filter(Boolean);
 };

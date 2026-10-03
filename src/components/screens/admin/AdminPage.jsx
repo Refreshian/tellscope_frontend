@@ -171,6 +171,33 @@ const AdminPage = () => {
 			setTabsBusy(false);
 		}
 	};
+	// Вкладки можно выдать вместе с доступом к папкам — одной кнопкой «Выдать».
+	const [grantTabsOn, setGrantTabsOn] = useState(false);
+	const [grantTabsAll, setGrantTabsAll] = useState(true);
+	const [grantTabsAllowed, setGrantTabsAllowed] = useState([]);
+	const [grantTabsCatalog, setGrantTabsCatalog] = useState([]);
+	const [grantTabsMsg, setGrantTabsMsg] = useState('');
+	const loadGrantTabs = async userId => {
+		if (!userId) return;
+		try {
+			const data = await api('/admin/users/' + userId + '/sections');
+			setGrantTabsCatalog(data.catalog || []);
+			setGrantTabsAllowed(data.sections || []);
+			setGrantTabsAll(!!data.all);
+		} catch (e) {
+			setGrantTabsMsg('Не удалось получить вкладки: ' + ((e && e.message) || e));
+		}
+	};
+	const pickTarget = id => {
+		setTargetId(id);
+		setGrantTabsMsg('');
+		if (grantTabsOn) loadGrantTabs(id);
+	};
+	const toggleGrantTabs = on => {
+		setGrantTabsOn(on);
+		setGrantTabsMsg('');
+		if (on) loadGrantTabs(targetId);
+	};
 	// Правка самой учётной записи: имя, почта, пароль.
 	const [editUser, setEditUser] = useState(null);
 	const [editName, setEditName] = useState('');
@@ -304,11 +331,24 @@ const AdminPage = () => {
 
 	const grant = async () => {
 		setErr('');
+		setGrantTabsMsg('');
 		try {
 			await api('/admin/shares/bulk', {
 				method: 'POST',
 				body: JSON.stringify({ owner_user_id: Number(ownerId), folders: foldersSel, user_id: Number(targetId), access }),
 			});
+			// Вкладки сохраняем тем же действием: администратор выдаёт доступ к данным и к
+			// разделам одним нажатием, а не ищет второе место в интерфейсе.
+			if (grantTabsOn && targetId) {
+				const data = await api('/admin/users/' + targetId + '/sections', {
+					method: 'PUT',
+					body: JSON.stringify({ sections: grantTabsAll ? ['*'] : grantTabsAllowed }),
+				});
+				setGrantTabsCatalog(data.catalog || grantTabsCatalog);
+				setGrantTabsAllowed(data.sections || []);
+				setGrantTabsAll(!!data.all);
+				setGrantTabsMsg(data.all ? 'Вкладки: доступны все' : 'Вкладки: выдано ' + (data.sections || []).length);
+			}
 			await reload();
 		} catch (e) { setErr(String((e && e.message) || e)); }
 	};
@@ -592,7 +632,7 @@ const AdminPage = () => {
 							))}
 						</div>
 					</div>
-					<select style={input} value={targetId} onChange={e => setTargetId(e.target.value)}>
+					<select style={input} value={targetId} onChange={e => pickTarget(e.target.value)}>
 						<option value=''>Кому…</option>
 						{users.map(u => <option key={u.id} value={u.id}>{u.email}</option>)}
 					</select>
@@ -602,6 +642,46 @@ const AdminPage = () => {
 						<option value='delete'>чтение, редактирование и удаление</option>
 					</select>
 					<button style={btn} onClick={grant}>Выдать</button>
+				</div>
+				<div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed #e6eaf0' }}>
+					<label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+						<input type='checkbox' checked={grantTabsOn} disabled={!targetId}
+							onChange={e => toggleGrantTabs(e.target.checked)} />
+						также задать вкладки системы для получателя
+					</label>
+					{!targetId && (
+						<div style={{ fontSize: 12, color: '#98a2b3', marginTop: 4 }}>Сначала выберите, кому выдаём доступ.</div>
+					)}
+					{grantTabsOn && targetId && (
+						<div style={{ marginTop: 6 }}>
+							<label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+								<input type='checkbox' checked={grantTabsAll}
+									onChange={e => { setGrantTabsMsg(''); setGrantTabsAll(e.target.checked); }} />
+								доступны все вкладки
+							</label>
+							{!grantTabsAll && (
+								<div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', marginTop: 6 }}>
+									{grantTabsCatalog.map(section => (
+										<label key={section.slug} style={{ fontSize: 12, minWidth: 200, display: 'flex', alignItems: 'center', gap: 6 }}>
+											<input type='checkbox' checked={grantTabsAllowed.includes(section.slug)}
+												onChange={e => {
+													setGrantTabsMsg('');
+													setGrantTabsAllowed(prev => e.target.checked
+														? [...prev, section.slug]
+														: prev.filter(item => item !== section.slug));
+												}} />
+											{section.title}
+										</label>
+									))}
+								</div>
+							)}
+							<div style={{ fontSize: 12, color: '#667085', marginTop: 6 }}>
+								Снятые вкладки не показываются на главной и в левом меню, а по прямой ссылке
+								открывается «Раздел не выдан».
+							</div>
+						</div>
+					)}
+					{grantTabsMsg && <div style={{ fontSize: 12, color: '#475467', marginTop: 6 }}>{grantTabsMsg}</div>}
 				</div>
 			</div>
 
