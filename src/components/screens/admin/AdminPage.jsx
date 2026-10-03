@@ -501,7 +501,7 @@ const AdminPage = () => {
 									</div>
 								</td>
 								<td style={tdTop}>
-									<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+									<div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 5px', alignItems: 'stretch' }}>
 										{u.id !== meId && (u.is_superuser ? (
 											<button style={cellBtn} title='Снять права администратора' onClick={() => patchUser(u.id, { is_superuser: false })}>снять админа</button>
 										) : (
@@ -924,6 +924,9 @@ const tdTop = { ...td, verticalAlign: 'top' };
 // Кнопки в строке таблицы: узкие, переносятся по строкам — иначе колонка «Действия»
 // растягивала таблицу и она уезжала за правый край экрана.
 const cellBtn = {
+	// Кнопка растягивается по ширине строки: иначе справа от «удалить» оставалась пустая
+	// полоса, похожая на отдельный пустой столбец.
+	flex: '1 1 auto',
 	padding: '3px 7px',
 	borderRadius: 6,
 	border: '1px solid #d0d7e2',
@@ -934,6 +937,7 @@ const cellBtn = {
 	lineHeight: 1.25,
 	fontFamily: 'inherit',
 	whiteSpace: 'nowrap',
+	textAlign: 'center',
 };
 const cellBtnRed = { ...cellBtn, borderColor: '#f2c6c6', color: '#c53030' };
 
