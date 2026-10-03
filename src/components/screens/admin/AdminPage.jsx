@@ -198,6 +198,23 @@ const AdminPage = () => {
 		setGrantTabsMsg('');
 		if (on) loadGrantTabs(targetId);
 	};
+	// Чувствительные вкладки («Администрирование») подсвечиваем красным и объясняем, что они дают:
+	// иначе это выглядит как обычная галочка в списке выдачи.
+	const dangerNote = (catalog, allowed) => {
+		const items = (catalog || []).filter(section => section.danger);
+		if (items.length === 0) return null;
+		return (
+			<div style={{ marginTop: 6, fontSize: 12, color: '#b42318', maxWidth: 760, lineHeight: 1.4 }}>
+				{items.map(section => (
+					<div key={section.slug}>
+						<b>{section.title}</b> — {section.hint || 'чувствительный раздел'}
+						{(allowed || []).includes(section.slug) ? ' · сейчас выдано' : ''}
+					</div>
+				))}
+			</div>
+		);
+	};
+
 	// Правка самой учётной записи: имя, почта, пароль.
 	const [editUser, setEditUser] = useState(null);
 	const [editName, setEditName] = useState('');
@@ -662,7 +679,7 @@ const AdminPage = () => {
 							{!grantTabsAll && (
 								<div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', marginTop: 6 }}>
 									{grantTabsCatalog.map(section => (
-										<label key={section.slug} style={{ fontSize: 12, minWidth: 200, display: 'flex', alignItems: 'center', gap: 6 }}>
+										<label key={section.slug} style={{ fontSize: 12, minWidth: 200, display: 'flex', alignItems: 'center', gap: 6, ...(section.danger ? { color: '#b42318', fontWeight: 600 } : {}) }}>
 											<input type='checkbox' checked={grantTabsAllowed.includes(section.slug)}
 												onChange={e => {
 													setGrantTabsMsg('');
@@ -671,9 +688,14 @@ const AdminPage = () => {
 														: prev.filter(item => item !== section.slug));
 												}} />
 											{section.title}
+											{section.hint && (
+												<span title={section.hint}
+													style={{ cursor: 'help', color: section.danger ? '#b42318' : '#98a2b3' }}>ⓘ</span>
+											)}
 										</label>
 									))}
 								</div>
+								{dangerNote(grantTabsCatalog, grantTabsAllowed)}
 							)}
 							<div style={{ fontSize: 12, color: '#667085', marginTop: 6 }}>
 								Снятые вкладки не показываются на главной и в левом меню, а по прямой ссылке
@@ -719,7 +741,7 @@ const AdminPage = () => {
 						{!tabsAll && (
 							<div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 18px' }}>
 								{tabsCatalog.map(section => (
-									<label key={section.slug} style={{ fontSize: 13, minWidth: 220, display: 'flex', alignItems: 'center', gap: 6 }}>
+									<label key={section.slug} style={{ fontSize: 13, minWidth: 220, display: 'flex', alignItems: 'center', gap: 6, ...(section.danger ? { color: '#b42318', fontWeight: 600 } : {}) }}>
 										<input type='checkbox' checked={tabsAllowed.includes(section.slug)}
 											onChange={e => {
 												setTabsMsg('');
@@ -728,9 +750,14 @@ const AdminPage = () => {
 													: prev.filter(item => item !== section.slug));
 											}} />
 										{section.title}
+										{section.hint && (
+											<span title={section.hint}
+												style={{ cursor: 'help', color: section.danger ? '#b42318' : '#98a2b3' }}>ⓘ</span>
+										)}
 									</label>
 								))}
 							</div>
+							{dangerNote(tabsCatalog, tabsAllowed)}
 						)}
 						<div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
 							<button style={btn} disabled={tabsBusy} onClick={saveTabs}>{tabsBusy ? 'Сохраняю…' : 'Сохранить'}</button>
