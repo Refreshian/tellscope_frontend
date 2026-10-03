@@ -134,7 +134,9 @@ const PopupDelete = () => {
 				}).unwrap();
 			} else {
 				await trigger_deleteFile({
-					user: data_getUserId,
+					// Датасет может лежать в папке, выданной администратором: удаление тогда
+					// адресуем владельцу, а не текущему аккаунту.
+					user: (folder && folder.owner_user_id) || data_getUserId,
 					folder_name: targetData,
 					directory: convertDirectory,
 					file_name: !folder ? folder : folder.file,
@@ -145,7 +147,21 @@ const PopupDelete = () => {
 			}
 		} catch (errDel) {
 			console.error('Ошибка удаления:', errDel);
-			setDelErr((errDel && errDel.message) ? String(errDel.message).slice(0, 200) : 'Не удалось удалить. Попробуйте ещё раз.');
+			const detail = errDel && errDel.data && errDel.data.detail;
+
+			setDelErr(
+
+				detail
+
+					? String(detail).slice(0, 260)
+
+					: (errDel && errDel.message)
+
+						? String(errDel.message).slice(0, 200)
+
+						: 'Не удалось удалить. Попробуйте ещё раз.',
+
+			);
 			return;
 		}
 		try {

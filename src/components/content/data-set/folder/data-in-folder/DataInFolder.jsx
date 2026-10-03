@@ -573,15 +573,20 @@ const DataInFolder = () => {
                         </button>
 
 
-                        <button
-                          className={styles.button__delete}
-                          onClick={() => onClick(file, 'delete')}
-                        >
-                          <img
-                            src='/images/icons/setting/delete.svg'
-                            alt='delete'
-                          />
-                        </button>
+                        {/* Чужой датасет удалить нельзя: удаление оставляем только владельцу
+                            (или администратору), чтобы кнопка не вела в отказ. */}
+                        {(!file.owner_user_id ||
+                          String(file.owner_user_id) === String(data_getUserId)) && (
+                          <button
+                            className={styles.button__delete}
+                            onClick={() => onClick(file, 'delete')}
+                          >
+                            <img
+                              src='/images/icons/setting/delete.svg'
+                              alt='delete'
+                            />
+                          </button>
+                        )}
                         <FileOrigin
                           userId={file.owner_user_id || data_getUserId}
                           folder={activeFolderName}
