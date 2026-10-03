@@ -8,7 +8,7 @@ import useClickOutside from '../../../hooks/useClickOutside';
 
 import styles from './TopicSelectorWithDelete.module.scss';
 
-const TopicSelectorWithDelete = ({ multi = true, style, onDeleteRequest }) => {
+const TopicSelectorWithDelete = ({ multi = true, style, onDeleteRequest, canDelete = true }) => {
 	const [isViewOptions, setViewOptions] = useState(false);
 	const [collections, setCollections] = useState([]);
 	const [isLoading, setIsLoading] = useState(false);
@@ -29,12 +29,12 @@ const TopicSelectorWithDelete = ({ multi = true, style, onDeleteRequest }) => {
 	const loadCollections = async () => {
 		setIsLoading(true);
 		try {
-			const response = await axios.get('/api/qdrant/collections');
-			const collectionsData = response.data.collections || [];
+			const response = await axios.get('/api/ai-bot/datasets');
+			const collectionsData = response.data.datasets || [];
 			setCollections(
-				collectionsData.map((collection, index) => ({
+				collectionsData.map(collection => ({
 					...collection,
-					index_number: index,
+					index_number: collection.index,
 				})),
 			);
 		} catch (error) {
@@ -58,6 +58,13 @@ const TopicSelectorWithDelete = ({ multi = true, style, onDeleteRequest }) => {
 		setCheckedState(next);
 	}, [dataForRequest.themes_ind, collections]);
 
+// Подпись темы в списке: человекочитаемая метка, для выданной папки — с пометкой владельца.
+const collectionLabel = collection => {
+	if (!collection) return '';
+	const base = collection.label || collection.name || '';
+	const owner = collection.shared && collection.owner_user_id ? ` (от #${collection.owner_user_id})` : '';
+	return base + owner;
+};
 	const selectedCollections = useMemo(
 		() =>
 			collections.filter(collection =>
@@ -70,7 +77,7 @@ const TopicSelectorWithDelete = ({ multi = true, style, onDeleteRequest }) => {
 		const needle = query.trim().toLowerCase();
 		if (!needle) return collections;
 		return collections.filter(collection =>
-			String(collection.name || '')
+			(collectionLabel(collection) + ' ' + String(collection.name || ''))
 				.toLowerCase()
 				.includes(needle),
 		);
@@ -84,7 +91,7 @@ const TopicSelectorWithDelete = ({ multi = true, style, onDeleteRequest }) => {
 	const getSelectedCollectionsDisplay = () => {
 		if (selectedCollections.length === 0) return 'Выберите тему';
 		if (selectedCollections.length === 1) {
-			return truncateDescription(selectedCollections[0].name, 32);
+			return truncateDescription(collectionLabel(selectedCollections[0]), 32);
 		}
 		return `${selectedCollections.length} выбрано`;
 	};
@@ -110,7 +117,7 @@ const TopicSelectorWithDelete = ({ multi = true, style, onDeleteRequest }) => {
 				<div className={styles.selectedRow}>
 					{selectedCollections.map(collection => (
 						<span key={collection.index_number} className={styles.chip}>
-							{truncateDescription(collection.name, 28)}
+							{truncateDescription(collectionLabel(collection), 28)}
 							<button
 								type="button"
 								className={styles.chipRemove}
@@ -151,13 +158,14 @@ const TopicSelectorWithDelete = ({ multi = true, style, onDeleteRequest }) => {
 											checked={checkedState[collection.index_number] || false}
 											onChange={() => {}}
 										/>
-										<p title={collection.name}>
-											{truncateDescription(collection.name, 34)}
+										<p title={collectionLabel(collection)}>
+											{truncateDescription(collectionLabel(collection), 34)}
 										</p>
 										<span className={styles.option__meta}>
 											{Number(collection.points_count || 0).toLocaleString('ru-RU')}
 										</span>
 									</div>
+									{canDelete && onDeleteRequest && (
 									<button
 										type="button"
 										className={styles.delete__button}
@@ -169,12 +177,13 @@ const TopicSelectorWithDelete = ({ multi = true, style, onDeleteRequest }) => {
 									>
 										×
 									</button>
+									)}
 								</div>
 							))}
 							{filteredCollections.length === 0 && (
 								<div className={styles.no_options}>
 									{collections.length === 0
-										? 'Нет доступных коллекций'
+										? 'Нет доступных тем'
 										: 'Ничего не найдено'}
 								</div>
 							)}

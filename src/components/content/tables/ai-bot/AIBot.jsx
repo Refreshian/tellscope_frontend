@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
@@ -155,6 +156,7 @@ const AIBot = () => {
 	const dataForRequest = useSelector(state => state.dataForRequest);
 
 	const { data: data_getUserId } = useGetUserIdQuery();
+	const me = useCurrentUser();
 	const { refetch: refetchFolders } = useGetUserFoldersQuery(data_getUserId, { skip: !data_getUserId });
 
 	const [activeButton, setActiveButton] = useState('Обзор');
@@ -196,12 +198,12 @@ const AIBot = () => {
 	useEffect(() => {
 		const loadCollections = async () => {
 			try {
-				const response = await axios.get('/api/qdrant/collections');
-				const collectionsData = response.data.collections || [];
+				const response = await axios.get('/api/ai-bot/datasets');
+				const collectionsData = response.data.datasets || [];
 				setCollections(
-					collectionsData.map((collection, index) => ({
+					collectionsData.map(collection => ({
 						...collection,
-						index_number: index,
+						index_number: collection.index,
 					})),
 				);
 			} catch (error) {
@@ -777,12 +779,12 @@ const AIBot = () => {
 												await axios.delete(
 													`/api/qdrant/collections/${collectionToDelete.name}`,
 												);
-												const response = await axios.get('/api/qdrant/collections');
-												const collectionsData = response.data.collections || [];
+												const response = await axios.get('/api/ai-bot/datasets');
+												const collectionsData = response.data.datasets || [];
 												setCollections(
-													collectionsData.map((collection, index) => ({
+													collectionsData.map(collection => ({
 														...collection,
-														index_number: index,
+														index_number: collection.index,
 													})),
 												);
 												setShowDeleteConfirm(false);
@@ -815,6 +817,7 @@ const AIBot = () => {
 							<div className={styles.section}>
 								<h3 className={styles.section__title}>Тема</h3>
 								<TopicSelectorWithDelete
+									canDelete={Boolean(me && me.is_superuser)}
 									multi={true}
 									style={{ width: '100%' }}
 									onDeleteRequest={collection => {
