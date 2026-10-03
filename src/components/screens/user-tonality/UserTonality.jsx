@@ -874,11 +874,11 @@ const UserTonality = () => {
                         </div>
 
                         {/* Граф */}
+                        {/* Фильтр источников доходит до графиков; погружение в автора — нет:
+                            дерево авторов должно оставаться целым, иначе из него не вернуться. */}
                         <Suspense fallback={<Loader />}>
                             <TonalityGraphs
-                                {/* Срез от фильтра источников обязан доходить
-                                    до графиков: раньше сюда шли нефильтрованные данные. */}
-                                data={analysisData}
+                                data={graphSlice?.type === 'authors' ? filteredData : analysisData}
                                 onTabChange={handleTabChange}
                                 onVisibleSlice={handleGraphSlice}
                                 rootLabel={themeRootLabel}
