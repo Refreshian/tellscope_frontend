@@ -48,7 +48,10 @@
 	display: flex;
 	gap: adapt(18px, 1440px);
 	align-items: flex-start;
-	flex-wrap: wrap;
+	/* Текст не переносим под содержание: у карточки базовая ширина 0, поэтому она просто
+	   занимает остаток, а не перескакивает вниз при сужении окна. На узких экранах
+	   раскладываем колонки явно — см. медиазапрос ниже. */
+	flex-wrap: nowrap;
 }
 
 .nav {
@@ -59,6 +62,19 @@
 	gap: 12px;
 	position: sticky;
 	top: 12px;
+}
+
+/* Узкий экран: содержание встаёт сверху одной полосой, текст — под ним. */
+@media (max-width: 860px) {
+	.body {
+		flex-wrap: wrap;
+	}
+
+	.nav {
+		flex: 1 1 100%;
+		width: 100%;
+		position: static;
+	}
 }
 
 .navGroup {
@@ -103,9 +119,9 @@
 }
 
 .doc {
-	flex: 1 1 auto;
+	flex: 1 1 0;
 	min-width: 0;
-	min-height: 60vh;
+	min-height: 40vh;
 	background: #fff;
 	border: 1px solid rgba(16, 24, 40, 0.1);
 	border-radius: 12px;
