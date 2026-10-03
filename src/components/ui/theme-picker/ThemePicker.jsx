@@ -25,7 +25,8 @@ const ThemePicker = ({ dataUser, currentIndex, onPick, label, period, loading, f
 				const map = {};
 				(data.datasets || []).forEach(item => {
 					if (!item?.name) return;
-					map[item.name] = item.period ? `${item.label} · ${item.period}` : item.label || item.name;
+					// title с сервера — подпись как в папках: «Тема ДД.ММ.ГГГГ-ДД.ММ.ГГГГ»
+					map[item.name] = item.title || (item.period ? `${item.label} · ${item.period}` : item.label || item.name);
 				});
 				setLabels(map);
 			} catch (err) {
