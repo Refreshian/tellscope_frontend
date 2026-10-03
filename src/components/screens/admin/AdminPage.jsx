@@ -88,6 +88,14 @@ const tabButton = active => ({
 	boxShadow: active ? '0 4px 14px rgba(108,92,231,.28)' : 'none',
 });
 
+// Названия уровней доступа к выданной папке (те же, что на сервере).
+const ACCESS_LABELS = {
+	read: 'только чтение',
+	write: 'чтение и редактирование',
+	delete: 'чтение, редактирование и удаление',
+};
+const accessLabel = value => ACCESS_LABELS[value] || ACCESS_LABELS.read;
+
 const AdminPage = () => {
 	const [ok, setOk] = useState(null); // null=loading,false=forbidden,true=admin
 	const [users, setUsers] = useState([]);
@@ -111,6 +119,8 @@ const AdminPage = () => {
 	const [ownerId, setOwnerId] = useState('');
 	const [ownerFolders, setOwnerFolders] = useState([]);
 	const [folder, setFolder] = useState('');
+	// Выдать доступ можно сразу к нескольким папкам: отмечаем их галочками.
+	const [foldersSel, setFoldersSel] = useState([]);
 	const [targetId, setTargetId] = useState('');
 	const [access, setAccess] = useState('read');
 	const [llmUsage, setLlmUsage] = useState([]);
@@ -289,14 +299,15 @@ const AdminPage = () => {
 		const f = await api('/admin/folders/' + id);
 		setOwnerFolders(f.folders || []);
 		setFolder('');
+		setFoldersSel([]);
 	};
 
 	const grant = async () => {
 		setErr('');
 		try {
-			await api('/admin/shares', {
+			await api('/admin/shares/bulk', {
 				method: 'POST',
-				body: JSON.stringify({ owner_user_id: Number(ownerId), folder, user_id: Number(targetId), access }),
+				body: JSON.stringify({ owner_user_id: Number(ownerId), folders: foldersSel, user_id: Number(targetId), access }),
 			});
 			await reload();
 		} catch (e) { setErr(String((e && e.message) || e)); }
@@ -527,10 +538,28 @@ const AdminPage = () => {
 						<option value=''>Владелец данных…</option>
 						{users.map(u => <option key={u.id} value={u.id}>{u.email}</option>)}
 					</select>
-					<select style={input} value={folder} onChange={e => setFolder(e.target.value)}>
-						<option value=''>Папка…</option>
-						{ownerFolders.map(f => <option key={f.name} value={f.name}>{f.name} ({f.files})</option>)}
-					</select>
+					<div style={{ ...input, minWidth: 300 }}>
+						<div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+							<span style={{ fontSize: 12, color: '#344054' }}>Папки (можно несколько):</span>
+							<button type='button' style={{ ...miniBtn, padding: '2px 8px' }}
+								onClick={() => setFoldersSel(ownerFolders.map(f => f.name))}>выбрать все</button>
+							<button type='button' style={{ ...miniBtn, padding: '2px 8px' }}
+								onClick={() => setFoldersSel([])}>снять</button>
+							{foldersSel.length > 0 && <span style={{ fontSize: 12, color: '#067647' }}>выбрано: {foldersSel.length}</span>}
+						</div>
+						<div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', marginTop: 6, maxHeight: 132, overflowY: 'auto' }}>
+							{ownerFolders.length === 0 && <span style={{ fontSize: 12, color: '#98a2b3' }}>Выберите владельца данных</span>}
+							{ownerFolders.map(f => (
+								<label key={f.name} style={{ fontSize: 13, minWidth: 200, display: 'flex', alignItems: 'center', gap: 6 }}>
+									<input type='checkbox' checked={foldersSel.includes(f.name)}
+										onChange={e => setFoldersSel(prev => e.target.checked
+											? [...prev, f.name]
+											: prev.filter(item => item !== f.name))} />
+									{f.name} ({f.files})
+								</label>
+							))}
+						</div>
+					</div>
 					<select style={input} value={targetId} onChange={e => setTargetId(e.target.value)}>
 						<option value=''>Кому…</option>
 						{users.map(u => <option key={u.id} value={u.id}>{u.email}</option>)}
@@ -538,6 +567,7 @@ const AdminPage = () => {
 					<select style={input} value={access} onChange={e => setAccess(e.target.value)}>
 						<option value='read'>только чтение</option>
 						<option value='write'>чтение и редактирование</option>
+						<option value='delete'>чтение, редактирование и удаление</option>
 					</select>
 					<button style={btn} onClick={grant}>Выдать</button>
 				</div>
@@ -549,7 +579,7 @@ const AdminPage = () => {
 				{shares.length === 0 && <div style={{ color: '#98a2b3', marginTop: 6 }}>Пока нет выданных доступов</div>}
 				{shares.map((s, i) => (
 					<div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '6px 0', borderBottom: '1px dashed #e6eaf0', fontSize: 13 }}>
-						<span>владелец #{s.owner_user_id} · папка «{s.folder}» · пользователь #{s.user_id} · {s.access === 'read' ? 'чтение' : 'чтение+запись'}</span>
+						<span>владелец #{s.owner_user_id} · папка «{s.folder}» · пользователь #{s.user_id} · {s.access_label || accessLabel(s.access)}</span>
 						<button style={{ border: 0, background: 'none', color: '#c53030', cursor: 'pointer' }} onClick={() => revoke(s)}>забрать</button>
 					</div>
 				))}

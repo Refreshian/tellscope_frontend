@@ -324,9 +324,11 @@ const DataInFolder = () => {
             color: '#067647',
           }}
         >
-          Папка выдана администратором: владелец #{sharedFolderInfo.owner_user_id}. Данные
-          можно смотреть и брать в анализ; загрузка файлов из этого аккаунта в неё не
-          поддерживается.
+          Папка выдана администратором: владелец #{sharedFolderInfo.owner_user_id},{' '}
+          {sharedFolderInfo.access_label || 'только чтение'}.
+          {sharedFolderInfo.access === 'delete'
+            ? 'Данные можно смотреть, брать в анализ и удалять из этой папки.'
+            : 'Данные можно смотреть и брать в анализ.'}
         </div>
       )}
       <div className={styles.block__files} style={style.block__files}>
@@ -572,10 +574,11 @@ const DataInFolder = () => {
                         </button>
 
 
-                        {/* Чужой датасет удалить нельзя: удаление оставляем только владельцу
-                            (или администратору), чтобы кнопка не вела в отказ. */}
+                        {/* Чужой датасет удаляем только если владелец выдал право на удаление
+                            (access === 'delete'): иначе кнопка вела бы в отказ. */}
                         {(!file.owner_user_id ||
-                          String(file.owner_user_id) === String(data_getUserId)) && (
+                          String(file.owner_user_id) === String(data_getUserId) ||
+                          file.access === 'delete') && (
                           <button
                             className={styles.button__delete}
                             onClick={() => onClick(file, 'delete')}

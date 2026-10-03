@@ -1498,7 +1498,10 @@ const DataSetPage = () => {
                         {myShared.map((s, i) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '4px 0', borderBottom: '1px dashed #cdeedc' }}>
                                 <span>владелец #{s.owner_user_id} · папка «{s.folder}»</span>
-                                <span style={{ color: '#067647' }}>данные можно смотреть и брать в анализ</span>
+                                <span style={{ color: '#067647' }}>
+                                    {s.access_label || 'только чтение'}
+                                    {s.access === 'delete' ? ' · можно удалять датасеты' : ''}
+                                </span>
                             </div>
                         ))}
                     </div>
