@@ -21,6 +21,7 @@ import MosinformRating from '@/components/screens/mosinform-rating/MosinformRati
 import AdminPage from '@/components/screens/admin/AdminPage';
 import PrCampaign from '@/components/screens/pr-campaign/PrCampaign';
 import DifyConstructor from '@/components/screens/dify-constructor/DifyConstructor';
+import Docs from '@/components/screens/docs/Docs';
 import Harness from '@/components/screens/harness/Harness';
 
 
@@ -150,6 +151,11 @@ export const routes = [
 	{
 		path: '/dify-constructor',
 		component: DifyConstructor,
+		isAuth: true,
+	},
+	{
+		path: '/docs',
+		component: Docs,
 		isAuth: true,
 	},
 	{

@@ -173,7 +173,7 @@ export const menuSettings = [
 		title: 'Документация',
 		src: '/images/icons/menu/FAQ.svg',
 		src_active: '/images/icons/menu/faq.svg',
-		path: 'https://wiki.tellscope40.headsmade.com',
+		path: '/docs',
 	},
 	{
 		id: 1,
