@@ -10,13 +10,16 @@ const AUTH_PATHS = ['/', '/auth', '/login'];
 
 const roleTitle = user => (user.is_superuser ? 'администратор' : 'пользователь');
 
+// Подсказка об учётной записи: только логин, имя пользователя и роль.
+// Идентификаторы (user_id, role_id) не показываем — в подсказке они никому не нужны.
 const tooltipOf = user =>
 	[
-		user.email || user.username || '',
-		`username: ${user.username || '—'}`,
-		`роль: ${roleTitle(user)}${user.role_id != null ? ` (role_id ${user.role_id})` : ''}`,
-		`id: ${user.id}`,
-	].join('\n');
+		user.email ? `login: ${user.email}` : '',
+		user.username ? `username: ${user.username}` : '',
+		`роль: ${roleTitle(user)}`,
+	]
+		.filter(Boolean)
+		.join('\n');
 
 // Подпись «под какой учётной записью работаем»: мелкая серая строка внизу левого меню
 // (на узких экранах меню уезжает в шторку, поэтому там подпись встаёт у кнопки-бургера).
