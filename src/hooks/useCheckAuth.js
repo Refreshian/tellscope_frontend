@@ -2,7 +2,7 @@ import Cookies from 'js-cookie';
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { TOKEN } from '../app.constants';
+import { TOKEN, REFRESH_TOKEN, COOKIE_DOMAIN, COOKIE_OPTIONS } from '../app.constants';
 
 import { useAuth } from './useAuth';
 
