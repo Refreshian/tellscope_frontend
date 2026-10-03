@@ -160,7 +160,7 @@ const UserTonality = () => {
                             (String(file.index_number) === String(baseData) ||
                                 String(file.indexNumber) === String(baseData))
                         ) {
-                            return file.file || file.name || '';
+                            return file.file_display || file.file || file.name || '';
                         }
                     }
                 } else if (v && typeof v === 'object') {

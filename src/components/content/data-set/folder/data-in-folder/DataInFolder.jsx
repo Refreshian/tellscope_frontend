@@ -241,6 +241,9 @@ const DataInFolder = () => {
   // первой страницы. Дата — поле `created` (секунды Unix), которое отдаёт API папок.
   const files = sortByMode(
     renderFiles(activeFolderName, foldersData).json_files_directory.filter(file => {
+      if (String(file.file_display || '').toLowerCase().includes(filterText.toLowerCase())) {
+        return true;
+      }
       return dynamicDirectoryFile.some(
         key =>
           file[key] &&
@@ -503,7 +506,7 @@ const DataInFolder = () => {
                       style={viewStyle(file)}
                     >
                       <p className={styles.name}>
-                        {file.file}
+                        {file.file_display || file.file}
                         {(() => {
                           const stem = String(file.file || '').replace(/\.json$/i, '').toLowerCase();
                           const info = relabel[stem];

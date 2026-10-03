@@ -84,8 +84,8 @@ const TopicSelector = ({ multi = true, style }) => {
 									checked={checkedState[file.index_number] || false}
 									onChange={e => e.preventDefault()}
 								/>
-								<p title={file.file || file['html-file']}>
-									{truncateDescription(file.file || file['html-file'], 40)}
+								<p title={file.file_display || file.file || file['html-file']}>
+									{truncateDescription(file.file_display || file.file || file['html-file'], 40)}
 								</p>
 							</div>
 						))}
