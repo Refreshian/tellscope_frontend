@@ -22,7 +22,7 @@ import { TOKEN } from '@/app.constants';
 import { $axios } from '@/api';
 import { fmtDay } from '@/utils/fileMeta';
 import { truncateDescription } from '@/utils/editText';
-import { canOpenPath } from '@/utils/sections';
+import { canOpenPathKnown } from '@/utils/sections';
 import ThemePicker from '@/components/ui/theme-picker/ThemePicker';
 
 import styles from './Harness.module.scss';
@@ -933,7 +933,8 @@ const Harness = () => {
 	// предлагает работу, которую нельзя закончить (DSL-файл импортируется в конструктор).
 	const difyAvailable = useMemo(() => {
 		if (info && typeof info.dify_available === 'boolean') return info.dify_available;
-		return canOpenPath(me, '/dify-constructor');
+		// Пока /me не ответил, кнопки Dify не показываем: у demo@demo.ru она иначе мелькает.
+		return canOpenPathKnown(me, '/dify-constructor');
 	}, [info, me]);
 	const modes = useMemo(
 		() => (info?.modes || []).filter(item => item.id !== 'flow' || difyAvailable),

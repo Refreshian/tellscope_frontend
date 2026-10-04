@@ -5,7 +5,7 @@ import { useActions } from '@/hooks/useActions';
 import { useLogout } from '@/hooks/useLogout';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { canOpenPath } from '@/utils/sections';
+import { canOpenPathKnown } from '@/utils/sections';
 
 import styles from './LeftMenu.module.scss';
 import { menuPageData, menuSettings, agentMenuData } from '@/data/menuPage.data';
@@ -48,16 +48,18 @@ const LeftMenu = () => {
 
 	// В меню попадают только выданные разделы. Проверка дублирует серверную: он закрывает
 	// чужие разделы ответом 403, здесь же важно не показывать их вовсе.
+	// canOpenPathKnown (а не canOpenPath): пока /me не ответил, разделы не показываем —
+	// иначе на перезагрузке мелькают пункты, которые пользователю не выданы.
 	const visibleMenuPageData = useMemo(
-		() => menuPageData.filter(item => canOpenPath(me, item.path)),
+		() => menuPageData.filter(item => canOpenPathKnown(me, item.path)),
 		[me],
 	);
 	const visibleAgentMenuData = useMemo(
-		() => agentMenuData.filter(item => canOpenPath(me, item.path)),
+		() => agentMenuData.filter(item => canOpenPathKnown(me, item.path)),
 		[me],
 	);
 	const visibleMenuSettings = useMemo(
-		() => menuSettings.filter(item => canOpenPath(me, item.path)),
+		() => menuSettings.filter(item => canOpenPathKnown(me, item.path)),
 		[me],
 	);
 

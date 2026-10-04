@@ -61,6 +61,26 @@ export const canOpenPath = (me, path) => {
 	return allowedPaths.some(base => sameOrChild(path, base));
 };
 
+/** Является ли путь разделом сервиса: по списку меню — до ответа /me другого источника нет. */
+export const isSectionPath = path => {
+	if (!path) return false;
+	const menuPaths = menuPageData.map(item => item.path).filter(Boolean);
+	return menuPaths.some(base => sameOrChild(path, base));
+};
+
+/**
+ * Строгая проверка для списков (плитки главной, пункты меню).
+ *
+ * Отличие от `canOpenPath`: пока ответ /me не пришёл, разделы **не показываются**. Иначе на
+ * перезагрузке страницы пользователь мельком видит плитки и пункты, которые ему не выданы
+ * (у demo@demo.ru так мелькали «Конструктор Dify» и ещё один раздел администратора).
+ * Пункты без раздела (свернуть меню, выйти) видны сразу.
+ */
+export const canOpenPathKnown = (me, path) => {
+	if (!me) return !isSectionPath(path);
+	return canOpenPath(me, path);
+};
+
 /** Название раздела по пути — для сообщения «нет доступа». */
 export const sectionTitleForPath = (me, path) => {
 	const found = catalogOf(me).find(section => sameOrChild(path, section.path));

@@ -21,7 +21,7 @@ import Reports from './Reports';
 import NoData from './no-data/NoData';
 import { dataSetMainButtons, DATA_TAB, AI_STATUS_TAB } from '@/data/panel.data';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { canOpenPath } from '@/utils/sections';
+import { canOpenPathKnown } from '@/utils/sections';
 
 const MOSINFORM_TAB = 'Мосинформ.Рейтинг';
 const QUEUE_TAB = 'Очередь ML';
@@ -136,7 +136,7 @@ const DataSet = () => {
 		.flat()
 		.find(file => dataForRequest.index === file.index_number);
 
-	const canSeeAiSection = useMemo(() => canOpenPath(me, '/ai-analytics'), [me]);
+	const canSeeAiSection = useMemo(() => canOpenPathKnown(me, '/ai-analytics'), [me]);
 	const aiHistoryCount = useMemo(
 		() => Object.values(dataUser_bertopic || {}).flat().length,
 		[dataUser_bertopic]
