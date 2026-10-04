@@ -90,3 +90,65 @@
 		align-items: stretch;
 	}
 }
+
+/* Итоговый отчёт «Мосинформ.Индекс»: блок с файлами и компактным рейтингом. */
+.indexBlock {
+	margin-top: 18px;
+	padding-top: 14px;
+	border-top: 1px solid rgba(30, 30, 30, 0.08);
+}
+
+.indexTitle {
+	font-size: 1.05rem;
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.indexNote {
+	font-size: 0.78rem;
+	color: rgba(30, 30, 30, 0.62);
+	margin-bottom: 10px;
+}
+
+.rating {
+	margin-top: 12px;
+}
+
+.ratingTitle {
+	font-size: 0.85rem;
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.ratingTable {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.78rem;
+
+	td {
+		padding: 5px 8px;
+		border-bottom: 1px solid rgba(30, 30, 30, 0.07);
+		vertical-align: middle;
+	}
+}
+
+.ratingPlace {
+	width: 28px;
+	font-weight: 600;
+	color: #214187;
+}
+
+.ratingName {
+	font-weight: 500;
+}
+
+.ratingIndex {
+	width: 74px;
+	text-align: right;
+	font-weight: 600;
+	color: #214187;
+}
+
+.ratingMeta {
+	color: rgba(30, 30, 30, 0.6);
+}

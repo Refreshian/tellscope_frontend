@@ -18,10 +18,47 @@ import styles from './MosinformRating.module.scss';
 
 const LAST_JOB_KEY = 'mosinform_last_job';
 
+// Имена скачиваемых файлов: пилотная презентация и итоговый отчёт «Мосинформ.Индекс».
+const FILE_NAMES = {
+	pptx: 'mosinform_rating.pptx',
+	xlsx: 'mosinform_rating.xlsx',
+	'index-pptx': 'Мосинформ_Индекс_отчёт.pptx',
+	'index-pdf': 'Мосинформ_Индекс_отчёт.pdf',
+	'index-xlsx': 'Мосинформ_Индекс_расчёт.xlsx',
+};
+
 const _fileSize = bytes => {
 	if (!bytes) return '0 КБ';
 	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} КБ`;
 	return `${(bytes / 1024 / 1024).toFixed(1)} МБ`;
+};
+
+// Компактный рейтинг: место, объект, индекс, ключевые цифры.
+const RatingTable = ({ title, rows }) => {
+	if (!rows || !rows.length) return null;
+	return (
+		<div className={styles.rating}>
+			<div className={styles.ratingTitle}>{title}</div>
+			<table className={styles.ratingTable}>
+				<tbody>
+					{rows.map(row => (
+						<tr key={row.id}>
+							<td className={styles.ratingPlace}>{row.place}</td>
+							<td className={styles.ratingName}>{row.name}</td>
+							<td className={styles.ratingIndex}>
+								{Number(row.index).toFixed(1).replace('.', ',')}
+							</td>
+							<td className={styles.ratingMeta}>
+								{row.messages} сообщ. · позитив{' '}
+								{Number(row.positive_share).toFixed(0)}% · повестка Мэра{' '}
+								{Number(row.mayor_agenda).toFixed(0)}%
+							</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</div>
+	);
 };
 
 const MosinformRating = () => {
@@ -108,7 +145,7 @@ const MosinformRating = () => {
 			.then(blob => {
 				const a = document.createElement('a');
 				a.href = URL.createObjectURL(blob);
-				a.download = `mosinform_rating.${kind === 'pptx' ? 'pptx' : 'xlsx'}`;
+				a.download = FILE_NAMES[kind] || `mosinform_rating_${kind}`;
 				a.click();
 			});
 	};
@@ -118,11 +155,14 @@ const MosinformRating = () => {
 			{active_menu ? <LeftMenuActive /> : <LeftMenu />}
 			<Content>
 				<div className={styles.page}>
-					<h1 className={styles.title}>Мосинформ.Рейтинг</h1>
+					<h1 className={styles.title}>Мосинформ.Индекс</h1>
 					<p className={styles.lead}>
 						Загрузите выгрузки Медиалогии (docx, xlsx или zip). Система разберёт тексты,
-						разметит объекты локальной моделью и соберёт презентацию. Результат
-						сохраняется на сервере — его можно открыть позже во вкладке{' '}
+						разметит объекты локальной моделью и соберёт два файла: пилотную презентацию
+						по 13 параметрам и итоговый отчёт «Мосинформ.Индекс» (PPTX и PDF, 33 слайда —
+						ключевые выводы, метрики по департаментам и проектам, персоны, инфоповоды,
+						методология расчёта индекса). Результат сохраняется на сервере — его можно
+						открыть позже во вкладке{' '}
 						<Link to="/data-set?tab=mosinform">Наборы данных → Мосинформ.Рейтинг</Link>.
 					</p>
 					<label className={styles.label}>Период на слайдах</label>
@@ -148,7 +188,7 @@ const MosinformRating = () => {
 					)}
 					<div className={styles.actions}>
 						<Button onClick={start} disabled={busy}>
-							{busy ? 'Считаем…' : 'Собрать презентацию'}
+							{busy ? 'Считаем…' : 'Собрать отчёт'}
 						</Button>
 						{files.length > 0 && !busy && (
 							<button className={styles.clear} type="button" onClick={() => setFiles([])}>
@@ -168,9 +208,51 @@ const MosinformRating = () => {
 									{status.summary.objects}, без объекта: {status.summary.untagged}
 								</p>
 							)}
+							{(status.has_index_pptx || status.has_index_pdf) && (
+								<div className={styles.indexBlock}>
+									<h2 className={styles.indexTitle}>Итоговый отчёт «Мосинформ.Индекс»</h2>
+									<p className={styles.indexNote}>
+										{status.summary?.index?.period
+											? `Период: ${status.summary.index.period}. `
+											: ''}
+										Показатели в расчёте:{' '}
+										{(status.summary?.index?.used_metrics || []).length}{' '}
+										{(status.summary?.index?.missing_metrics || []).length > 0
+											? '· часть показателей в поставке отсутствует'
+											: ''}
+									</p>
+									<div className={styles.actions}>
+										{status.has_index_pptx && (
+											<Button onClick={() => download('index-pptx')}>
+												Скачать отчёт PPTX
+											</Button>
+										)}
+										{status.has_index_pdf && (
+											<Button onClick={() => download('index-pdf')}>
+												Скачать отчёт PDF
+											</Button>
+										)}
+										{status.has_index_xlsx && (
+											<Button onClick={() => download('index-xlsx')}>
+												Расчёт индекса
+											</Button>
+										)}
+									</div>
+									<RatingTable
+										title="Департаменты"
+										rows={status.summary?.index?.departments}
+									/>
+									<RatingTable
+										title="Проекты"
+										rows={status.summary?.index?.projects}
+									/>
+								</div>
+							)}
 							{status.has_pptx && (
 								<div className={styles.actions}>
-									<Button onClick={() => download('pptx')}>Скачать PPTX</Button>
+									<Button onClick={() => download('pptx')}>
+										Скачать пилотную презентацию
+									</Button>
 									{status.has_xlsx && (
 										<Button onClick={() => download('xlsx')}>Скачать Excel</Button>
 									)}
