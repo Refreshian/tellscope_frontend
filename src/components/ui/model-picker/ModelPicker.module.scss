@@ -57,21 +57,21 @@
 	}
 }
 
+/* Список рисуется порталом в body и позиционируется от кнопки: так его не обрезают
+   контейнеры страницы. Направление (вниз или вверх) выбирает компонент по свободному месту. */
 .menu {
-	position: absolute;
-	right: 0;
-	bottom: calc(100% + 6px);
-	z-index: 40;
-	min-width: 330px;
-	max-width: 420px;
+	position: fixed;
+	z-index: 80;
 	padding: 6px;
 	border: 1px solid #e4e7ec;
 	border-radius: 10px;
 	background: #fff;
-	box-shadow: 0 12px 28px rgba(16, 24, 40, 0.14);
+	box-shadow: 0 12px 28px rgba(16, 24, 40, 0.18);
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
+	overflow-y: auto;
+	overscroll-behavior: contain;
 }
 
 .option {
