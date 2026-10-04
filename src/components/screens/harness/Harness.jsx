@@ -23,6 +23,8 @@ import { $axios } from '@/api';
 import { fmtDay } from '@/utils/fileMeta';
 import { truncateDescription } from '@/utils/editText';
 import { canOpenPathKnown } from '@/utils/sections';
+import { Link } from 'react-router-dom';
+
 import ModelPicker from '@/components/ui/model-picker/ModelPicker';
 import ThemePicker from '@/components/ui/theme-picker/ThemePicker';
 
@@ -266,6 +268,14 @@ const serverTimeOf = value => {
 	return Number.isNaN(parsed) ? 0 : parsed;
 };
 
+// Подсказка к индикатору расхода: что именно осталось и до какого срока.
+const data_hint = usage => {
+	const remaining = usage?.remaining?.external_rub ?? 0;
+	const limit = usage?.limits?.external_rub_month ?? 0;
+	const days = usage?.period?.reset_in_days ?? 0;
+	return `осталось ${remaining} ₽ из ${limit} ₽ на внешние модели, до сброса ${days} дн.`;
+};
+
 const Harness = () => {
 	useCheckAuth();
 
@@ -284,12 +294,27 @@ const Harness = () => {
 	const me = useCurrentUser();
 
 	const [info, setInfo] = useState(null);
+	// Расход и лимиты за месяц: короткий индикатор рядом с выбором модели, подробности — на /usage.
+	const [usage, setUsage] = useState(null);
 	const [tasks, setTasks] = useState([]);
 	const [current, setCurrent] = useState(null);
 	const [text, setText] = useState('');
 	const [mode, setMode] = useState('explain');
 	const [model, setModel] = useState('deepseek');
 	const [busy, setBusy] = useState(false);
+	const loadUsage = useCallback(() => {
+		$axios
+			.get('/usage/me')
+			.then(response => setUsage(response.data))
+			.catch(() => setUsage(null));
+	}, []);
+	useEffect(() => {
+		loadUsage();
+	}, [loadUsage]);
+	// После завершения задачи расход изменился — обновляем индикатор.
+	useEffect(() => {
+		if (!busy) loadUsage();
+	}, [busy, loadUsage]);
 	const [error, setError] = useState(null);
 	const [notice, setNotice] = useState(null);
 	const [events, setEvents] = useState([]);
@@ -1218,6 +1243,18 @@ const Harness = () => {
 					<div className={styles.composerRow}>
 						<div className={styles.modes}>{modeButtons}</div>
 						<div className={styles.composerRight}>
+							{usage ? (
+								<Link
+									to='/usage'
+									className={styles.usageChip}
+									data-level={usage.levels?.external || 'ok'}
+									title={`Расходы и лимиты: ${data_hint(usage)}`}
+								>
+									<span className={styles.usageDot} />
+									{usage.remaining?.external_rub} ₽ · GPU {usage.spent?.gpu_minutes}/{usage.limits?.gpu_minutes_month} мин
+								</Link>
+							) : null}
+
 							{info?.models?.length ? (
 								<ModelPicker
 									models={info.models}

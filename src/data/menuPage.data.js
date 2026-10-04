@@ -176,6 +176,14 @@ export const menuSettings = [
 		path: '/docs',
 	},
 	{
+		// Расходы и лимиты: свой раздел для каждого аккаунта, отдельной выдачи не требует.
+		id: 3,
+		title: 'Расходы и лимиты',
+		src: '/images/icons/menu/table.svg',
+		src_active: '/images/icons/menu/table_active.svg',
+		path: '/usage',
+	},
+	{
 		id: 1,
 		title: 'Свернуть меню',
 		src: '/images/icons/menu/change_menu.svg',

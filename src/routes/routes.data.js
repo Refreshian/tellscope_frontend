@@ -22,6 +22,7 @@ import AdminPage from '@/components/screens/admin/AdminPage';
 import PrCampaign from '@/components/screens/pr-campaign/PrCampaign';
 import DifyConstructor from '@/components/screens/dify-constructor/DifyConstructor';
 import Docs from '@/components/screens/docs/Docs';
+import Usage from '@/components/screens/usage/Usage';
 import Harness from '@/components/screens/harness/Harness';
 
 
@@ -156,6 +157,12 @@ export const routes = [
 	{
 		path: '/docs',
 		component: Docs,
+		isAuth: true,
+	},
+	{
+		// Расходы и лимиты: доступно любому пользователю, раздел не выдаётся отдельно.
+		path: '/usage',
+		component: Usage,
 		isAuth: true,
 	},
 	{
