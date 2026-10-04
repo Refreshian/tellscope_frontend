@@ -268,6 +268,12 @@ const serverTimeOf = value => {
 	return Number.isNaN(parsed) ? 0 : parsed;
 };
 
+// Деньги и минуты в индикаторе: по-русски и без лишних знаков после запятой.
+const fmtMoney = value => {
+	const number = Number(value) || 0;
+	return number.toLocaleString('ru-RU', { maximumFractionDigits: number < 10 ? 1 : 0 });
+};
+
 // Подсказка к индикатору расхода: что именно осталось и до какого срока.
 const data_hint = usage => {
 	const remaining = usage?.remaining?.external_rub ?? 0;
@@ -1251,7 +1257,8 @@ const Harness = () => {
 									title={`Расходы и лимиты: ${data_hint(usage)}`}
 								>
 									<span className={styles.usageDot} />
-									{usage.remaining?.external_rub} ₽ · GPU {usage.spent?.gpu_minutes}/{usage.limits?.gpu_minutes_month} мин
+									{fmtMoney(usage.remaining?.external_rub)} ₽ · GPU {fmtMoney(usage.spent?.gpu_minutes)}/
+									{fmtMoney(usage.limits?.gpu_minutes_month)} мин
 								</Link>
 							) : null}
 
