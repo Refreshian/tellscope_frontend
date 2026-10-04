@@ -536,10 +536,14 @@ const Reports = ({ filterText = '' }) => {
 
 		// Поиск по названию и сортировка работают вместе: сначала отбираем по подстроке,
 		// затем упорядочиваем — и файлы внутри папки, и сами папки.
+		// Служебные итоги (*.json) в «Отчётах» не показываем: сервер их уже отфильтровал,
+		// здесь — запас на случай кэшированного ответа. Скачивать нужно документ.
 		const matching = (data || [])
 			.map(group => ({
 				...group,
-				files: (group.files || []).filter(f => !q || f.name.toLowerCase().includes(q)),
+				files: (group.files || []).filter(
+					f => !f.name.toLowerCase().endsWith('.json') && (!q || f.name.toLowerCase().includes(q)),
+				),
 			}))
 			.filter(group => group.files.length > 0);
 
