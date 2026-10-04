@@ -2226,14 +2226,7 @@ const DataSetPage = () => {
                                             >
                                                 Скачать отчёт DOCX
                                             </a>
-                                            <a
-                                                href={'/api/tone-check/' + tcJob.job_id + '/report/file?fmt=pdf'}
-                                                target='_blank'
-                                                rel='noreferrer'
-                                                style={{ color: '#1760e8', fontWeight: 600 }}
-                                            >
-                                                Скачать отчёт PDF
-                                            </a>
+                                            {/* PDF временно не формируем: доступен только DOCX. */}
                                             <a
                                                 href={'/api/tone-check/' + tcJob.job_id + '/report'}
                                                 target='_blank'
