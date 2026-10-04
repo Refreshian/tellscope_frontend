@@ -15,12 +15,14 @@ import LeftMenuActive from '@/components/ui/left-menu/left-menu-active/LeftMenuA
 import { useActions } from '@/hooks/useActions';
 import { useAddBaseAndDate } from '@/hooks/useAddBaseAndDate';
 import { useCheckAuth } from '@/hooks/useCheckAuth';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useGetUserFoldersQuery, useGetUserIdQuery } from '@/services/other.service';
 
 import { TOKEN } from '@/app.constants';
 import { $axios } from '@/api';
 import { fmtDay } from '@/utils/fileMeta';
 import { truncateDescription } from '@/utils/editText';
+import { canOpenPath } from '@/utils/sections';
 import ThemePicker from '@/components/ui/theme-picker/ThemePicker';
 
 import styles from './Harness.module.scss';
@@ -275,6 +277,10 @@ const Harness = () => {
 
 	const { data: data_getUserId } = useGetUserIdQuery();
 	const { data, isError, isLoading, isSuccess } = useGetUserFoldersQuery(data_getUserId, { skip: !data_getUserId });
+
+	// Выдан ли пользователю раздел Dify: от этого зависят кнопки, ведущие в конструктор.
+	// Сервер присылает готовый признак вместе с режимами, каталог разделов — запасной путь.
+	const me = useCurrentUser();
 
 	const [info, setInfo] = useState(null);
 	const [tasks, setTasks] = useState([]);
@@ -923,9 +929,24 @@ const Harness = () => {
 
 	const result = current?.result || null;
 	const run = current?.run || null;
-	const modes = info?.modes || [];
+	// Dify-режим и ссылки в конструктор — только тем, кому Dify выдан: иначе кнопка
+	// предлагает работу, которую нельзя закончить (DSL-файл импортируется в конструктор).
+	const difyAvailable = useMemo(() => {
+		if (info && typeof info.dify_available === 'boolean') return info.dify_available;
+		return canOpenPath(me, '/dify-constructor');
+	}, [info, me]);
+	const modes = useMemo(
+		() => (info?.modes || []).filter(item => item.id !== 'flow' || difyAvailable),
+		[info, difyAvailable]
+	);
 	const difyUrl = info?.dify_url || 'https://tellscope40.headsmade.com:8443';
 	const visibleTasks = showAllTasks ? tasks : tasks.slice(0, 5);
+
+	// Задача, собранная под Dify, у пользователя без доступа не должна оставлять режим
+	// «Собрать Dify-flow» активным: в списке режимов его уже нет.
+	useEffect(() => {
+		if (mode === 'flow' && !difyAvailable) setMode('explain');
+	}, [mode, difyAvailable]);
 
 	// Журнал для пользователя: без служебных log и без heartbeat (heartbeat — только «живость»
 	// для таймера). Технические типы событий превращаются в человеческие подписи.
@@ -1166,14 +1187,16 @@ const Harness = () => {
 							<img src='/images/icons/menu/agents.svg' alt='' />
 							мои агенты
 						</button>
-						<button
-							type='button'
-							className={styles.chipBtn}
-							onClick={() => window.open(difyUrl, '_blank', 'noopener,noreferrer')}
-						>
-							<img src='/images/icons/menu/dify.svg' alt='' />
-							конструктор Dify
-						</button>
+						{difyAvailable ? (
+							<button
+								type='button'
+								className={styles.chipBtn}
+								onClick={() => window.open(difyUrl, '_blank', 'noopener,noreferrer')}
+							>
+								<img src='/images/icons/menu/dify.svg' alt='' />
+								конструктор Dify
+							</button>
+						) : null}
 					</div>
 				</div>
 
@@ -1522,7 +1545,7 @@ const Harness = () => {
 									</button>
 								</>
 							) : null}
-							{result?.spec ? (
+							{result?.spec && difyAvailable ? (
 								<button
 									type='button'
 									className={styles.linkBtn}
