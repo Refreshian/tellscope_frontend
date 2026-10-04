@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 import Cookies from 'js-cookie';
 import ReactMarkdown from 'react-markdown';
@@ -24,6 +24,7 @@ import { useGetUserFoldersQuery, useGetUserIdQuery } from '@/services/other.serv
 
 import { TOKEN } from '@/app.constants';
 import { $axios } from '@/api';
+import ModelPicker from '@/components/ui/model-picker/ModelPicker';
 import styles from './AgentMode.module.scss';
 
 const STATUS_LABELS = {
@@ -557,13 +558,13 @@ const AgentMode = () => {
             <div className={styles.row}>
               <label className={styles.field}>
                 <span>Модель агента</span>
-                <select value={model} onChange={e => setModel(e.target.value)} disabled={isRunning}>
-                  {models.map(item => (
-                    <option key={item.id} value={item.id}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
+                <ModelPicker
+                  models={models}
+                  value={model}
+                  onChange={setModel}
+                  disabled={isRunning}
+                  title='Модель агента'
+                />
               </label>
               <label className={styles.field}>
                 <span>Бюджет прогона, токенов</span>

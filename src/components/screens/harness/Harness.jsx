@@ -23,6 +23,7 @@ import { $axios } from '@/api';
 import { fmtDay } from '@/utils/fileMeta';
 import { truncateDescription } from '@/utils/editText';
 import { canOpenPathKnown } from '@/utils/sections';
+import ModelPicker from '@/components/ui/model-picker/ModelPicker';
 import ThemePicker from '@/components/ui/theme-picker/ThemePicker';
 
 import styles from './Harness.module.scss';
@@ -1218,18 +1219,13 @@ const Harness = () => {
 						<div className={styles.modes}>{modeButtons}</div>
 						<div className={styles.composerRight}>
 							{info?.models?.length ? (
-								<select
-									className={styles.model}
+								<ModelPicker
+									models={info.models}
 									value={model}
-									onChange={event => setModel(event.target.value)}
+									onChange={setModel}
+									disabled={busy}
 									title='Модель ассистента'
-								>
-									{info.models.map(item => (
-										<option key={item.id} value={item.id}>
-											{item.label}
-										</option>
-									))}
-								</select>
+								/>
 							) : null}
 							<Button
 								style={{ width: '138px', height: '32px', fontSize: '13px' }}

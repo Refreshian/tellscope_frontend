@@ -18,6 +18,7 @@ import { useGetUserFoldersQuery, useGetUserIdQuery } from '@/services/other.serv
 import ThemePicker from '@/components/ui/theme-picker/ThemePicker';
 
 import { $axios } from '@/api';
+import ModelPicker from '@/components/ui/model-picker/ModelPicker';
 import { fmtDay } from '@/utils/fileMeta';
 import { truncateDescription } from '@/utils/editText';
 import styles from './Agents.module.scss';
@@ -770,13 +771,12 @@ const Agents = () => {
                 <div className={styles.row}>
                   <label className={styles.field}>
                     <span>Модель</span>
-                    <select value={editor.model} onChange={e => setEditor({ ...editor, model: e.target.value })}>
-                      {(meta.models || []).map(item => (
-                        <option key={item.id} value={item.id}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
+                    <ModelPicker
+                      models={meta.models || []}
+                      value={editor.model}
+                      onChange={next => setEditor({ ...editor, model: next })}
+                      title='Модель агента'
+                    />
                   </label>
                   <label className={styles.field}>
                     <span>Бюджет прогона, токенов</span>

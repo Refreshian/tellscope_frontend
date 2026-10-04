@@ -1,0 +1,130 @@
+/* Выбор модели: кнопка и свой список, потому что цвета пунктов в системном <select>
+   задать нельзя. Цвет пункта — место модели в шкале стоимости (приходит с сервера). */
+
+.wrap {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+}
+
+.button {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	height: 32px;
+	padding: 0 10px;
+	border: 1px solid #d0d5dd;
+	border-radius: 8px;
+	background: #fff;
+	font-family: inherit;
+	font-size: 12.5px;
+	color: #344054;
+	cursor: pointer;
+	white-space: nowrap;
+
+	&:hover:not(:disabled) {
+		filter: brightness(0.985);
+	}
+
+	&:disabled {
+		opacity: 0.6;
+		cursor: default;
+	}
+}
+
+.dot {
+	flex: 0 0 auto;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+}
+
+.name {
+	font-weight: 600;
+}
+
+.price {
+	font-variant-numeric: tabular-nums;
+}
+
+.chevron {
+	flex: 0 0 auto;
+	color: #667085;
+	transition: transform 0.15s ease;
+
+	&[data-open='0'] {
+		transform: rotate(-90deg);
+	}
+}
+
+.menu {
+	position: absolute;
+	right: 0;
+	bottom: calc(100% + 6px);
+	z-index: 40;
+	min-width: 330px;
+	max-width: 420px;
+	padding: 6px;
+	border: 1px solid #e4e7ec;
+	border-radius: 10px;
+	background: #fff;
+	box-shadow: 0 12px 28px rgba(16, 24, 40, 0.14);
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.option {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	width: 100%;
+	padding: 7px 9px;
+	border: 1px solid transparent;
+	border-radius: 8px;
+	font-family: inherit;
+	text-align: left;
+	cursor: pointer;
+
+	&:hover {
+		border-color: #d0d5dd;
+	}
+}
+
+.optionActive {
+	border-color: #98a2b3;
+}
+
+.optionHead {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	font-size: 12.5px;
+	color: #101828;
+}
+
+.optionName {
+	font-weight: 600;
+}
+
+.cheapMark {
+	padding: 1px 6px;
+	border-radius: 999px;
+	background: #12b76a;
+	color: #fff;
+	font-size: 10.5px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.optionPrice {
+	margin-left: auto;
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+}
+
+.optionNote {
+	font-size: 11.5px;
+	line-height: 1.35;
+	color: #667085;
+}
