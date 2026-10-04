@@ -541,9 +541,12 @@ const Reports = ({ filterText = '' }) => {
 		const matching = (data || [])
 			.map(group => ({
 				...group,
-				files: (group.files || []).filter(
-					f => !f.name.toLowerCase().endsWith('.json') && (!q || f.name.toLowerCase().includes(q)),
-				),
+				files: (group.files || []).filter(f => {
+					const low = f.name.toLowerCase();
+					// Служебные итоги и старые PDF в списке отчётов не показываем (см. сервер).
+					if (low.endsWith('.json') || low.endsWith('.pdf')) return false;
+					return !q || low.includes(q);
+				}),
 			}))
 			.filter(group => group.files.length > 0);
 
