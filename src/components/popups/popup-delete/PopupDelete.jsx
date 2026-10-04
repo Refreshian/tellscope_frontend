@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSelector } from 'react-redux';
 
 import { useActions } from '@/hooks/useActions';
+import { DATA_TAB } from '@/data/panel.data';
 
 import {
 	useDeleteFileMutation,
@@ -120,7 +121,7 @@ const PopupDelete = () => {
 		}
 		setDelErr('');
 		const convertDirectory =
-			buttonTarget === 'Файлы данных'
+			buttonTarget === DATA_TAB
 				? 'json_files_directory'
 				: buttonTarget === 'Файлы кластеризации авторов'
 					? 'projector_files_directory'

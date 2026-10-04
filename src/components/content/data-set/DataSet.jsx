@@ -19,7 +19,7 @@ import MosinformArchive from './MosinformArchive';
 import MlopsQueue from './MlopsQueue';
 import Reports from './Reports';
 import NoData from './no-data/NoData';
-import { dataSetButtons } from '@/data/panel.data';
+import { dataSetMainButtons, DATA_TAB, AI_STATUS_TAB } from '@/data/panel.data';
 
 const MOSINFORM_TAB = 'Мосинформ.Рейтинг';
 const QUEUE_TAB = 'Очередь ML';
@@ -40,7 +40,7 @@ const DataSet = () => {
 		const tab = new URLSearchParams(location.search).get('tab');
 		if (tab === 'mosinform') return MOSINFORM_TAB;
 		if (tab === 'queue') return QUEUE_TAB;
-		return 'Файлы данных';
+		return DATA_TAB;
 	});
 	const [showDevModal, setShowDevModal] = useState(false);
 
@@ -59,11 +59,7 @@ const DataSet = () => {
 	const dataForRequest = useSelector(state => state.dataForRequest);
 
 	useEffect(() => {
-		if (activeButton === 'Файлы данных') {
-			addButtonTarget_PopupDelete(activeButton);
-		} else {
-			addButtonTarget_PopupDelete(activeButton);
-		}
+		addButtonTarget_PopupDelete(activeButton);
 	}, [activeButton]);
 
 	useEffect(() => {
@@ -122,7 +118,7 @@ const DataSet = () => {
 	const dataUser_bertopic = queryData.bertopic_files_directory || {};
 
 	const allData = Object.keys(
-		activeButton === 'Файлы данных' ? dataUser : dataUser_Projector || {},
+		activeButton === DATA_TAB ? dataUser : dataUser_Projector || {},
 	);
 	const arrayData =
 		dataUser_bertopic && Object.keys(dataUser_bertopic).length > 0
@@ -144,7 +140,7 @@ const DataSet = () => {
 	};
 
 	const filteredData = useMemo(() => {
-		if (activeButton === 'Файлы данных') {
+		if (activeButton === DATA_TAB) {
 			return getFilteredData(allData, filterText);
 		} else {
 			return [];
@@ -158,7 +154,7 @@ const DataSet = () => {
 	console.log('file_name', file_name, index_doc);
 
 	const renderContent = (activeButton, allData) => {
-		if (activeButton === 'Файлы данных') {
+		if (activeButton === DATA_TAB) {
 			return (
 				<>
 					{allData && allData.values && allData.values.length !== 0 ? (
@@ -176,7 +172,7 @@ const DataSet = () => {
 					)}
 				</>
 			);
-		} else if (activeButton === 'Статус расчета данных') {
+		} else if (activeButton === AI_STATUS_TAB) {
 			const history = Object.values(arrayData).flat();
 			return (
 				<div className={styles.wrapper_statusProgress}>
@@ -225,11 +221,33 @@ const DataSet = () => {
 
 	return (
 		<div className={styles.wrapper_dataSet}>
-			<PanelTargetGraph
-				handleClick={onClick}
-				dataButtons={dataSetButtons}
-				activeButton={activeButton}
-			/>
+			{/* Данные и отчёты — один блок (что загружено и что из этого собрано), расчёты ИИ —
+			    отдельно: это не список файлов, а состояние работы моделей по вашим данным. */}
+			<div className={styles.block__tabsRow}>
+				<PanelTargetGraph
+					handleClick={onClick}
+					dataButtons={dataSetMainButtons}
+					activeButton={activeButton}
+				/>
+
+				<div className={styles.block__aiTabs}>
+					<button
+						type='button'
+						className={
+							activeButton === AI_STATUS_TAB ? styles.aiTabActive : styles.aiTab
+						}
+						aria-pressed={activeButton === AI_STATUS_TAB}
+						title='Очередь и история расчётов ИИ по вашим данным'
+						onClick={() => onClick(AI_STATUS_TAB)}
+					>
+						<span className={styles.aiBadge}>AI</span>
+						<span className={styles.aiTabText}>
+							{AI_STATUS_TAB}
+							<span className={styles.aiHint}>расчёты ИИ по вашим данным</span>
+						</span>
+					</button>
+				</div>
+			</div>
 
 			{showDevModal && (
 				<div className={styles.modalOverlay} onClick={() => setShowDevModal(false)}>
@@ -263,7 +281,7 @@ const DataSet = () => {
 			)}
 
 			<div className={styles.block__content} style={styleContent}>
-				{activeButton !== 'Статус расчета данных' && (
+				{activeButton !== AI_STATUS_TAB && (
 					<div className={styles.block__field}>
 						<img
 							src='/images/icons/input_button/search.svg'

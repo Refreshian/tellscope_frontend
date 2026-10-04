@@ -3,7 +3,8 @@
 
 .wrapper {
 	width: 100%;
-	max-width: 1180px;
+	/* Ширину не ограничиваем: список отчётов занимает всю область контента, пустого места справа нет (был max-width: 1180px). */
+	max-width: none;
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
@@ -85,6 +86,183 @@
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
+}
+
+/* ------------------------------------------------------------- виды работ
+
+   Список отчётов — это результаты разной работы: задачи центра ИИ-задач, запуски
+   агентов, сборка отчётов по наборам, проверка тональности, черновики. Раньше всё
+   лежало одним полотном папок; теперь у каждого вида свой блок со счётчиками,
+   пояснением и акцентным цветом. */
+
+.blocks {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+
+.block {
+	--block-accent: #475569;
+	--block-tint: #f4f6f9;
+	--block-border: #e4e7ec;
+
+	display: flex;
+	flex-direction: column;
+}
+
+.block[data-kind='task'] {
+	--block-accent: #4338ca;
+	--block-tint: #eff0fe;
+	--block-border: #dcdcfb;
+}
+
+.block[data-kind='agent'] {
+	--block-accent: #0e7490;
+	--block-tint: #e8f6fa;
+	--block-border: #cfe9f1;
+}
+
+.block[data-kind='builder'] {
+	--block-accent: #15803d;
+	--block-tint: #ecf7ef;
+	--block-border: #d3ebda;
+}
+
+.block[data-kind='tonality'] {
+	--block-accent: #b45309;
+	--block-tint: #fdf4e5;
+	--block-border: #f2e2c4;
+}
+
+.block[data-kind='drafts'] {
+	--block-accent: #6b7280;
+	--block-tint: #f4f5f7;
+	--block-border: #e4e7ec;
+}
+
+.blockHead {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 9px 12px;
+	border: 1px solid var(--block-border);
+	border-radius: 8px;
+	background: var(--block-tint);
+	color: #1f2937;
+	font-family: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	text-align: left;
+	cursor: pointer;
+
+	&:hover {
+		filter: brightness(0.985);
+	}
+}
+
+.blockMark {
+	flex: 0 0 auto;
+	width: 4px;
+	height: 18px;
+	border-radius: 3px;
+	background: var(--block-accent);
+}
+
+.blockTitle {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.blockMeta {
+	margin-left: auto;
+	flex: 0 0 auto;
+	font-size: 12px;
+	font-weight: 400;
+	color: #5b6472;
+	white-space: nowrap;
+}
+
+.blockBody {
+	margin-top: 8px;
+	padding-left: 14px;
+	border-left: 2px solid var(--block-border);
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.blockHint {
+	margin: 0;
+	font-size: 12px;
+	line-height: 1.45;
+	color: #6b7280;
+}
+
+.chevron {
+	flex: 0 0 auto;
+	color: #6b7280;
+	transition: transform 0.15s ease;
+
+	&[data-open='0'] {
+		transform: rotate(-90deg);
+	}
+}
+
+/* ------------------------------------------------------------- папка */
+
+.groupToggle {
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: inherit;
+	font-family: inherit;
+	font-size: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+/* В смешанной папке файлы разделены по видам работ: в «Отчёты» лежат и сборка,
+   и отчёты агентов — подписи показывают, что чем создано. */
+.part {
+	display: flex;
+	flex-direction: column;
+
+	& + & {
+		border-top: 1px solid #eceff3;
+	}
+}
+
+.partHead {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 5px 12px;
+	background: #fbfcfd;
+	border-bottom: 1px solid #f1f3f5;
+	font-size: 11px;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	color: #7b8494;
+}
+
+.partTitle {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.partCount {
+	margin-left: auto;
+	flex: 0 0 auto;
 }
 
 /* ------------------------------------------------------------- переключатель порядка */
@@ -201,6 +379,21 @@
 	&:hover {
 		background: #e8edf4;
 	}
+}
+
+/* Чётные строки чуть темнее фона карточки: длинный список файлов читается построчно,
+   а не одним полотном. Правила идут после .row:hover, чтобы состояния не перебивались. */
+.rows > .row:nth-child(even) {
+	background: #fcfcfd;
+}
+
+.rows > .row:hover {
+	background: #f4f6f9;
+}
+
+.rows > .row.rowSelected,
+.rows > .row.rowSelected:hover {
+	background: #e8edf4;
 }
 
 .cellName {

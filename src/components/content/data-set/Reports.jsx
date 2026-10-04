@@ -41,6 +41,37 @@ const plural = (n, one, few, many) => {
 	return many;
 };
 
+/* Виды работ. Порядок и подписи приходят с сервера (/reports) — он же раскладывает
+   файлы по видам; здесь только запасной вариант, если ответ пришёл без разбора. */
+const KIND_FALLBACK = {
+	order: ['task', 'agent', 'builder', 'tonality', 'drafts', 'other'],
+	labels: {
+		task: 'Центр ИИ-задач',
+		agent: 'Работа агентов',
+		builder: 'Отчёты по наборам данных',
+		tonality: 'Проверка тональности',
+		drafts: 'Черновики',
+		other: 'Прочее',
+	},
+	hints: {},
+};
+
+const KIND_OTHER = 'other';
+
+/* Что запомнили о свёрнутых блоках и папках: список длинный, состояние не должно
+   сбрасываться при каждом переходе между вкладками. */
+const COLLAPSE_KEY = 'tellscope.reports.collapsed.v1';
+
+const readCollapsed = () => {
+	try {
+		const raw = window.localStorage.getItem(COLLAPSE_KEY);
+		const parsed = raw ? JSON.parse(raw) : null;
+		return parsed && typeof parsed === 'object' ? parsed : {};
+	} catch (e) {
+		return {};
+	}
+};
+
 /* Тип файла — по расширению. Цвет иконки зависит от типа, как в системном проводнике. */
 const FILE_KINDS = {
 	doc: { color: '#2563eb', title: 'Документ Word' },
@@ -91,6 +122,26 @@ const FolderIcon = () => (
 			fill='#d9a441'
 		/>
 		<path d='M1.6 5.6h12.8' stroke='#c08f2c' strokeWidth='1' strokeLinecap='round' />
+	</svg>
+);
+
+const Chevron = ({ open }) => (
+	<svg
+		className={styles.chevron}
+		data-open={open ? '1' : '0'}
+		width='10'
+		height='10'
+		viewBox='0 0 10 10'
+		aria-hidden='true'
+	>
+		<path
+			d='M2.5 3.5 5 6.5l2.5-3'
+			fill='none'
+			stroke='currentColor'
+			strokeWidth='1.5'
+			strokeLinecap='round'
+			strokeLinejoin='round'
+		/>
 	</svg>
 );
 
@@ -176,6 +227,7 @@ const readJson = async response => {
 
 const Reports = ({ filterText = '' }) => {
 	const [data, setData] = useState([]);
+	const [meta, setMeta] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState('');
 	const [busy, setBusy] = useState('');
@@ -185,6 +237,8 @@ const Reports = ({ filterText = '' }) => {
 	const [userId, setUserId] = useState('');
 	// Серверный id текущего пользователя: пока /me не ответил — пустая строка
 	const currentUserId = useCurrentUserId();
+	// Свёрнутые блоки видов работ и папки: ключи `block:<вид>` и `folder:<папка>`
+	const [collapsed, setCollapsed] = useState(readCollapsed);
 
 	// Порядок файлов. По умолчанию — «сначала новые»: свежий отчёт виден сразу, без поиска
 	// глазами (API отдаёт файлы по алфавиту, а не по дате). Выбор запоминается в localStorage.
@@ -194,6 +248,20 @@ const Reports = ({ filterText = '' }) => {
 	const resourceRef = useRef('');
 
 	const headers = () => ({ Authorization: `Bearer ${Cookies.get(TOKEN) || ''}` });
+
+	// Состояние берём тем, каким его видит пользователь: у больших папок «свёрнуто» —
+	// это состояние по умолчанию, а не запись в списке, иначе первый клик ничего не делал бы.
+	const toggleCollapsed = useCallback((key, current) => {
+		setCollapsed(prev => {
+			const next = { ...prev, [key]: !current };
+			try {
+				window.localStorage.setItem(COLLAPSE_KEY, JSON.stringify(next));
+			} catch (e) {
+				/* приватный режим браузера — просто не запоминаем */
+			}
+			return next;
+		});
+	}, []);
 
 	/**
 	 * Идентификатор пользователя.
@@ -241,6 +309,8 @@ const Reports = ({ filterText = '' }) => {
 				const payload = await readJson(response);
 				const values = Array.isArray(payload && payload.values) ? payload.values : [];
 				setData(values);
+				// Разбор по видам работ: какие блоки показывать и как их подписывать
+				setMeta(payload && payload.kinds ? payload.kinds : null);
 				resourceRef.current = `${uid}/reports`;
 			} catch (e) {
 				// Технические детали — только в консоль: пользователь не должен видеть
@@ -454,6 +524,13 @@ const Reports = ({ filterText = '' }) => {
 
 	/* ------------------------------------------------------------------- вывод */
 
+	const labels = (meta && meta.labels) || KIND_FALLBACK.labels;
+	const hints = (meta && meta.hints) || KIND_FALLBACK.hints;
+	const kindOrder = (meta && Array.isArray(meta.order) && meta.order.length
+		? meta.order
+		: KIND_FALLBACK.order
+	).slice();
+
 	const groups = useMemo(() => {
 		const q = (filterText || '').trim().toLowerCase();
 
@@ -487,7 +564,55 @@ const Reports = ({ filterText = '' }) => {
 		);
 	}, [data, filterText, sortMode]);
 
+	/* Блоки по видам работ: «работа агентов» и «проверка тональности» больше не лежат
+	   в одном полотне — у каждого вида свой заголовок, счётчики и пояснение. */
+	const blocks = useMemo(() => {
+		const map = new Map();
+		groups.forEach(group => {
+			const kind = group.kind || KIND_OTHER;
+			if (!map.has(kind)) {
+				map.set(kind, {
+					kind,
+					label: labels[kind] || labels[KIND_OTHER] || 'Прочее',
+					hint: hints[kind] || '',
+					folders: [],
+					files: 0,
+				});
+			}
+			const block = map.get(kind);
+			block.folders.push(group);
+			block.files += group.files.length;
+		});
+		const known = kindOrder.filter(kind => map.has(kind));
+		const rest = Array.from(map.keys()).filter(kind => !kindOrder.includes(kind));
+		return [...known, ...rest].map(kind => map.get(kind));
+	}, [groups, labels, hints, kindOrder]);
+
 	const totalFiles = groups.reduce((sum, group) => sum + group.files.length, 0);
+	const totalFolders = groups.length;
+
+	/** Файлы одной папки, разложенные по видам работ: в смешанной папке видно, что чем создано. */
+	const partsOf = group => {
+		const counts = group.kind_counts || {};
+		const present = Object.keys(counts).filter(kind => counts[kind] > 0);
+		if (present.length < 2) return [{ kind: '', files: group.files }];
+		const buckets = new Map(present.map(kind => [kind, []]));
+		const rest = [];
+		group.files.forEach(file => {
+			const bucket = file.kind && buckets.get(file.kind);
+			if (bucket) bucket.push(file);
+			else rest.push(file);
+		});
+		const ordered = kindOrder.filter(kind => buckets.has(kind));
+		Array.from(buckets.keys()).forEach(kind => {
+			if (!ordered.includes(kind)) ordered.push(kind);
+		});
+		const parts = ordered
+			.map(kind => ({ kind, files: buckets.get(kind) }))
+			.filter(part => part.files.length > 0);
+		if (rest.length) parts.push({ kind: '', files: rest });
+		return parts;
+	};
 
 	if (loading) {
 		return <div className={styles.state}>Загрузка отчётов…</div>;
@@ -528,110 +653,186 @@ const Reports = ({ filterText = '' }) => {
 				<FileSortSwitch value={sortMode} onChange={setSortMode} />
 				<span className={styles.toolbarMeta}>
 					{totalFiles} {plural(totalFiles, 'файл', 'файла', 'файлов')} в{' '}
-					{groups.length} {plural(groups.length, 'папке', 'папках', 'папках')}
+					{totalFolders} {plural(totalFolders, 'папке', 'папках', 'папках')} ·{' '}
+					{blocks.length} {plural(blocks.length, 'вид работ', 'вида работ', 'видов работ')}
 				</span>
 			</div>
 
-			<div className={styles.list}>
-				{groups.map(group => {
-					const folderKey = `folder:${group.folder}`;
+			<div className={styles.blocks}>
+				{blocks.map(block => {
+					const blockKey = `block:${block.kind}`;
+					const blockCollapsed = Boolean(collapsed[blockKey]);
 					return (
-						<section key={group.folder} className={styles.group}>
-							<header className={styles.groupHead}>
-								<FolderIcon />
-								<h3 className={styles.groupTitle} title={group.folder}>
-									{group.folder}
-								</h3>
-								<span className={styles.groupCount}>
-									{group.files.length}{' '}
-									{plural(group.files.length, 'файл', 'файла', 'файлов')}
+						<section
+							key={block.kind}
+							className={styles.block}
+							data-kind={block.kind}
+						>
+							<button
+								type='button'
+								className={styles.blockHead}
+								aria-expanded={!blockCollapsed}
+								onClick={() => toggleCollapsed(blockKey, blockCollapsed)}
+							>
+								<span className={styles.blockMark} />
+								<span className={styles.blockTitle}>{block.label}</span>
+								<span className={styles.blockMeta}>
+									{block.folders.length}{' '}
+									{plural(block.folders.length, 'папка', 'папки', 'папок')} ·{' '}
+									{block.files} {plural(block.files, 'файл', 'файла', 'файлов')}
 								</span>
-								<button
-									type='button'
-									className={styles.iconBtn}
-									title={`Удалить папку «${group.folder}»`}
-									aria-label={`Удалить папку ${group.folder}`}
-									disabled={deleting === folderKey}
-									onClick={() => askDeleteFolder(group.folder, group.files.length)}
-								>
-									{deleting === folderKey ? (
-										<span className={styles.spinner} />
-									) : (
-										<TrashIcon />
-									)}
-								</button>
-							</header>
+								<Chevron open={!blockCollapsed} />
+							</button>
 
-							<div className={styles.columns}>
-								<span className={styles.colName}>Имя</span>
-								<span className={styles.colSize}>Размер</span>
-								<span className={styles.colDate}>Дата</span>
-								<span className={styles.colActions} />
-							</div>
+							{!blockCollapsed && (
+								<div className={styles.blockBody}>
+									{block.hint && <p className={styles.blockHint}>{block.hint}</p>}
 
-							<div className={styles.rows}>
-								{group.files.map(file => {
-									const key = `${group.folder}/${file.name}`;
-									const isBusy = busy === key || deleting === key;
-									return (
-										<div
-											key={key}
-											className={`${styles.row} ${
-												selected === key ? styles.rowSelected : ''
-											}`}
-											onClick={() => setSelected(key)}
-										>
-											<span className={styles.cellName}>
-												<FileIcon kind={kindOf(file.name)} />
-												<span className={styles.fileName} title={file.name}>
-													{file.name}
-												</span>
-											</span>
+									{block.folders.map(group => {
+										const folderKey = `folder:${group.folder}`;
+										// Большая папка свёрнута по умолчанию: 80 файлов подряд —
+										// это и есть «одно полотно», из-за которого трудно искать.
+										const big = group.files.length > 6;
+										const folderCollapsed =
+											folderKey in collapsed ? Boolean(collapsed[folderKey]) : big;
+										const parts = folderCollapsed ? [] : partsOf(group);
+										return (
+											<article key={group.folder} className={styles.group}>
+												<header className={styles.groupHead}>
+													<button
+														type='button'
+														className={styles.groupToggle}
+														aria-expanded={!folderCollapsed}
+														onClick={() => toggleCollapsed(folderKey, folderCollapsed)}
+													>
+														<Chevron open={!folderCollapsed} />
+														<FolderIcon />
+														<h3 className={styles.groupTitle} title={group.folder}>
+															{group.folder}
+														</h3>
+													</button>
+													<span className={styles.groupCount}>
+														{group.files.length}{' '}
+														{plural(group.files.length, 'файл', 'файла', 'файлов')}
+													</span>
+													<button
+														type='button'
+														className={styles.iconBtn}
+														title={`Удалить папку «${group.folder}»`}
+														aria-label={`Удалить папку ${group.folder}`}
+														disabled={deleting === `folder:${group.folder}`}
+														onClick={() => askDeleteFolder(group.folder, group.files.length)}
+													>
+														{deleting === `folder:${group.folder}` ? (
+															<span className={styles.spinner} />
+														) : (
+															<TrashIcon />
+														)}
+													</button>
+												</header>
 
-											<span className={styles.cellSize}>{fmtSize(file.size)}</span>
+												{!folderCollapsed && (
+													<>
+														<div className={styles.columns}>
+															<span className={styles.colName}>Имя</span>
+															<span className={styles.colSize}>Размер</span>
+															<span className={styles.colDate}>Дата</span>
+															<span className={styles.colActions} />
+														</div>
 
-											<span className={styles.cellDate}>{fmtDate(file.modified)}</span>
+														{parts.map(part => (
+															<div key={part.kind || 'rest'} className={styles.part}>
+																{part.kind && (
+																	<div className={styles.partHead}>
+																		<span className={styles.partTitle}>
+																			{labels[part.kind] || labels[KIND_OTHER]}
+																		</span>
+																		<span className={styles.partCount}>
+																			{part.files.length}{' '}
+																			{plural(part.files.length, 'файл', 'файла', 'файлов')}
+																		</span>
+																	</div>
+																)}
+																<div className={styles.rows}>
+																	{part.files.map(file => {
+																		const key = `${group.folder}/${file.name}`;
+																		const isBusy =
+																			busy === key || deleting === key;
+																		return (
+																			<div
+																				key={key}
+																				className={`${styles.row} ${
+																					selected === key ? styles.rowSelected : ''
+																				}`}
+																				onClick={() => setSelected(key)}
+																			>
+																				<span className={styles.cellName}>
+																					<FileIcon kind={kindOf(file.name)} />
+																					<span
+																						className={styles.fileName}
+																						title={file.name}
+																					>
+																						{file.name}
+																					</span>
+																				</span>
 
-											<span className={styles.cellActions}>
-												<button
-													type='button'
-													className={styles.downloadBtn}
-													disabled={isBusy}
-													onClick={event => {
-														event.stopPropagation();
-														download(group.folder, file);
-													}}
-												>
-													{busy === key ? 'Скачивание…' : 'Скачать'}
-												</button>
-												<FileOrigin
-													userId={userId}
-													folder={group.folder}
-													file={file.name}
-													variant='pill'
-												/>
-												<button
-													type='button'
-													className={styles.deleteBtn}
-													title={`Удалить файл «${file.name}»`}
-													aria-label={`Удалить файл ${file.name}`}
-													disabled={isBusy}
-													onClick={event => {
-														event.stopPropagation();
-														askDeleteFile(group.folder, file);
-													}}
-												>
-													{deleting === key ? (
-														<span className={styles.spinner} />
-													) : (
-														<TrashIcon />
-													)}
-												</button>
-											</span>
-										</div>
-									);
-								})}
-							</div>
+																				<span className={styles.cellSize}>
+																					{fmtSize(file.size)}
+																				</span>
+
+																				<span className={styles.cellDate}>
+																					{fmtDate(file.modified)}
+																				</span>
+
+																				<span className={styles.cellActions}>
+																					<button
+																						type='button'
+																						className={styles.downloadBtn}
+																						disabled={isBusy}
+																						onClick={event => {
+																							event.stopPropagation();
+																							download(group.folder, file);
+																						}}
+																					>
+																						{busy === key ? 'Скачивание…' : 'Скачать'}
+																					</button>
+																					<FileOrigin
+																						userId={userId}
+																						folder={group.folder}
+																						file={file.name}
+																						variant='pill'
+																					/>
+																					<button
+																						type='button'
+																						className={styles.deleteBtn}
+																						title={`Удалить файл «${file.name}»`}
+																						aria-label={`Удалить файл ${file.name}`}
+																						disabled={isBusy}
+																						onClick={event => {
+																							event.stopPropagation();
+																							askDeleteFile(group.folder, file);
+																						}}
+																					>
+																						{deleting === key ? (
+																							<span className={styles.spinner} />
+																						) : (
+																							<TrashIcon />
+																						)}
+																					</button>
+																				</span>
+																			</div>
+																		);
+																	})}
+																</div>
+															</div>
+														))}
+													</>
+												)}
+											</article>
+										);
+									})}
+								</div>
+							)}
 						</section>
 					);
 				})}

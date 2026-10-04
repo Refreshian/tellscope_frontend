@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 
 import { useActions } from '@/hooks/useActions';
+import { DATA_TAB } from '@/data/panel.data';
 
 import { downloadJSON } from '@/utils/downloadData';
 
@@ -41,7 +42,7 @@ const Folder = ({ folder, processedFolder, buttonTarget, shared }) => {
 
 	const handleClick = () => {
 	addTargetFolder(folder);
-	if (buttonTarget === 'Файлы данных') {
+	if (buttonTarget === DATA_TAB) {
 		navigate(`/data-set/${folder}`, { state: { folder } }); // Добавьте state
 	} else if (buttonTarget === 'Файлы кластеризации авторов') {
 		navigate(`/data-set/processed/${folder}`, { state: { folder } });

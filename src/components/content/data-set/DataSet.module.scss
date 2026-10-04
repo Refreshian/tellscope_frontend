@@ -8,6 +8,74 @@
 	padding-top: adapt(24px, 1440px);
 }
 
+/* Строка вкладок: слева данные и отчёты, справа отдельным блоком расчёты ИИ. */
+.block__tabsRow {
+	display: flex;
+	align-items: center;
+	gap: adapt(20px, 1440px);
+	flex-wrap: wrap;
+	padding-bottom: adapt(6px, 1440px);
+	border-bottom: 1px solid rgba($color: $color_black, $alpha: 0.06);
+}
+
+.block__aiTabs {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	// Отделяем расчёты от списков: вертикальная черта как граница смысла, а не украшение.
+	padding-left: adapt(20px, 1440px);
+	border-left: 1px solid rgba($color: $color_black, $alpha: 0.08);
+}
+
+.aiTab,
+.aiTabActive {
+	display: flex;
+	align-items: center;
+	gap: adapt(8px, 1440px);
+	padding: adapt(6px, 1440px) adapt(12px, 1440px);
+	border-radius: adapt(10px, 1440px);
+	border: 1px solid rgba($color: $color_blue, $alpha: 0.22);
+	background-color: rgba($color: $color_blue, $alpha: 0.06);
+	color: $color_black;
+	text-align: left;
+
+	&:hover {
+		cursor: pointer;
+		background-color: rgba($color: $color_blue, $alpha: 0.1);
+	}
+}
+
+.aiTabActive {
+	background-color: rgba($color: $color_blue, $alpha: 0.14);
+	border-color: rgba($color: $color_blue, $alpha: 0.45);
+	box-shadow: inset 0 -2px 0 0 $color_blue;
+}
+
+.aiBadge {
+	flex: 0 0 auto;
+	padding: adapt(1px, 1440px) adapt(6px, 1440px);
+	border-radius: adapt(6px, 1440px);
+	background-color: $color_blue;
+	color: $color_white;
+	font-size: 0.6rem;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	line-height: 1.5;
+}
+
+.aiTabText {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	font-size: 0.86rem;
+	line-height: 1.25;
+}
+
+.aiHint {
+	font-size: 0.66rem;
+	color: rgba($color: $color_black, $alpha: 0.55);
+}
+
 .block__tabs {
 	font-size: 1.12rem;
 	display: flex;
@@ -48,27 +116,30 @@
 	> .block__field {
 		position: absolute;
 		right: adapt(44px, 1440px);
-		top: adapt(32px, 1440px);
+		top: adapt(34px, 1440px);
 		display: flex;
 		align-items: center;
-		gap: adapt(8px, 1440px);
-		padding: adapt(12px, 1440px) adapt(11px, 1440px);
+		gap: adapt(6px, 1440px);
+		// Компактнее и незаметнее: поле поиска не конкурирует со списком.
+		padding: adapt(7px, 1440px) adapt(10px, 1440px);
 		background-color: $color_white;
-		border-radius: adapt(8px, 1440px);
-		max-width: adapt(285px, 1440px);
-		border: 1px solid rgba($color: $color_black, $alpha: 0.12);
+		border-radius: adapt(6px, 1440px);
+		max-width: adapt(210px, 1440px);
+		border: 1px solid rgba($color: $color_black, $alpha: 0.08);
 
 		> .image__search {
-			width: adapt(12px, 1440px);
-			height: adapt(14px, 1440px);
+			width: adapt(10px, 1440px);
+			height: adapt(12px, 1440px);
+			opacity: 0.55;
 		}
 		> .input__search {
-			font-size: 0.72rem;
-			color: $color_black;
+			font-size: 0.66rem;
+			color: rgba($color: $color_black, $alpha: 0.85);
 			outline: none;
+			width: 100%;
 
 			&::placeholder {
-				color: rgba($color: $color_black, $alpha: 0.6);
+				color: rgba($color: $color_black, $alpha: 0.42);
 			}
 		}
 	}
@@ -303,6 +374,22 @@
 }
 
 @media (max-width: 900px) {
+	.block__tabsRow {
+		gap: 10px;
+	}
+
+	.block__aiTabs {
+		margin-left: 0;
+		padding-left: 0;
+		border-left: none;
+		width: 100%;
+	}
+
+	.aiTab,
+	.aiTabActive {
+		width: 100%;
+	}
+
 	.block__tabs {
 		width: 100%;
 		overflow-x: auto;

@@ -8,6 +8,7 @@ import BackgroundLoader from '@/components/loading/background-loader/BackgroundL
 import Loader from '@/components/loading/loader/Loader';
 import LeftMenu from '@/components/ui/left-menu/LeftMenu';
 import LeftMenuActive from '@/components/ui/left-menu/left-menu-active/LeftMenuActive';
+import { DATA_TAB } from '@/data/panel.data';
 
 import { useActions } from '../../../hooks/useActions';
 import { useCheckAuth } from '../../../hooks/useCheckAuth';
@@ -1363,7 +1364,7 @@ const DataSetPage = () => {
                 <div className={styles.block__pageName}>
                     <h3 className={styles.pageName__title}>Наборы данных</h3>
                     <div className={styles.pageName__actions}>
-                        {pathname === '/data-set' && buttonTarget === 'Файлы данных' && (
+                        {pathname === '/data-set' && buttonTarget === DATA_TAB && (
                             <button className={styles.button__title} onClick={onClick}>
                                 Создать папку
                             </button>

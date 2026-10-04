@@ -29,6 +29,15 @@ const formatWhen = iso => {
 const hiddenNote = hidden =>
 	`Скрыто расчётов: ${hidden} — это расчёты других пользователей и старые записи без автора.`;
 
+// Имена файлов: пилотная презентация и итоговый отчёт «Мосинформ.Индекс».
+const FILE_NAMES = {
+	pptx: 'mosinform_rating.pptx',
+	xlsx: 'mosinform_rating.xlsx',
+	'index-pptx': 'Мосинформ_Индекс_отчёт.pptx',
+	'index-pdf': 'Мосинформ_Индекс_отчёт.pdf',
+	'index-xlsx': 'Мосинформ_Индекс_расчёт.xlsx',
+};
+
 const downloadJob = (jobId, kind) => {
 	const token = Cookies.get(TOKEN);
 	fetch(`${API_URL}/mosinform/jobs/${jobId}/${kind}`, {
@@ -41,7 +50,7 @@ const downloadJob = (jobId, kind) => {
 		.then(blob => {
 			const link = document.createElement('a');
 			link.href = URL.createObjectURL(blob);
-			link.download = `mosinform_rating_${jobId}.${kind}`;
+			link.download = FILE_NAMES[kind] || `mosinform_rating_${jobId}.${kind}`;
 			link.click();
 		})
 		.catch(() => {});
@@ -144,8 +153,9 @@ const MosinformArchive = ({ filterText = '' }) => {
 		<div className={styles.list}>
 			<div className={styles.head}>
 				<p className={styles.lead}>
-					Архив расчётов Мосинформ.Рейтинг: здесь скачиваются готовые презентации PPTX и
-					Excel. Результаты сохраняются на сервере. Можно закрыть браузер и вернуться сюда.
+					Архив расчётов Мосинформ: здесь скачиваются итоговый отчёт «Мосинформ.Индекс»
+					(PPTX и PDF), расчёт индекса в Excel и пилотная презентация по 13 параметрам.
+					Результаты сохраняются на сервере. Можно закрыть браузер и вернуться сюда.
 				</p>
 				<Link className={styles.link} to="/mosinform-rating">
 					Новый расчёт
@@ -200,11 +210,49 @@ const MosinformArchive = ({ filterText = '' }) => {
 							{formatWhen(job.created_at)}
 							{job.updated_at ? ` · обновлено ${formatWhen(job.updated_at)}` : ''}
 						</p>
+						{job.summary?.index && (
+							<p>
+								<span>Индекс «Мосинформ»:</span>{' '}
+								{[...(job.summary.index.departments || []), ...(job.summary.index.projects || [])]
+									.sort((a, b) => b.index - a.index)
+									.slice(0, 2)
+									.map(item => `${item.name} — ${Number(item.index).toFixed(1).replace('.', ',')}`)
+									.join(' · ') || '—'}
+							</p>
+						)}
+						{(job.has_index_pptx || job.has_index_pdf || job.has_index_xlsx) && (
+							<div className={styles.actions}>
+								{job.has_index_pptx && (
+									<button
+										type="button"
+										onClick={() => downloadJob(job.job_id, 'index-pptx')}
+									>
+										Итоговый отчёт PPTX
+									</button>
+								)}
+								{job.has_index_pdf && (
+									<button
+										type="button"
+										onClick={() => downloadJob(job.job_id, 'index-pdf')}
+									>
+										Итоговый отчёт PDF
+									</button>
+								)}
+								{job.has_index_xlsx && (
+									<button
+										type="button"
+										onClick={() => downloadJob(job.job_id, 'index-xlsx')}
+									>
+										Расчёт индекса
+									</button>
+								)}
+							</div>
+						)}
 						{(job.has_pptx || job.has_xlsx) && (
 							<div className={styles.actions}>
 								{job.has_pptx && (
 									<button type="button" onClick={() => downloadJob(job.job_id, 'pptx')}>
-										Скачать PPTX
+										Пилотная презентация PPTX
 									</button>
 								)}
 								{job.has_xlsx && (

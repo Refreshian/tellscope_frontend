@@ -78,23 +78,36 @@ export const competitiveButtons = [
 	},
 ];
 
+/* Названия вкладок экрана «Наборы данных». Это ключ активной вкладки — по нему
+   сравнивают DataSet, Folder, PopupDelete и страница набора, поэтому строки живут
+   в одном месте и не расходятся при переименовании. */
+export const DATA_TAB = 'Данные';
+export const REPORTS_TAB = 'Отчёты';
+export const AI_STATUS_TAB = 'Статус расчета данных';
+
 export const dataSetButtons = [
 	{
 		id: 0,
 		isCount: false,
-		title: 'Файлы данных',
+		title: DATA_TAB,
+	},
+	{
+		id: 1,
+		isCount: false,
+		title: REPORTS_TAB,
 	},
 	{
 		id: 2,
 		isCount: false,
-		title: 'Статус расчета данных',
-	},
-	{
-		id: 3,
-		isCount: false,
-		title: 'Отчёты',
+		title: AI_STATUS_TAB,
 	},
 ];
+
+/* Вкладки данных и отчётов идут рядом: это одно — что загружено и что из этого собрано.
+   Статус расчётов вынесен отдельно: это работа ИИ по данным, а не ещё один список файлов. */
+export const dataSetMainButtons = dataSetButtons.filter(
+	button => button.title !== AI_STATUS_TAB,
+);
 
 export const analysisOfThemesButtons = [
 	{
