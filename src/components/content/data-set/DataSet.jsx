@@ -20,6 +20,8 @@ import MlopsQueue from './MlopsQueue';
 import Reports from './Reports';
 import NoData from './no-data/NoData';
 import { dataSetMainButtons, DATA_TAB, AI_STATUS_TAB } from '@/data/panel.data';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { canOpenPath } from '@/utils/sections';
 
 const MOSINFORM_TAB = 'Мосинформ.Рейтинг';
 const QUEUE_TAB = 'Очередь ML';
@@ -43,6 +45,11 @@ const DataSet = () => {
 		return DATA_TAB;
 	});
 	const [showDevModal, setShowDevModal] = useState(false);
+	// «Статус расчета данных» — это состояние расчётов ИИ-анализа, а не список файлов.
+	// Показываем его только тем, кому выдан раздел «ИИ анализ», и только когда есть что
+	// показать: история расчётов или идущий сейчас расчёт. Пустая вкладка с нулями
+	// пользователю ничего не объясняет.
+	const me = useCurrentUser();
 
 	const {
 		data: data_getUserId,
@@ -128,6 +135,18 @@ const DataSet = () => {
 	const file_name = Object.values(dataUser)
 		.flat()
 		.find(file => dataForRequest.index === file.index_number);
+
+	const canSeeAiSection = useMemo(() => canOpenPath(me, '/ai-analytics'), [me]);
+	const aiHistoryCount = useMemo(
+		() => Object.values(dataUser_bertopic || {}).flat().length,
+		[dataUser_bertopic]
+	);
+	const showAiStatus = canSeeAiSection && (aiHistoryCount > 0 || Number(progress_load) > 0);
+
+	useEffect(() => {
+		// Доступ или данные пропали (расчёт закончился, историю удалили) — уводим с вкладки.
+		if (!showAiStatus && activeButton === AI_STATUS_TAB) setActiveButton(DATA_TAB);
+	}, [showAiStatus, activeButton]);
 
 	const [filterText, setFilterText] = useState('');
 	const getFilteredData = (data, filterText) => {
@@ -230,6 +249,7 @@ const DataSet = () => {
 					activeButton={activeButton}
 				/>
 
+				{showAiStatus ? (
 				<div className={styles.block__aiTabs}>
 					<button
 						type='button'
@@ -247,6 +267,7 @@ const DataSet = () => {
 						</span>
 					</button>
 				</div>
+				) : null}
 			</div>
 
 			{showDevModal && (
