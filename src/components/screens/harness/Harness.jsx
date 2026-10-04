@@ -940,6 +940,8 @@ const Harness = () => {
 		[info, difyAvailable]
 	);
 	const difyUrl = info?.dify_url || 'https://tellscope40.headsmade.com:8443';
+	// Что за модель выбрана: под селектором показываем её цену и на что тратятся токены.
+	const selectedModel = (info?.models || []).find(item => item.id === model) || null;
 	const visibleTasks = showAllTasks ? tasks : tasks.slice(0, 5);
 
 	// Задача, собранная под Dify, у пользователя без доступа не должна оставлять режим
@@ -1238,6 +1240,13 @@ const Harness = () => {
 					</div>
 
 					<p className={styles.modeNote}>{MODE_NOTES[mode]}</p>
+
+					{/* Модель нужна, чтобы выбрать инструменты и написать текст отчёта: токены
+					    тратятся только на это, чтение всего массива идёт на нашей модели. */}
+					<p className={styles.modelNote}>
+						{selectedModel ? `${selectedModel.title}: ${selectedModel.price_text}. ` : ''}
+						{info?.usage_note || ''}
+					</p>
 
 					<div className={styles.dataRow}>
 						<ThemePicker

@@ -349,7 +349,7 @@ const AgentMode = () => {
   }, [loadConnectors, loadCatalog]);
 
   const datasetChosen = dataForRequest.index !== null && dataForRequest.index !== undefined;
-  const models = catalog?.models || [{ id: 'gpt', label: 'GPT-4.1 mini — дёшево' }];
+  const models = catalog?.models || [{ id: 'gpt', label: 'GPT 5.4 Mini' }];
   const reports = useMemo(() => artifacts.filter(item => item.kind === 'report'), [artifacts]);
   const charts = useMemo(() => artifacts.filter(item => item.kind !== 'report'), [artifacts]);
 
@@ -561,7 +561,6 @@ const AgentMode = () => {
                   {models.map(item => (
                     <option key={item.id} value={item.id}>
                       {item.label}
-                      {item.price_in || item.price_out ? ` · $${item.price_in}/$${item.price_out} за 1M токенов` : ' · без оплаты'}
                     </option>
                   ))}
                 </select>

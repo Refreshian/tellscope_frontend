@@ -774,7 +774,6 @@ const Agents = () => {
                       {(meta.models || []).map(item => (
                         <option key={item.id} value={item.id}>
                           {item.label}
-                          {item.price_in ? ` · $${item.price_in}/$${item.price_out}` : ' · без оплаты'}
                         </option>
                       ))}
                     </select>
@@ -856,7 +855,7 @@ const Agents = () => {
                   <span>{agent.dataset_name || 'датасет не выбран'}</span>
                 </div>
                 <div className={styles.cardMuted}>
-                  {agent.model === 'qwen' ? 'Qwen (локально)' : agent.model === 'claude' ? 'Claude' : 'GPT-4.1 mini'}
+                  {agent.model === 'qwen' ? 'Qwen3-32B (наш сервер)' : agent.model === 'claude' ? 'Claude Sonnet 5' : agent.model === 'deepseek' ? 'DeepSeek V4.1 Flash' : 'GPT 5.4 Mini'}
                   {agent.steps?.length ? ` · цепочка: ${agent.steps.length} шагов` : ' · режим: инструкция'}
                   {agent.last_run_at ? ` · последний запуск: ${agent.last_run_at}` : ''}
                 </div>
