@@ -188,8 +188,11 @@ const Usage = () => {
 									за 1 млн токенов ({internal.own_pricing?.source})
 								</span>
 								<span className={styles.cardHint}>
-									Внешние модели: {rub(internal.external_cost_rub)} ₽ · всего:{' '}
-									{rub(internal.total_cost_rub)} ₽
+									Начислено клиенту {rub(internal.external_cost_rub)} ₽ · себестоимость{' '}
+									{rub(internal.provider_cost_rub)} ₽ · маржа {rub(internal.margin_rub)} ₽
+								</span>
+								<span className={styles.cardHint}>
+									Всего по себестоимости: {rub(internal.total_cost_rub)} ₽
 								</span>
 							</div>
 						)}
