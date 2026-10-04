@@ -466,3 +466,47 @@
 .pageName__title {
 	color: $ink-cosmic;
 }
+// Подпись о выданных папках: тихая строка, подробности (владелец, права) — по клику.
+// Зелёной плашки здесь нет намеренно: папки и без неё видны в списке данных.
+.sharedNote {
+  width: 100%;
+  margin: 2px 0 6px;
+  color: rgba($color: $color_black, $alpha: 0.42);
+  font-size: 0.72rem;
+  line-height: 1.5;
+
+  > summary {
+    width: max-content;
+    max-width: 100%;
+    cursor: pointer;
+    list-style: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &::before {
+      content: '▸';
+      display: inline-block;
+      margin-right: 4px;
+      transition: transform 0.15s ease;
+    }
+
+    &:hover {
+      color: rgba($color: $color_black, $alpha: 0.62);
+    }
+  }
+
+  &[open] > summary::before {
+    transform: rotate(90deg);
+  }
+
+  > div {
+    margin-top: 2px;
+    padding-left: 14px;
+    color: rgba($color: $color_black, $alpha: 0.45);
+  }
+}

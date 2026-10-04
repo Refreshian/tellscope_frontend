@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -522,6 +522,12 @@ const DataSetPage = () => {
     const baPollRef = useRef(null);
     const baThemesPollRef = useRef(0);
     const [myShared, setMyShared] = useState([]);
+    // Права у выданных папок могут отличаться: в короткой подписи пишем одно значение,
+    // если они совпадают, иначе честно «права разные» (подробности — в раскрытии).
+    const sharedAccessNote = useMemo(() => {
+        const labels = [...new Set((myShared || []).map(s => s.access_label || 'только чтение'))];
+        return labels.length === 1 ? labels[0] : labels.length ? 'права разные' : '';
+    }, [myShared]);
 
     const getToken = () => {
         const m = document.cookie.split('; ').find(x => x.startsWith('token='));
@@ -1493,19 +1499,29 @@ const DataSetPage = () => {
 
                 )}
  
+                {/* Выданные папки: тихая подпись в одну строку, подробности — по раскрытию.
+                    Раньше это была заметная зелёная плашка с владельцами и правами на виду;
+                    папки и так видны в списке данных, поэтому подпись не должна спорить с ним. */}
                 {pathname === '/data-set' && myShared.length > 0 && (
-                    <div style={{ width: '100%', margin: '6px 0', padding: '10px 14px', border: '1px solid rgba(3,152,85,.3)', borderRadius: 10, background: '#f2fbf6', fontSize: 13 }}>
-                        <div style={{ fontWeight: 600, marginBottom: 4 }}>Доступные мне</div>
-                        {myShared.map((s, i) => (
-                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '4px 0', borderBottom: '1px dashed #cdeedc' }}>
-                                <span>владелец #{s.owner_user_id} · папка «{s.folder}»</span>
-                                <span style={{ color: '#067647' }}>
-                                    {s.access_label || 'только чтение'}
+                    <details
+                        className={styles.sharedNote}
+                        title={myShared
+                            .map(s => `«${s.folder}» — владелец #${s.owner_user_id}, ${s.access_label || 'только чтение'}${s.access === 'delete' ? ', можно удалять датасеты' : ''}`)
+                            .join('\n')}
+                    >
+                        <summary>
+                            Доступные мне: {myShared.map(s => s.folder).join(', ')}
+                            {sharedAccessNote ? ` · ${sharedAccessNote}` : ''}
+                        </summary>
+                        <div>
+                            {myShared.map((s, i) => (
+                                <div key={i}>
+                                    «{s.folder}» — владелец #{s.owner_user_id} · {s.access_label || 'только чтение'}
                                     {s.access === 'delete' ? ' · можно удалять датасеты' : ''}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </details>
                 )}
 
 
